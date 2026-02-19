@@ -78,48 +78,46 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
         ? { ...t, status: 'Consensuada', finalEstimate: finalValue } 
         : t
     ));
-    
-    // Simular entrada en log de auditoría
-    console.log(`Auditoría: Tarea ${selectedTaskId} cerrada con valor ${finalValue}`);
   };
 
   return (
-    <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="flex items-center gap-8">
+    <div className="space-y-8 md:space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <div className="flex flex-col gap-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
           <button 
             onClick={onBack}
-            className="w-16 h-16 flex items-center justify-center bg-white border-2 border-slate-100 rounded-3xl text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel hover:scale-105 transition-all shadow-sm group"
+            className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-white border-2 border-slate-100 rounded-2xl md:rounded-3xl text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel transition-all shadow-sm group"
           >
-            <ArrowLeft className="w-8 h-8 group-hover:-translate-x-1 transition-transform" />
+            <ArrowLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
-            <div className="flex items-center gap-4">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Migración Microservicios</h2>
-              <span className="bg-delphi-orange text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-delphi-orange/20">Activo</span>
+            <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+              <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight leading-none">Migración Microservicios</h2>
+              <span className="bg-delphi-orange text-white px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-delphi-orange/20">Activo</span>
             </div>
-            <div className="flex items-center gap-6 mt-3">
-              <p className="text-slate-400 font-black text-xs uppercase tracking-widest flex items-center gap-2">
+            <div className="flex items-center gap-4 md:gap-6 mt-3 flex-wrap">
+              <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                 <FileText className="w-4 h-4 text-delphi-keppel" />
-                Unidad: Horas Persona
+                Unidad: Horas
               </p>
-              <div className="h-4 w-px bg-slate-200" />
-              <p className="text-slate-400 font-black text-xs uppercase tracking-widest flex items-center gap-2">
+              <div className="hidden sm:block h-4 w-px bg-slate-200" />
+              <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                 <Users className="w-4 h-4 text-delphi-orange" />
-                5 Expertos Asignados
+                5 Expertos
               </p>
             </div>
           </div>
         </div>
+        
         {isFacilitator && (
-          <div className="flex gap-3">
-             <button className="flex items-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">
+          <div className="flex flex-col sm:flex-row gap-3">
+             <button className="flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all">
                <Settings className="w-4 h-4" />
                Configurar
              </button>
              <button 
                onClick={() => setShowTaskForm(true)}
-               className="flex items-center gap-3 px-8 py-4 bg-delphi-keppel text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.05] transition-all"
+               className="flex items-center justify-center gap-3 px-8 py-4 bg-delphi-keppel text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] transition-all"
              >
                <Plus className="w-4 h-4" />
                Añadir Tarea
@@ -129,10 +127,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
       </div>
 
       {showTaskForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] w-full max-w-xl p-10 shadow-2xl animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] w-full max-w-xl p-8 md:p-10 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black tracking-tight">Nueva Tarea (RF008)</h3>
+              <h3 className="text-xl md:text-2xl font-black tracking-tight">Nueva Tarea (RF008)</h3>
               <button onClick={() => setShowTaskForm(false)} className="p-2 text-slate-400 hover:text-delphi-giants transition-colors"><X className="w-6 h-6" /></button>
             </div>
             <form onSubmit={handleAddTask} className="space-y-6">
@@ -143,7 +141,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   required
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none"
                   placeholder="Ej: Implementación de WebSockets"
                 />
               </div>
@@ -153,11 +151,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   rows={4}
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-medium focus:ring-2 focus:ring-delphi-keppel/30 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-medium outline-none"
                   placeholder="Detalla los requisitos específicos..."
                 />
               </div>
-              <button type="submit" className="w-full bg-delphi-keppel text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95 transition-all">
+              <button type="submit" className="w-full bg-delphi-keppel text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-all">
                 Crear Tarea
               </button>
             </form>
@@ -166,37 +164,37 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
       )}
 
       {/* Navegación por Pestañas */}
-      <div className="flex border-b border-slate-200 gap-12 overflow-x-auto no-scrollbar">
+      <div className="flex border-b border-slate-200 gap-6 md:gap-12 overflow-x-auto no-scrollbar scroll-smooth">
         {[
-          { id: 'tasks', label: 'Proceso Delphi', icon: Activity },
-          { id: 'docs', label: 'Documentación', icon: FileText },
-          { id: 'discussion', label: 'Foro Técnico', icon: MessageSquare },
-          { id: 'team', label: 'Métricas Panel', icon: Award },
-          { id: 'audit', label: 'Trazabilidad', icon: History },
+          { id: 'tasks', label: 'Proceso', icon: Activity },
+          { id: 'docs', label: 'Docs', icon: FileText },
+          { id: 'discussion', label: 'Debate', icon: MessageSquare },
+          { id: 'team', label: 'Panel', icon: Award },
+          { id: 'audit', label: 'Logs', icon: History },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex items-center gap-3 pb-5 px-1 text-sm font-black uppercase tracking-[0.15em] transition-all shrink-0 relative ${
+            className={`flex items-center gap-2 md:gap-3 pb-4 md:pb-5 px-1 text-[10px] md:text-sm font-black uppercase tracking-[0.15em] transition-all shrink-0 relative ${
               activeTab === tab.id 
                 ? 'text-delphi-keppel' 
                 : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <tab.icon className={`w-5 h-5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`} />
+            <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'scale-110' : ''}`} />
             {tab.label}
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 w-full h-1.5 bg-delphi-keppel rounded-t-full shadow-[0_-5px_15px_rgba(43,186,165,0.6)]" />
+              <div className="absolute bottom-0 left-0 w-full h-1 md:h-1.5 bg-delphi-keppel rounded-t-full" />
             )}
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
         {activeTab === 'tasks' && (
           <>
             <div className="lg:col-span-4 space-y-8">
-              <div className="bg-white rounded-[3rem] border border-slate-100 p-8 shadow-sm">
+              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
                    <h3 className="font-black text-xl tracking-tight">Tareas del Sprint</h3>
                    <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -204,39 +202,36 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                    </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
                   {tasks.map(task => (
                     <button
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className={`w-full text-left p-6 rounded-[2rem] border-2 transition-all ${
+                      className={`w-full text-left p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all ${
                         selectedTaskId === task.id 
-                          ? 'border-delphi-keppel bg-delphi-keppel/[0.03] shadow-lg shadow-delphi-keppel/5' 
-                          : 'border-slate-50 bg-slate-50/30 hover:border-slate-200 hover:bg-white'
+                          ? 'border-delphi-keppel bg-delphi-keppel/[0.03]' 
+                          : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
                       }`}
                     >
-                      <div className="flex items-start gap-5">
+                      <div className="flex items-start gap-4">
                         <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status === 'Consensuada' ? <CheckCircle2 className="w-7 h-7" /> : <Circle className="w-7 h-7" />}
+                          {task.status === 'Consensuada' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                         </div>
-                        <div className="flex-1">
-                          <h4 className={`text-base font-black leading-tight mb-2 ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
                             {task.title}
                           </h4>
                           {task.status === 'Consensuada' ? (
-                            <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-3 py-1 rounded-lg">
+                            <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
                                <Award className="w-3 h-3" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">Final: {task.finalEstimate}h</span>
+                               <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate}h</span>
                             </div>
                           ) : (
-                            <div className="space-y-2 mt-3">
-                               <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div className="space-y-1.5 mt-2">
+                               <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
                                   <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'Estimando' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
                                </div>
-                               <div className="flex items-center justify-between">
-                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{task.status}</span>
-                                  <span className="text-[9px] font-black text-delphi-keppel uppercase tracking-widest">{task.status === 'Estimando' ? 'Iterando' : 'En cola'}</span>
-                               </div>
+                               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{task.status}</span>
                             </div>
                           )}
                         </div>
@@ -247,17 +242,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
               </div>
 
               {isFacilitator && (
-                <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 relative overflow-hidden group">
+                <div className="bg-slate-900 p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 relative overflow-hidden group">
                   <div className="relative z-10">
-                     <h4 className="flex items-center gap-3 text-delphi-keppel font-black mb-4 text-base">
-                       <ShieldCheck className="w-6 h-6" />
-                       Modo Facilitador
+                     <h4 className="flex items-center gap-3 text-delphi-keppel font-black mb-3 md:mb-4 text-base">
+                       <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
+                       Facilitador
                      </h4>
-                     <p className="text-sm text-slate-400 leading-relaxed font-bold">
-                       Supervisión activa del Método Delphi. Tienes control sobre el flujo iterativo de cada tarea.
+                     <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
+                       Supervisión activa del flujo iterativo.
                      </p>
                   </div>
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-delphi-keppel/10 rounded-bl-[80px] group-hover:bg-delphi-keppel/20 transition-all" />
                 </div>
               )}
             </div>
@@ -272,36 +266,21 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   isFacilitator={isFacilitator}
                 />
               ) : (
-                <div className="h-96 bg-white rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-200 gap-6">
-                  <Star className="w-20 h-20 opacity-20" />
-                  <p className="font-black text-2xl tracking-tight text-slate-300">Selecciona una tarea para estimar</p>
+                <div className="h-64 md:h-96 bg-white rounded-[2rem] md:rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-200 gap-4 md:gap-6">
+                  <Star className="w-12 h-12 md:w-20 md:h-20 opacity-20" />
+                  <p className="font-black text-lg md:text-2xl tracking-tight text-slate-300">Selecciona una tarea</p>
                 </div>
               )}
             </div>
           </>
         )}
 
-        {activeTab === 'docs' && (
+        {activeTab !== 'tasks' && (
           <div className="lg:col-span-12">
-            <Documentation projectId={projectId} />
-          </div>
-        )}
-
-        {activeTab === 'discussion' && (
-          <div className="lg:col-span-12">
-            <DiscussionSpace />
-          </div>
-        )}
-
-        {activeTab === 'team' && (
-          <div className="lg:col-span-12">
-            <TeamPanel />
-          </div>
-        )}
-
-        {activeTab === 'audit' && (
-          <div className="lg:col-span-12">
-            <ProjectAuditLog entries={MOCK_AUDIT} />
+            {activeTab === 'docs' && <Documentation projectId={projectId} />}
+            {activeTab === 'discussion' && <DiscussionSpace />}
+            {activeTab === 'team' && <TeamPanel />}
+            {activeTab === 'audit' && <ProjectAuditLog entries={MOCK_AUDIT} />}
           </div>
         )}
       </div>

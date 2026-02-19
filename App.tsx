@@ -7,18 +7,16 @@ import {
   LogOut, 
   LayoutDashboard, 
   Plus, 
-  ChevronRight,
   ShieldCheck,
   BrainCircuit,
-  MessageSquare,
   Clock,
-  Settings,
   Bell,
   Search,
   Zap,
   ShieldAlert,
-  UserPlus,
-  AlertCircle
+  AlertCircle,
+  Menu,
+  X
 } from 'lucide-react';
 import { User, UserRole, Project } from './types';
 import ProjectList from './components/ProjectList';
@@ -58,6 +56,7 @@ const App: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (!currentUser) {
     return <Login onLogin={setCurrentUser} />;
@@ -66,6 +65,7 @@ const App: React.FC = () => {
   const navigateToProject = (id: string) => {
     setSelectedProjectId(id);
     setView('project-detail');
+    setIsSidebarOpen(false);
   };
 
   const handleCreateProject = (newProject: Project) => {
@@ -77,11 +77,32 @@ const App: React.FC = () => {
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isExpert = currentUser.role === UserRole.EXPERT;
 
+  const NavButton = ({ target, icon: Icon, label, color = 'keppel' }: { target: any, icon: any, label: string, color?: string }) => {
+    const isActive = view === target || (target === 'projects' && (view === 'project-detail' || view === 'create-project'));
+    return (
+      <button 
+        onClick={() => { setView(target); setIsSidebarOpen(false); }}
+        className={`flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl transition-all ${isActive ? `bg-delphi-${color} text-white shadow-xl shadow-delphi-${color}/30 scale-[1.02]` : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+      >
+        <Icon className="w-5 h-5" />
+        <span className="font-black text-sm">{label}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800">
+    <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 relative">
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-30">
-        <div className="p-8 border-b border-slate-800 bg-slate-950/40">
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col shadow-2xl z-50 transition-transform duration-300 transform lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-8 border-b border-slate-800 bg-slate-950/40 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-delphi-keppel p-2.5 rounded-2xl shadow-lg shadow-delphi-keppel/20">
               <BrainCircuit className="w-7 h-7 text-white" />
@@ -91,42 +112,21 @@ const App: React.FC = () => {
               <p className="text-[9px] uppercase tracking-[0.2em] text-delphi-celadon font-black mt-1">UCE Engineering</p>
             </div>
           </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        <nav className="flex-1 p-6 space-y-2 mt-4">
-          <button 
-            onClick={() => setView('dashboard')}
-            className={`flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl transition-all ${view === 'dashboard' ? 'bg-delphi-keppel text-white shadow-xl shadow-delphi-keppel/30 scale-[1.02]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="font-black text-sm">Dashboard</span>
-          </button>
-          <button 
-            onClick={() => setView('projects')}
-            className={`flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl transition-all ${view === 'projects' || view === 'project-detail' || view === 'create-project' ? 'bg-delphi-keppel text-white shadow-xl shadow-delphi-keppel/30 scale-[1.02]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-          >
-            <FolderKanban className="w-5 h-5" />
-            <span className="font-black text-sm">Proyectos</span>
-          </button>
+        <nav className="flex-1 p-6 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
+          <NavButton target="dashboard" icon={LayoutDashboard} label="Dashboard" />
+          <NavButton target="projects" icon={FolderKanban} label="Proyectos" />
           
           {isFacilitator && (
-            <button 
-              onClick={() => setView('reports')}
-              className={`flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl transition-all ${view === 'reports' ? 'bg-delphi-keppel text-white shadow-xl shadow-delphi-keppel/30 scale-[1.02]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-            >
-              <BarChart3 className="w-5 h-5" />
-              <span className="font-black text-sm">Reportes</span>
-            </button>
+            <NavButton target="reports" icon={BarChart3} label="Reportes" />
           )}
 
           {isAdmin && (
-            <button 
-              onClick={() => setView('admin')}
-              className={`flex items-center gap-4 w-full px-5 py-3.5 rounded-2xl transition-all ${view === 'admin' ? 'bg-delphi-giants text-white shadow-xl shadow-delphi-giants/30 scale-[1.02]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
-            >
-              <ShieldAlert className="w-5 h-5" />
-              <span className="font-black text-sm">Administración</span>
-            </button>
+            <NavButton target="admin" icon={ShieldAlert} label="Administración" color="giants" />
           )}
         </nav>
 
@@ -157,19 +157,25 @@ const App: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-10 shrink-0 z-20">
+      <main className="flex-1 flex flex-col overflow-hidden relative w-full">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-10 shrink-0 z-20">
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-delphi-keppel/10 hover:text-delphi-keppel transition-all"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <div className="relative group hidden md:block">
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-delphi-keppel transition-colors" />
               <input 
                 type="text" 
                 placeholder="Buscar en el sistema..." 
-                className="pl-11 pr-6 py-2.5 bg-slate-100 border-none rounded-2xl text-xs font-bold w-64 focus:ring-2 focus:ring-delphi-keppel/30 transition-all outline-none"
+                className="pl-11 pr-6 py-2.5 bg-slate-100 border-none rounded-2xl text-xs font-bold w-48 lg:w-64 focus:ring-2 focus:ring-delphi-keppel/30 transition-all outline-none"
               />
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-delphi-keppel/10 hover:text-delphi-keppel transition-all"
@@ -177,10 +183,11 @@ const App: React.FC = () => {
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-delphi-giants border-2 border-white rounded-full animate-bounce"></span>
             </button>
-            <div className="h-8 w-px bg-slate-200" />
-            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel bg-delphi-keppel/5 px-5 py-2.5 rounded-2xl border border-delphi-keppel/10">
+            <div className="h-8 w-px bg-slate-200 hidden xs:block" />
+            <div className="hidden sm:flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel bg-delphi-keppel/5 px-4 md:px-5 py-2.5 rounded-2xl border border-delphi-keppel/10">
               <ShieldCheck className="w-4 h-4" />
-              Sesión Segura UCE
+              <span className="hidden md:inline">Sesión Segura UCE</span>
+              <span className="md:hidden">Seguro</span>
             </div>
           </div>
         </header>
@@ -189,20 +196,20 @@ const App: React.FC = () => {
           <NotificationCenter onClose={() => setShowNotifications(false)} />
         )}
 
-        <div className="flex-1 overflow-y-auto p-10 relative custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-10 relative custom-scrollbar">
           {view === 'dashboard' && (
-            <div className="max-w-7xl mx-auto space-y-12">
+            <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
               <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                  <h2 className="text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                     {isExpert ? 'Panel del Experto' : 'Métrica General'}
                   </h2>
-                  <p className="text-slate-400 mt-2 text-xl font-medium">Bienvenido {currentUser.name}, gestiona tus estimaciones UCE.</p>
+                  <p className="text-slate-400 mt-2 text-lg md:text-xl font-medium">Bienvenido {currentUser.name}, gestiona tus estimaciones UCE.</p>
                 </div>
                 {isFacilitator && (
                   <button 
                     onClick={() => setView('create-project')}
-                    className="bg-delphi-keppel text-white px-8 py-4 rounded-[1.5rem] flex items-center gap-3 font-black shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] active:scale-95 transition-all"
+                    className="bg-delphi-keppel text-white px-6 md:px-8 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 font-black shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] active:scale-95 transition-all w-full md:w-auto"
                   >
                     <Plus className="w-6 h-6" />
                     Nueva Sesión
@@ -210,29 +217,29 @@ const App: React.FC = () => {
                 )}
               </section>
 
-              {/* Stats Cards - Contextualized for roles (RF026/RF027) */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                 {[
                   { label: 'Mis Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
                   { label: isExpert ? 'Tareas Pendientes' : 'Rondas Activas', val: isExpert ? '03' : '04', icon: isExpert ? AlertCircle : Clock, color: 'orange' },
                   { label: 'Convergencia Prom.', val: '88%', icon: Zap, color: 'celadon' },
                   { label: 'Participación', val: '92%', icon: Users, color: 'giants' },
                 ].map((s, i) => (
-                  <div key={i} className={`bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all group`}>
-                    <div className={`bg-delphi-${s.color}/10 p-4 rounded-2xl text-delphi-${s.color} w-fit mb-6 group-hover:bg-delphi-${s.color} group-hover:text-white transition-all`}>
-                      <s.icon className="w-8 h-8" />
+                  <div key={i} className={`bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all group`}>
+                    <div className={`bg-delphi-${s.color}/10 p-3 md:p-4 rounded-2xl text-delphi-${s.color} w-fit mb-4 md:mb-6 group-hover:bg-delphi-${s.color} group-hover:text-white transition-all`}>
+                      <s.icon className="w-6 h-6 md:w-8 md:h-8" />
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{s.label}</p>
-                    <p className="text-5xl font-black text-slate-900 mt-2">{s.val}</p>
+                    <p className="text-3xl md:text-5xl font-black text-slate-900 mt-2">{s.val}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
                 <div className="lg:col-span-2 space-y-8">
-                  <div className="bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm">
-                    <div className="flex items-center justify-between mb-10">
-                      <h3 className="text-2xl font-black tracking-tight">
+                  <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 md:mb-10 gap-4">
+                      <h3 className="text-xl md:text-2xl font-black tracking-tight">
                         {isExpert ? 'Mis Tareas por Estimar' : 'Actividad de Proyectos'}
                       </h3>
                       <button onClick={() => setView('projects')} className="text-delphi-keppel font-black text-sm uppercase tracking-widest hover:underline">Ver todo</button>
@@ -242,10 +249,10 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="space-y-8">
-                  <div className="bg-slate-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-                    <h3 className="text-xl font-black mb-8 relative z-10 flex items-center gap-3">
-                      <Clock className="w-6 h-6 text-delphi-keppel" />
-                      Historial de Acciones (RF029)
+                  <div className="bg-slate-900 rounded-[2rem] md:rounded-[3rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden group">
+                    <h3 className="text-lg md:text-xl font-black mb-6 md:mb-8 relative z-10 flex items-center gap-3">
+                      <Clock className="w-5 h-5 md:w-6 md:h-6 text-delphi-keppel" />
+                      Historial (RF029)
                     </h3>
                     <div className="space-y-6 relative z-10">
                       {[
@@ -263,11 +270,11 @@ const App: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-delphi-vanilla p-10 rounded-[3rem] border border-delphi-orange/20">
-                    <div className="bg-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg mb-6">
-                      <Zap className="w-8 h-8 text-delphi-orange" />
+                  <div className="bg-delphi-vanilla p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-delphi-orange/20">
+                    <div className="bg-white w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center shadow-lg mb-6">
+                      <Zap className="w-7 h-7 md:w-8 md:h-8 text-delphi-orange" />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 mb-2 leading-none">Mejora Continua</h3>
+                    <h3 className="text-lg md:text-xl font-black text-slate-900 mb-2 leading-none">Mejora Continua</h3>
                     <p className="text-slate-600 text-sm font-medium leading-relaxed">
                       El sistema detectó una divergencia recurrente en el Módulo de Seguridad. Sugerimos revisar la documentación técnica.
                     </p>
@@ -278,20 +285,20 @@ const App: React.FC = () => {
           )}
 
           {view === 'projects' && (
-            <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <header className="flex items-center justify-between mb-12">
-                <h2 className="text-5xl font-black tracking-tight">Proyectos de Estimación</h2>
+            <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+              <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <h2 className="text-3xl md:text-5xl font-black tracking-tight">Proyectos</h2>
                 {isFacilitator && (
                   <button 
                     onClick={() => setView('create-project')}
-                    className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-black shadow-lg shadow-delphi-keppel/20 hover:scale-105 transition-all"
+                    className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl flex items-center justify-center gap-2 font-black shadow-lg shadow-delphi-keppel/20 hover:scale-105 transition-all w-full sm:w-auto"
                   >
                     <Plus className="w-5 h-5" />
-                    Nuevo
+                    Nuevo Proyecto
                   </button>
                 )}
               </header>
-              <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-slate-100">
+              <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 shadow-sm border border-slate-100">
                 <ProjectList projects={projects} onProjectSelect={navigateToProject} />
               </div>
             </div>
