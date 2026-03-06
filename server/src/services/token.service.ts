@@ -1,37 +1,61 @@
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
+import { ApiError } from '../utils/ApiError.js';
 
-interface TokenPayload {
+interface AccessTokenPayload {
     id: string;
     email: string;
     role: string;
 }
 
+interface RefreshTokenPayload {
+    id: string;
+}
+
 export class TokenService {
-    generateAccessToken(payload: TokenPayload): string {
-        // TODO: Sign JWT with env.JWT_ACCESS_SECRET and env.JWT_ACCESS_EXPIRY
-        // return jwt.sign(payload, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRY });
-        console.log('[STUB] Generating access token for:', payload.email);
-        return 'stub-access-token';
+    generateAccessToken(payload: AccessTokenPayload): string {
+        return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
+            expiresIn: env.JWT_ACCESS_EXPIRY,
+        } as jwt.SignOptions);
     }
 
-    generateRefreshToken(payload: TokenPayload): string {
-        // TODO: Sign JWT with env.JWT_REFRESH_SECRET and env.JWT_REFRESH_EXPIRY
-        // return jwt.sign(payload, env.JWT_REFRESH_SECRET, { expiresIn: env.JWT_REFRESH_EXPIRY });
-        console.log('[STUB] Generating refresh token for:', payload.email);
-        return 'stub-refresh-token';
+    generateRefreshToken(payload: RefreshTokenPayload): string {
+        // Refresh token carries minimal data (id only) for security
+        return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
+            expiresIn: env.JWT_REFRESH_EXPIRY,
+        } as jwt.SignOptions);
     }
 
-    verifyAccessToken(token: string): TokenPayload {
-        // TODO: Verify with env.JWT_ACCESS_SECRET and decode
-        // return jwt.verify(token, env.JWT_ACCESS_SECRET) as TokenPayload;
-        console.log('[STUB] Verifying access token:', token.substring(0, 10));
-        return { id: 'stub-id', email: 'stub@example.com', role: 'facilitador' };
+    verifyAccessToken(token: string): AccessTokenPayload {
+        try {
+            const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as AccessTokenPayload;
+            return { id: decoded.id, email: decoded.email, role: decoded.role };
+        } catch (error) {
+            if (error instanceof jwt.TokenExpiredError) {
+                throw ApiError.unauthorized('Token expirado');
+            }
+            if (error instanceof jwt.JsonWebTokenError) {
+                throw ApiError.unauthorized('Token inválido');
+            }
+            throw ApiError.unauthorized('Error de autenticación');
+        }
     }
 
-    verifyRefreshToken(token: string): TokenPayload {
-        // TODO: Verify with env.JWT_REFRESH_SECRET and decode
-        // return jwt.verify(token, env.JWT_REFRESH_SECRET) as TokenPayload;
-        console.log('[STUB] Verifying refresh token:', token.substring(0, 10));
-        return { id: 'stub-id', email: 'stub@example.com', role: 'facilitador' };
+    verifyRefreshToken(token: string): RefreshTokenPayload {
+        try {
+            const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as RefreshTokenPayload;
+            return { id: decoded.id };
+        } catch (error) {
+            if (error instanceof jwt.TokenExpiredError) {
+                throw ApiError.unauthorized('Refresh token expirado');
+            }
+            if (error instanceof jwt.JsonWebTokenError) {
+                throw ApiError.unauthorized('Refresh token inválido');
+            }
+            throw ApiError.unauthorized('Error de autenticación');
+        }
     }
 }
+
+// Singleton instance
+export const tokenService = new TokenService();
