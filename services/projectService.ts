@@ -1,4 +1,4 @@
-import { Project } from '../types';
+import { Project, AuditEntry } from '../types';
 import { fetchApi } from '../utils/api';
 
 export const projectService = {
@@ -13,20 +13,19 @@ export const projectService = {
     async createProject(data: Partial<Project>): Promise<Project> {
         return fetchApi<Project>('/projects', {
             method: 'POST',
-            body: {
-                name: data.name,
-                description: data.description,
-                unit: data.unit,
-                expertIds: data.expertIds
-            }
+            body: data,
         });
     },
 
     async updateProject(id: string, data: Partial<Project>): Promise<Project> {
         return fetchApi<Project>(`/projects/${id}`, {
             method: 'PATCH',
-            body: data
+            body: data,
         });
+    },
+
+    async getAuditLogs(id: string): Promise<AuditEntry[]> {
+        return fetchApi<AuditEntry[]>(`/projects/${id}/audit-logs`);
     },
 
     async archiveProject(id: string): Promise<Project> {

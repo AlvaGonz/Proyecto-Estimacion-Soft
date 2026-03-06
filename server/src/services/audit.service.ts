@@ -26,6 +26,10 @@ export class AuditService {
             console.error('[AUDIT ERROR] Failed to write audit log:', error);
         }
     }
+
+    async findByProject(projectId: string) {
+        return AuditLog.find({ resourceId: projectId }).sort({ timestamp: -1 });
+    }
 }
 
 export const auditService = new AuditService();

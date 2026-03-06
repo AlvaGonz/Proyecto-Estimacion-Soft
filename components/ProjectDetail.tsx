@@ -16,7 +16,7 @@ import {
   History,
   ShieldCheck
 } from 'lucide-react';
-import { Task, UserRole, AuditEntry, Project } from '../types';
+import { Task, UserRole, AuditEntry, Project, Round } from '../types';
 import EstimationRounds from './EstimationRounds';
 import Documentation from './Documentation';
 import DiscussionSpace from './DiscussionSpace';
@@ -25,6 +25,7 @@ import ProjectAuditLog from './ProjectAuditLog';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 import { projectService } from '../services/projectService';
 import { taskService } from '../services/taskService';
+import { roundService } from '../services/roundService';
 
 // TODO: Connect Discussion, Team, and AuditLog to actual endpoints when ready
 const MOCK_AUDIT: AuditEntry[] = [
@@ -50,6 +51,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [activeRound, setActiveRound] = useState<Round | null>(null);
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
+
+  React.useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const auditLogs = await projectService.getAuditLogs(projectId);
+        setLogs(auditLogs);
+      } catch (err) {
+        console.error("Failed to fetch logs", err);
+      }
+    };
+    if (activeTab === 'audit') {
+      fetchLogs();
+    }
+  }, [projectId, activeTab]);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +89,23 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     };
     fetchData();
   }, [projectId]);
+
+  React.useEffect(() => {
+    if (!selectedTaskId) {
+      setActiveRound(null);
+      return;
+    }
+    const fetchActiveRound = async () => {
+      try {
+        const rounds = await roundService.getRoundsByTask(projectId, selectedTaskId);
+        const active = rounds.find(r => r.status === 'Abierta');
+        setActiveRound(active || rounds[rounds.length - 1] || null);
+      } catch (err) {
+        console.error("Error fetching rounds for discussion", err);
+      }
+    };
+    fetchActiveRound();
+  }, [selectedTaskId]);
 
   const currentTask = tasks.find(t => t.id === selectedTaskId);
   const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
@@ -214,8 +248,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
             id={`tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id as TabType)}
             className={`flex items-center gap-2 md:gap-3 pb-4 md:pb-5 px-1 text-[10px] md:text-sm font-black uppercase tracking-[0.15em] transition-all shrink-0 relative ${activeTab === tab.id
-                ? 'text-delphi-keppel'
-                : 'text-slate-400 hover:text-slate-600'
+              ? 'text-delphi-keppel'
+              : 'text-slate-400 hover:text-slate-600'
               }`}
           >
             <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'scale-110' : ''}`} />
@@ -245,8 +279,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
                       className={`w-full text-left p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all ${selectedTaskId === task.id
-                          ? 'border-delphi-keppel bg-delphi-keppel/[0.03]'
-                          : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
+                        ? 'border-delphi-keppel bg-delphi-keppel/[0.03]'
+                        : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
                         }`}
                     >
                       <div className="flex items-start gap-4">
@@ -315,9 +349,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
         {activeTab !== 'tasks' && (
           <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
             {activeTab === 'docs' && <Documentation projectId={projectId} />}
-            {activeTab === 'discussion' && <DiscussionSpace />}
-            {activeTab === 'team' && <TeamPanel />}
-            {activeTab === 'audit' && <ProjectAuditLog entries={MOCK_AUDIT} />}
+            {activeTab === 'discussion' && activeRound ? (
+              <DiscussionSpace roundId={activeRound.id} />
+            ) : activeTab === 'discussion' ? (
+              <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
+                <MessageSquare className="w-12 h-12 opacity-20" />
+                <p className="font-bold">Selecciona una tarea con rondas activas para ver el debate.</p>
+              </div>
+            ) : null}
+            {activeTab === 'team' && <TeamPanel expertIds={project?.expertIds} />}
+            {activeTab === 'audit' && <ProjectAuditLog entries={logs} />}
           </div>
         )}
       </div>
