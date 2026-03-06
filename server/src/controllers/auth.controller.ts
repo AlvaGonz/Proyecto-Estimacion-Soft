@@ -1,26 +1,32 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { AuthService } from '../services/auth.service.js';
+import { authService } from '../services/auth.service.js';
+import { ApiError } from '../utils/ApiError.js';
+import { env } from '../config/env.js';
 import { RegisterDTO, LoginDTO } from '../types/api.types.js';
 
-const authService = new AuthService();
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+};
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
     const data: RegisterDTO = req.body;
     const result = await authService.register(data);
 
-    // TODO: Set refresh token as httpOnly cookie
-    // res.cookie('refreshToken', result.refreshToken, {
-    //   httpOnly: true,
-    //   secure: env.NODE_ENV === 'production',
-    //   sameSite: 'strict',
-    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    // });
+    // Set refresh token as httpOnly cookie — NEVER in response body
+    res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     res.status(201).json({
         success: true,
         message: 'Usuario registrado exitosamente',
-        data: result,
+        data: {
+            user: result.user,
+            accessToken: result.accessToken,
+        },
     });
 });
 
@@ -28,18 +34,26 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     const data: LoginDTO = req.body;
     const result = await authService.login(data);
 
-    // TODO: Set refresh token as httpOnly cookie
+    // Set refresh token as httpOnly cookie
+    res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     res.json({
         success: true,
         message: 'Inicio de sesión exitoso',
-        data: result,
+        data: {
+            user: result.user,
+            accessToken: result.accessToken,
+        },
     });
 });
 
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
-    // TODO: Extract refresh token from httpOnly cookies
-    const refreshToken = req.cookies?.refreshToken || 'stub-token';
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+        throw ApiError.unauthorized('No se proporcionó refresh token');
+    }
+
     const result = await authService.refreshToken(refreshToken);
 
     res.json({
@@ -49,14 +63,33 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id || 'stub-user-id';
-    await authService.logout(userId);
+    if (!req.user) {
+        throw ApiError.unauthorized('No autenticado');
+    }
 
-    // TODO: Clear refresh token cookie
-    // res.clearCookie('refreshToken');
+    await authService.logout(req.user.id);
+
+    // Clear the httpOnly cookie
+    res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'strict' as const,
+        path: '/',
+    });
 
     res.json({
         success: true,
         message: 'Sesión cerrada exitosamente',
+    });
+});
+
+export const getMe = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+        throw ApiError.unauthorized('No autenticado');
+    }
+
+    res.json({
+        success: true,
+        data: req.user,
     });
 });
