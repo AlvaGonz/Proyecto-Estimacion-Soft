@@ -7,11 +7,15 @@ export interface ApiResponse<T = any> {
     errors?: Record<string, string[]>;
 }
 
-export async function fetchApi<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
+    body?: any;
+}
+
+export async function fetchApi<T = any>(endpoint: string, options: ApiRequestInit = {}): Promise<T> {
     const fullUrl = `${API_BASE_URL}${endpoint}`;
 
     const config: RequestInit = {
-        ...options,
+        ...options as any,
         credentials: 'include',
         headers: {
             ...options.headers,
@@ -24,6 +28,8 @@ export async function fetchApi<T = any>(endpoint: string, options: RequestInit =
             ...config.headers,
             'Content-Type': 'application/json',
         };
+    } else if (options.body) {
+        config.body = options.body;
     }
 
     const response = await fetch(fullUrl, config);
