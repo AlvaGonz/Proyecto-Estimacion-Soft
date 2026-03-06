@@ -28,45 +28,32 @@ import NotificationCenter from './components/NotificationCenter';
 import { OnboardingTour } from './components/ui/OnboardingTour';
 import { AppErrorBoundary } from './components/ui/AppErrorBoundary';
 import { authService } from './services/authService';
+import { projectService } from './services/projectService';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
-
-const INITIAL_PROJECTS: Project[] = [
-  {
-    id: 'p1',
-    name: 'Migración a Microservicios Core',
-    description: 'Estimación del esfuerzo para desacoplar el monolito bancario.',
-    unit: 'Horas',
-    facilitatorId: 'u1',
-    expertIds: ['u2', 'u3', 'u4'],
-    status: 'Activo',
-    createdAt: Date.now() - 86400000 * 5
-  },
-  {
-    id: 'p2',
-    name: 'Rediseño App Móvil V2',
-    description: 'Estimación de puntos de historia para el nuevo diseño UI/UX.',
-    unit: 'Puntos de Historia',
-    facilitatorId: 'u1',
-    expertIds: ['u2', 'u5'],
-    status: 'Activo',
-    createdAt: Date.now() - 86400000 * 2
-  }
-];
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [view, setView] = useState<'dashboard' | 'projects' | 'project-detail' | 'reports' | 'create-project' | 'admin'>('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const user = await authService.getMe();
-      if (user) setCurrentUser(user);
-      setIsInitializing(false);
+      try {
+        const user = await authService.getMe();
+        if (user) {
+          setCurrentUser(user);
+          const userProjects = await projectService.getProjects();
+          setProjects(userProjects);
+        }
+      } catch (err) {
+        console.error("Auth initialization failed:", err);
+      } finally {
+        setIsInitializing(false);
+      }
     };
     checkAuth();
   }, []);
@@ -85,7 +72,16 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login onLogin={setCurrentUser} />;
+    return <Login onLogin={async (u) => {
+      setCurrentUser(u);
+      setIsInitializing(true);
+      try {
+        const p = await projectService.getProjects();
+        setProjects(p);
+      } finally {
+        setIsInitializing(false);
+      }
+    }} />;
   }
 
   const navigateToProject = (id: string) => {
@@ -94,9 +90,18 @@ const App: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleCreateProject = (newProject: Project) => {
-    setProjects([newProject, ...projects]);
-    setView('projects');
+  const handleCreateProject = async (newProjectData: Project) => {
+    try {
+      setIsInitializing(true);
+      const created = await projectService.createProject(newProjectData);
+      setProjects([created, ...projects]);
+      setView('projects');
+    } catch (err) {
+      console.error(err);
+      alert('Error creating project');
+    } finally {
+      setIsInitializing(false);
+    }
   };
 
   const isFacilitator = currentUser.role === UserRole.FACILITATOR || currentUser.role === UserRole.ADMIN;
