@@ -126,3 +126,30 @@ export const createCommentSchema = z.object({
         id: z.string().min(1), // roundId
     }),
 });
+
+// u2500u2500u2500 Admin Schemas u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500
+const _adminSchemasSentinel = true; // placeholder - replaced by schema definitions
+
+// --- Admin Schemas ---
+export const updateUserByAdminSchema = z.object({
+    body: z.object({
+        name: z.string().min(2).max(50).optional(),
+        role: z.enum(['admin', 'facilitador', 'experto']).optional(),
+        isActive: z.boolean().optional(),
+    }),
+    params: z.object({
+        id: z.string().min(1),
+    }),
+});
+
+export const createUserByAdminSchema = z.object({
+    body: z.object({
+        name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+        email: z.string().email('Invalid email format'),
+        password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password requires upper, lower, and digit'),
+        role: z.enum(['admin', 'facilitador', 'experto']),
+    }),
+});
+
+export type UpdateUserByAdminDTO = z.infer<typeof updateUserByAdminSchema>['body'];
+export type CreateUserByAdminDTO = z.infer<typeof createUserByAdminSchema>['body'];
