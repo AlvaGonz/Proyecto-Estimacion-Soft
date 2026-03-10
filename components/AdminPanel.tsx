@@ -181,7 +181,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                </div>
                <div>
                   <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">Administración</h2>
-                  <p className="text-slate-400 font-bold mt-2">Control total de usuarios, roles y parámetros del sistema (RF005).</p>
+                  <p className="text-slate-400 font-bold mt-2">Control total de usuarios, roles y parámetros del sistema.</p>
                </div>
             </div>
             <div className="flex bg-slate-100 p-2 rounded-2xl" role="tablist" aria-label="Pestañas de administración">
@@ -341,7 +341,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                      <div role="switch" aria-checked="false" aria-label="Auditoría Extendida" tabIndex={0} className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/10 group hover:bg-white/10 transition-all cursor-pointer">
                         <div>
                            <p className="font-black">Auditoría Extendida</p>
-                           <p className="text-xs text-slate-400 font-bold mt-1">Guardar IP y User-Agent en cada estimación (RF029).</p>
+                           <p className="text-xs text-slate-400 font-bold mt-1">Guardar IP y User-Agent en cada estimación.</p>
                         </div>
                         <div className="w-12 h-6 bg-slate-700 rounded-full relative p-1">
                            <div className="w-4 h-4 bg-white rounded-full absolute left-1" />

@@ -46,7 +46,7 @@ const TeamPanel: React.FC<TeamPanelProps> = ({ expertIds = [] }) => {
           </div>
           <div>
             <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Desempeño del Panel</h3>
-            <p className="text-slate-400 font-bold mt-2">Métricas cuantitativas de participación y compromiso (RF030).</p>
+            <p className="text-slate-400 font-bold mt-2">Métricas cuantitativas de participación y compromiso.</p>
           </div>
         </div>
         <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
