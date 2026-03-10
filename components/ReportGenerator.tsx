@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  BarChart3, 
-  Calendar, 
-  ChevronRight,
-  ShieldCheck,
-  Search,
-  Filter,
-  Zap,
-  Award
+import {
+   FileText,
+   Download,
+   BarChart3,
+   Calendar,
+   ChevronRight,
+   ShieldCheck,
+   Search,
+   Filter,
+   Zap,
+   Award
 } from 'lucide-react';
 import { PermissionGate } from './ui/PermissionGate';
 import { LoadingSpinner } from './ui/LoadingSpinner';
@@ -20,247 +20,247 @@ import * as XLSX from 'xlsx';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
 
 const MOCK_REPORTS = [
-  { id: 'r1', name: 'Migración_Core_Final_V1.pdf', type: 'PDF', size: '4.2 MB', date: 'Hoy', status: 'Generado' },
-  { id: 'r2', name: 'App_Movil_Ronda3_Analisis.xlsx', type: 'Excel', size: '1.8 MB', date: 'Ayer', status: 'Generado' },
-  { id: 'r3', name: 'Historial_Audit_Enero_2024.pdf', type: 'PDF', size: '12.5 MB', date: 'Hace 3 días', status: 'Generado' },
+   { id: 'r1', name: 'Migración_Core_Final_V1.pdf', type: 'PDF', size: '4.2 MB', date: 'Hoy', status: 'Generado' },
+   { id: 'r2', name: 'App_Movil_Ronda3_Analisis.xlsx', type: 'Excel', size: '1.8 MB', date: 'Ayer', status: 'Generado' },
+   { id: 'r3', name: 'Historial_Audit_Enero_2024.pdf', type: 'PDF', size: '12.5 MB', date: 'Hace 3 días', status: 'Generado' },
 ];
 
 const ReportGenerator: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
-  const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
-  const [isGenerating, setIsGenerating] = useState(false);
+   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
+   const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
+   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerateReport = async () => {
-    setIsGenerating(true);
-    
-    // Simulate async generation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+   const handleGenerateReport = async () => {
+      setIsGenerating(true);
 
-    try {
-      if (format === 'PDF') {
-        const doc = new jsPDF();
-        doc.setFontSize(22);
-        doc.text('Reporte de Estimación Delphi', 20, 20);
-        
-        doc.setFontSize(14);
-        doc.text('Proyecto: Migración a Microservicios Core', 20, 40);
-        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 50);
-        
-        doc.setFontSize(12);
-        doc.text('Resumen de Rondas:', 20, 70);
-        doc.text('- Ronda 1: Convergencia Baja (CV: 45%)', 30, 80);
-        doc.text('- Ronda 2: Convergencia Media (CV: 25%)', 30, 90);
-        doc.text('- Ronda 3: Convergencia Alta (CV: 12%)', 30, 100);
-        
-        doc.text('Estimación Final Consensuada: 145 Puntos de Historia', 20, 120);
-        
-        doc.save('reporte_delphi.pdf');
-      } else {
-        const wb = XLSX.utils.book_new();
-        
-        const resumenData = [
-          ['Proyecto', 'Migración a Microservicios Core'],
-          ['Fecha', new Date().toLocaleDateString()],
-          ['Estimación Final', '145 Puntos de Historia'],
-        ];
-        const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
-        XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
-        
-        const historialData = [
-          ['Ronda', 'Experto', 'Estimación', 'Justificación'],
-          ['1', 'E1', 120, 'Complejidad en BD'],
-          ['1', 'E2', 180, 'Riesgo de latencia'],
-          ['2', 'E1', 140, 'Ajuste tras debate'],
-          ['2', 'E2', 150, 'Acuerdo parcial'],
-        ];
-        const wsHistorial = XLSX.utils.aoa_to_sheet(historialData);
-        XLSX.utils.book_append_sheet(wb, wsHistorial, 'Historial Rondas');
-        
-        XLSX.writeFile(wb, 'reporte_delphi.xlsx');
+      // Simulate async generation
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      try {
+         if (format === 'PDF') {
+            const doc = new jsPDF();
+            doc.setFontSize(22);
+            doc.text('Reporte de Estimación Delphi', 20, 20);
+
+            doc.setFontSize(14);
+            doc.text('Proyecto: Migración a Microservicios Core', 20, 40);
+            doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 50);
+
+            doc.setFontSize(12);
+            doc.text('Resumen de Rondas:', 20, 70);
+            doc.text('- Ronda 1: Convergencia Baja (CV: 45%)', 30, 80);
+            doc.text('- Ronda 2: Convergencia Media (CV: 25%)', 30, 90);
+            doc.text('- Ronda 3: Convergencia Alta (CV: 12%)', 30, 100);
+
+            doc.text('Estimación Final Consensuada: 145 Puntos de Historia', 20, 120);
+
+            doc.save('reporte_delphi.pdf');
+         } else {
+            const wb = XLSX.utils.book_new();
+
+            const resumenData = [
+               ['Proyecto', 'Migración a Microservicios Core'],
+               ['Fecha', new Date().toLocaleDateString()],
+               ['Estimación Final', '145 Puntos de Historia'],
+            ];
+            const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+            const historialData = [
+               ['Ronda', 'Experto', 'Estimación', 'Justificación'],
+               ['1', 'E1', 120, 'Complejidad en BD'],
+               ['1', 'E2', 180, 'Riesgo de latencia'],
+               ['2', 'E1', 140, 'Ajuste tras debate'],
+               ['2', 'E2', 150, 'Acuerdo parcial'],
+            ];
+            const wsHistorial = XLSX.utils.aoa_to_sheet(historialData);
+            XLSX.utils.book_append_sheet(wb, wsHistorial, 'Historial Rondas');
+
+            XLSX.writeFile(wb, 'reporte_delphi.xlsx');
+         }
+      } catch (error) {
+         console.error('Error generating report:', error);
+      } finally {
+         setIsGenerating(false);
       }
-    } catch (error) {
-      console.error('Error generating report:', error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+   };
 
-  return (
-    <AppErrorBoundary>
-    <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
-        <div>
-           <div className="flex items-center gap-3">
-             <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">Reportes</h2>
-             <span className="bg-delphi-keppel text-white px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">RF028</span>
-           </div>
-           <p className="text-slate-400 font-bold mt-2 md:mt-3 text-base md:text-lg">Trazabilidad completa UCE.</p>
-        </div>
-        <div className="flex bg-slate-100 p-1.5 md:p-2 rounded-2xl border border-slate-200 w-full lg:w-auto">
-          <button 
-            onClick={() => setActiveTab('create')}
-            className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'create' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
-          >
-            Generar Nuevo
-          </button>
-          <button 
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
-          >
-            Historial
-          </button>
-        </div>
-      </header>
+   return (
+      <AppErrorBoundary>
+         <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
+               <div>
+                  <div className="flex items-center gap-3">
+                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">Reportes</h2>
+                     <span className="bg-delphi-keppel text-white px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest"></span>
+                  </div>
+                  <p className="text-slate-400 font-bold mt-2 md:mt-3 text-base md:text-lg">Trazabilidad completa UCE.</p>
+               </div>
+               <div className="flex bg-slate-100 p-1.5 md:p-2 rounded-2xl border border-slate-200 w-full lg:w-auto">
+                  <button
+                     onClick={() => setActiveTab('create')}
+                     className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'create' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
+                  >
+                     Generar Nuevo
+                  </button>
+                  <button
+                     onClick={() => setActiveTab('history')}
+                     className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
+                  >
+                     Historial
+                  </button>
+               </div>
+            </header>
 
-      {activeTab === 'create' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
-          <div className="lg:col-span-8 space-y-8">
-            <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
-               <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 tracking-tight">Configuración del Informe</h3>
-               
-               <div className="space-y-8 md:space-y-10">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                     <div className="space-y-3">
-                        <label htmlFor="projectSelect" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Proyecto</label>
-                        <div className="relative">
-                           <FileText className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-delphi-keppel" />
-                           <select id="projectSelect" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none appearance-none">
-                              <option>Migración a Microservicios Core</option>
-                              <option>Rediseño App Móvil V2</option>
-                           </select>
-                        </div>
-                     </div>
-                     <div className="space-y-3" role="group" aria-labelledby="format-label">
-                        <label id="format-label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Formato</label>
-                        <div className="flex gap-4">
-                           <button 
-                             onClick={() => setFormat('PDF')}
-                             aria-pressed={format === 'PDF'}
-                             className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'PDF' ? 'bg-delphi-giants text-white border-delphi-giants' : 'bg-delphi-giants/5 border-delphi-giants/20 text-delphi-giants hover:bg-delphi-giants hover:text-white'}`}
-                           >
-                              PDF
-                           </button>
-                           <button 
-                             onClick={() => setFormat('EXCEL')}
-                             aria-pressed={format === 'EXCEL'}
-                             className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'EXCEL' ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-delphi-keppel/5 border-delphi-keppel/20 text-delphi-keppel hover:bg-delphi-keppel hover:text-white'}`}
-                           >
-                              EXCEL
-                           </button>
+            {activeTab === 'create' ? (
+               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
+                  <div className="lg:col-span-8 space-y-8">
+                     <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
+                        <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 tracking-tight">Configuración del Informe</h3>
+
+                        <div className="space-y-8 md:space-y-10">
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                              <div className="space-y-3">
+                                 <label htmlFor="projectSelect" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Proyecto</label>
+                                 <div className="relative">
+                                    <FileText className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-delphi-keppel" />
+                                    <select id="projectSelect" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none appearance-none">
+                                       <option>Migración a Microservicios Core</option>
+                                       <option>Rediseño App Móvil V2</option>
+                                    </select>
+                                 </div>
+                              </div>
+                              <div className="space-y-3" role="group" aria-labelledby="format-label">
+                                 <label id="format-label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Formato</label>
+                                 <div className="flex gap-4">
+                                    <button
+                                       onClick={() => setFormat('PDF')}
+                                       aria-pressed={format === 'PDF'}
+                                       className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'PDF' ? 'bg-delphi-giants text-white border-delphi-giants' : 'bg-delphi-giants/5 border-delphi-giants/20 text-delphi-giants hover:bg-delphi-giants hover:text-white'}`}
+                                    >
+                                       PDF
+                                    </button>
+                                    <button
+                                       onClick={() => setFormat('EXCEL')}
+                                       aria-pressed={format === 'EXCEL'}
+                                       className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'EXCEL' ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-delphi-keppel/5 border-delphi-keppel/20 text-delphi-keppel hover:bg-delphi-keppel hover:text-white'}`}
+                                    >
+                                       EXCEL
+                                    </button>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div className="space-y-4">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Incluir en el reporte</label>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+                                 {[
+                                    { label: 'Stats Generales', on: true },
+                                    { label: 'Historial Rondas', on: true },
+                                    { label: 'Justificaciones', on: true },
+                                    { label: 'Métricas Equipo', on: false },
+                                    { label: 'Gráficos Evol.', on: true },
+                                    { label: 'AI Insights', on: true },
+                                    { label: 'Logs Auditoría', on: false },
+                                    { label: 'Anexos Técnicos', on: false },
+                                 ].map((item, i) => (
+                                    <button key={i} className={`p-3 md:p-4 rounded-2xl border-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center transition-all ${item.on ? 'bg-delphi-keppel text-white border-delphi-keppel shadow-lg shadow-delphi-keppel/20' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}>
+                                       {item.label}
+                                    </button>
+                                 ))}
+                              </div>
+                           </div>
+
+                           <div className="pt-6 border-t border-slate-100">
+                              <PermissionGate permission="generate:report">
+                                 <button
+                                    onClick={handleGenerateReport}
+                                    disabled={isGenerating}
+                                    className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-slate-300 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-70 disabled:hover:scale-100"
+                                 >
+                                    {isGenerating ? (
+                                       <LoadingSpinner size="sm" label="Generando..." />
+                                    ) : (
+                                       <>
+                                          <Zap className="w-6 h-6 text-delphi-keppel" />
+                                          Generar Informe Auditable
+                                       </>
+                                    )}
+                                 </button>
+                              </PermissionGate>
+                           </div>
                         </div>
                      </div>
                   </div>
 
-                  <div className="space-y-4">
-                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Incluir en el reporte</label>
-                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-                        {[
-                          { label: 'Stats Generales', on: true },
-                          { label: 'Historial Rondas', on: true },
-                          { label: 'Justificaciones', on: true },
-                          { label: 'Métricas Equipo', on: false },
-                          { label: 'Gráficos Evol.', on: true },
-                          { label: 'AI Insights', on: true },
-                          { label: 'Logs Auditoría', on: false },
-                          { label: 'Anexos Técnicos', on: false },
-                        ].map((item, i) => (
-                           <button key={i} className={`p-3 md:p-4 rounded-2xl border-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center transition-all ${item.on ? 'bg-delphi-keppel text-white border-delphi-keppel shadow-lg shadow-delphi-keppel/20' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}>
-                              {item.label}
-                           </button>
-                        ))}
+                  <div className="lg:col-span-4 space-y-8">
+                     <div className="bg-delphi-vanilla p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-delphi-orange/20 relative overflow-hidden group">
+                        <ShieldCheck className="w-10 h-10 md:w-12 md:h-12 text-delphi-orange mb-6" />
+                        <h4 className="text-xl font-black text-slate-900 mb-2 leading-none">Integridad</h4>
+                        <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                           Hash SHA-256 para validación de datos inmutables.
+                        </p>
+                        <div className="bg-white/50 p-4 rounded-2xl border border-delphi-orange/10 font-mono text-[8px] md:text-[10px] text-delphi-orange break-all">
+                           SHA256: 7e33557457a759...
+                        </div>
                      </div>
-                  </div>
 
-                  <div className="pt-6 border-t border-slate-100">
-                     <PermissionGate permission="generate:report">
-                       <button 
-                         onClick={handleGenerateReport}
-                         disabled={isGenerating}
-                         className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-slate-300 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-70 disabled:hover:scale-100"
-                       >
-                          {isGenerating ? (
-                            <LoadingSpinner size="sm" label="Generando..." />
-                          ) : (
-                            <>
-                              <Zap className="w-6 h-6 text-delphi-keppel" />
-                              Generar Informe Auditable
-                            </>
-                          )}
-                       </button>
-                     </PermissionGate>
+                     <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
+                        <h4 className="font-black text-slate-900 mb-6 flex items-center gap-3">
+                           <Award className="w-6 h-6 text-delphi-keppel" />
+                           Certificación
+                        </h4>
+                        <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-6">
+                           Cumple estándares de Ingeniería de Software UCE.
+                        </p>
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">UCE</div>
+                           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">ISO</div>
+                        </div>
+                     </div>
                   </div>
                </div>
-            </div>
-          </div>
+            ) : (
+               <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
+                     <h3 className="text-xl md:text-2xl font-black tracking-tight leading-none">Historial</h3>
+                     <div className="flex gap-2 sm:gap-4 w-full md:w-auto">
+                        <div className="relative flex-1">
+                           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                           <input type="text" placeholder="Filtrar..." className="w-full pl-11 pr-6 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none" />
+                        </div>
+                        <button className="p-2.5 bg-slate-100 text-slate-400 rounded-xl hover:text-delphi-keppel transition-colors"><Filter className="w-5 h-5" /></button>
+                     </div>
+                  </div>
 
-          <div className="lg:col-span-4 space-y-8">
-             <div className="bg-delphi-vanilla p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-delphi-orange/20 relative overflow-hidden group">
-                <ShieldCheck className="w-10 h-10 md:w-12 md:h-12 text-delphi-orange mb-6" />
-                <h4 className="text-xl font-black text-slate-900 mb-2 leading-none">Integridad</h4>
-                <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-6">
-                   Hash SHA-256 para validación de datos inmutables.
-                </p>
-                <div className="bg-white/50 p-4 rounded-2xl border border-delphi-orange/10 font-mono text-[8px] md:text-[10px] text-delphi-orange break-all">
-                  SHA256: 7e33557457a759...
-                </div>
-             </div>
-
-             <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
-                <h4 className="font-black text-slate-900 mb-6 flex items-center gap-3">
-                   <Award className="w-6 h-6 text-delphi-keppel" />
-                   Certificación
-                </h4>
-                <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-6">
-                   Cumple estándares de Ingeniería de Software UCE.
-                </p>
-                <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">UCE</div>
-                   <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">ISO</div>
-                </div>
-             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
-              <h3 className="text-xl md:text-2xl font-black tracking-tight leading-none">Historial</h3>
-              <div className="flex gap-2 sm:gap-4 w-full md:w-auto">
-                 <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                    <input type="text" placeholder="Filtrar..." className="w-full pl-11 pr-6 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none" />
-                 </div>
-                 <button className="p-2.5 bg-slate-100 text-slate-400 rounded-xl hover:text-delphi-keppel transition-colors"><Filter className="w-5 h-5" /></button>
-              </div>
-           </div>
-
-           <div className="space-y-4 md:space-y-6">
-              {MOCK_REPORTS.map(rep => (
-                <div key={rep.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer">
-                   <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${rep.type === 'PDF' ? 'bg-delphi-giants/10 text-delphi-giants' : 'bg-delphi-keppel/10 text-delphi-keppel'}`}>
-                      <FileText className="w-6 h-6 md:w-8 md:h-8" />
-                   </div>
-                   <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                         <h4 className="font-black text-slate-900 text-base md:text-lg truncate max-w-[200px] sm:max-w-none">{rep.name}</h4>
-                         <span className="bg-delphi-celadon text-delphi-keppel text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">{rep.status}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-1 md:mt-2">
-                         <span className="text-[10px] md:text-xs font-bold text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {rep.date}</span>
-                         <span className="text-[10px] md:text-xs font-bold text-slate-400">{rep.size}</span>
-                      </div>
-                   </div>
-                   <button className="w-full sm:w-auto bg-slate-900 text-white p-3 md:p-4 rounded-2xl shadow-xl shadow-slate-200 group-hover:bg-delphi-keppel transition-all flex items-center justify-center gap-3">
-                      <Download className="w-5 h-5 md:w-6 md:h-6" />
-                      <span className="sm:hidden text-xs font-black uppercase">Descargar</span>
-                   </button>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
-    </div>
-    </AppErrorBoundary>
-  );
+                  <div className="space-y-4 md:space-y-6">
+                     {MOCK_REPORTS.map(rep => (
+                        <div key={rep.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer">
+                           <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${rep.type === 'PDF' ? 'bg-delphi-giants/10 text-delphi-giants' : 'bg-delphi-keppel/10 text-delphi-keppel'}`}>
+                              <FileText className="w-6 h-6 md:w-8 md:h-8" />
+                           </div>
+                           <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-1">
+                                 <h4 className="font-black text-slate-900 text-base md:text-lg truncate max-w-[200px] sm:max-w-none">{rep.name}</h4>
+                                 <span className="bg-delphi-celadon text-delphi-keppel text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">{rep.status}</span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-1 md:mt-2">
+                                 <span className="text-[10px] md:text-xs font-bold text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {rep.date}</span>
+                                 <span className="text-[10px] md:text-xs font-bold text-slate-400">{rep.size}</span>
+                              </div>
+                           </div>
+                           <button className="w-full sm:w-auto bg-slate-900 text-white p-3 md:p-4 rounded-2xl shadow-xl shadow-slate-200 group-hover:bg-delphi-keppel transition-all flex items-center justify-center gap-3">
+                              <Download className="w-5 h-5 md:w-6 md:h-6" />
+                              <span className="sm:hidden text-xs font-black uppercase">Descargar</span>
+                           </button>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+         </div>
+      </AppErrorBoundary>
+   );
 };
 
 export default ReportGenerator;
