@@ -5,6 +5,7 @@ import projectRoutes from './project.routes.js';
 import roundRoutes, { nestedRoundRoutes } from './round.routes.js';
 import estimationRoutes, { nestedEstimationRoutes } from './estimation.routes.js';
 import { nestedDiscussionRoutes } from './discussion.routes.js';
+import adminRouter from './admin.routes.js';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use('/users', userRoutes);
 router.use('/projects', projectRoutes);
 router.use('/rounds', roundRoutes);
 router.use('/estimations', estimationRoutes);
+router.use('/admin', adminRouter);
 
 // Nested routes
 projectRoutes.use('/:pid/rounds', nestedRoundRoutes);
