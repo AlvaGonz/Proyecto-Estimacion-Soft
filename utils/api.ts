@@ -33,6 +33,13 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
     }
 
     const response = await fetch(fullUrl, config);
+
+    // 401 interceptor: redirect to login on expired session (skip for login endpoint itself)
+    if (response.status === 401 && !endpoint.includes('/auth/login')) {
+        window.location.href = '/';
+        throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
+    }
+
     const json: ApiResponse<T> = await response.json();
 
     if (!response.ok || !json.success) {
@@ -42,3 +49,4 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
 
     return json.data as T;
 }
+
