@@ -8,22 +8,26 @@ import { errorHandler } from './middleware/error.middleware.js';
 
 const app: Application = express();
 
-// Security middleware
+// 1. Security headers
 app.use(helmet());
+
+// 2. CORS — allow cookies cross-origin
 app.use(cors({
     origin: env.ALLOWED_ORIGINS,
     credentials: true,
 }));
 
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 3. Cookie parser — required for httpOnly refresh token cookies
 app.use(cookieParser());
 
-// API routes
+// 4. Body parsing with size limits to prevent JSON bomb attacks
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: false }));
+
+// 5. API routes
 app.use('/api', routes);
 
-// 404 handler for unmatched routes
+// 6. 404 handler for unmatched routes
 app.use((_req: Request, res: Response) => {
     res.status(404).json({
         success: false,
@@ -31,7 +35,7 @@ app.use((_req: Request, res: Response) => {
     });
 });
 
-// Global error handler (must be registered last)
+// 7. Global error handler — MUST be registered last
 app.use(errorHandler);
 
 export default app;

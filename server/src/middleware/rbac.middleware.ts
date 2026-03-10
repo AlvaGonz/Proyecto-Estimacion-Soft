@@ -4,34 +4,31 @@ import { ROLE_PERMISSIONS, Role, Permission } from '../config/constants.js';
 
 export const requireRole = (...allowedRoles: Role[]) => {
     return (req: Request, _res: Response, next: NextFunction): void => {
-        // TODO: Verify req.user exists (set by authenticate middleware)
-        // if (!req.user) {
-        //   throw ApiError.unauthorized('Autenticación requerida');
-        // }
+        if (!req.user) {
+            throw ApiError.unauthorized('Autenticación requerida');
+        }
 
-        // TODO: Check if user.role is in allowedRoles
-        // if (!allowedRoles.includes(req.user.role as Role)) {
-        //   throw ApiError.forbidden('No tiene permisos para esta acción');
-        // }
+        if (!allowedRoles.includes(req.user.role as Role)) {
+            throw ApiError.forbidden('No tiene permisos para esta acción');
+        }
 
-        // STUB: Always pass for scaffolding
         next();
     };
 };
 
 export const requirePermission = (permission: Permission) => {
     return (req: Request, _res: Response, next: NextFunction): void => {
-        // TODO: Get user role from req.user
-        // if (!req.user) throw ApiError.unauthorized();
+        if (!req.user) {
+            throw ApiError.unauthorized('Autenticación requerida');
+        }
 
-        // TODO: Check ROLE_PERMISSIONS[role].includes(permission)
-        // const userRole = req.user.role as Role;
-        // const permissions = ROLE_PERMISSIONS[userRole];
-        // if (!permissions.includes(permission)) {
-        //   throw ApiError.forbidden('Permiso insuficiente');
-        // }
+        const userRole = req.user.role as Role;
+        const permissions = ROLE_PERMISSIONS[userRole] as readonly string[];
 
-        // STUB: Always pass for scaffolding
+        if (!permissions.includes(permission)) {
+            throw ApiError.forbidden('Permiso insuficiente para esta operación');
+        }
+
         next();
     };
 };

@@ -4,8 +4,7 @@ import { connectDatabase } from './config/database.js';
 
 const startServer = async (): Promise<void> => {
     try {
-        // TODO: Uncomment when database is ready
-        // await connectDatabase();
+        await connectDatabase();
 
         const server = app.listen(env.PORT, () => {
             console.log(`🚀 Server running on port ${env.PORT}`);

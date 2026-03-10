@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, refresh, logout } from '../controllers/auth.controller.js';
+import { register, login, refresh, logout, getMe } from '../controllers/auth.controller.js';
 import { validate } from '../middleware/validate.middleware.js';
 import { registerSchema, loginSchema } from '../types/api.types.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -7,7 +7,7 @@ import { authRateLimiter } from '../middleware/rateLimit.middleware.js';
 
 const router = Router();
 
-// POST /api/auth/register — Register new user
+// POST /api/auth/register — Register new user (rate limited + validated)
 router.post(
     '/register',
     authRateLimiter,
@@ -15,7 +15,7 @@ router.post(
     register
 );
 
-// POST /api/auth/login — Login user
+// POST /api/auth/login — Login user (rate limited + validated)
 router.post(
     '/login',
     authRateLimiter,
@@ -23,10 +23,13 @@ router.post(
     login
 );
 
-// POST /api/auth/refresh — Refresh access token
+// POST /api/auth/refresh — Refresh access token (uses httpOnly cookie, no rate limit)
 router.post('/refresh', refresh);
 
-// POST /api/auth/logout — Logout (requires auth)
+// POST /api/auth/logout — Logout (requires authentication)
 router.post('/logout', authenticate, logout);
+
+// GET /api/auth/me — Get current authenticated user
+router.get('/me', authenticate, getMe);
 
 export default router;

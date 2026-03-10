@@ -1,7 +1,12 @@
 import { RegisterDTO, LoginDTO } from '../types/api.types.js';
+import { User } from '../models/index.js';
+import { tokenService } from './token.service.js';
+import { auditService } from './audit.service.js';
+import { ApiError } from '../utils/ApiError.js';
+import { IUser } from '../types/models.types.js';
 
 interface AuthResult {
-    user: { id: string; email: string; name: string; role: string };
+    user: Record<string, unknown>;
     accessToken: string;
     refreshToken: string;
 }
@@ -10,57 +15,136 @@ interface RefreshResult {
     accessToken: string;
 }
 
-interface LogoutResult {
-    message: string;
-}
-
 export class AuthService {
     async register(data: RegisterDTO): Promise<AuthResult> {
-        // TODO: Check if email already exists in database
-        // TODO: Hash password with bcrypt (rounds: 12)
-        // TODO: Create user in database
-        // TODO: Generate access + refresh tokens
-        // TODO: Log audit event (action: 'user:register')
+        // Guard: check if email is already taken
+        const existingUser = await User.findOne({ email: data.email });
+        if (existingUser) {
+            throw ApiError.conflict('El correo electrónico ya está registrado');
+        }
 
-        // STUB: Return mock data
+        // Create user — password gets auto-hashed by pre-save hook
+        const user = await User.create({
+            name: data.name,
+            email: data.email,
+            password: data.password,
+            role: data.role,
+        });
+
+        // Generate tokens
+        const accessToken = tokenService.generateAccessToken({
+            id: user.id as string,
+            email: user.email,
+            role: user.role,
+        });
+        const refreshToken = tokenService.generateRefreshToken({
+            id: user.id as string,
+        });
+
+        // Store refresh token in DB for invalidation support
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // Audit: fire-and-forget
+        auditService.log({
+            userId: user.id as string,
+            action: 'USER_REGISTER',
+            resource: 'user',
+            resourceId: user.id as string,
+        });
+
         return {
-            user: { id: 'stub-id', email: data.email, name: data.name, role: data.role },
-            accessToken: 'stub-access-token',
-            refreshToken: 'stub-refresh-token',
+            user: user.toJSON(),
+            accessToken,
+            refreshToken,
         };
     }
 
     async login(data: LoginDTO): Promise<AuthResult> {
-        // TODO: Find user by email in database
-        // TODO: Compare password with bcrypt
-        // TODO: Throw ApiError.unauthorized if credentials invalid
-        // TODO: Generate access + refresh tokens
-        // TODO: Log audit event (action: 'user:login')
+        // Find user with password field included (select: false by default)
+        const user = await User.findOne({ email: data.email }).select('+password');
 
-        // STUB: Return mock data
+        // Same error message for both "not found" and "wrong password" — prevents email enumeration
+        if (!user) {
+            throw ApiError.unauthorized('Credenciales inválidas');
+        }
+
+        const isPasswordValid = await user.comparePassword(data.password);
+        if (!isPasswordValid) {
+            throw ApiError.unauthorized('Credenciales inválidas');
+        }
+
+        // Guard: check if account is active
+        if (!user.isActive) {
+            throw ApiError.forbidden('Cuenta desactivada. Contacte al administrador.');
+        }
+
+        // Generate tokens
+        const accessToken = tokenService.generateAccessToken({
+            id: user.id as string,
+            email: user.email,
+            role: user.role,
+        });
+        const refreshToken = tokenService.generateRefreshToken({
+            id: user.id as string,
+        });
+
+        // Update user: store refresh token + last login
+        user.refreshToken = refreshToken;
+        user.lastLogin = new Date();
+        await user.save();
+
+        // Audit: fire-and-forget
+        auditService.log({
+            userId: user.id as string,
+            action: 'USER_LOGIN',
+            resource: 'user',
+            resourceId: user.id as string,
+        });
+
         return {
-            user: { id: 'stub-id', email: data.email, name: 'Stub User', role: 'facilitador' },
-            accessToken: 'stub-access-token',
-            refreshToken: 'stub-refresh-token',
+            user: user.toJSON(),
+            accessToken,
+            refreshToken,
         };
     }
 
     async refreshToken(token: string): Promise<RefreshResult> {
-        // TODO: Verify refresh token with JWT_REFRESH_SECRET
-        // TODO: Generate new access token
-        // TODO: Optionally rotate refresh token
+        // Verify the refresh token signature
+        const payload = tokenService.verifyRefreshToken(token);
 
-        // STUB: Return mock data
-        console.log('[STUB] Refreshing token:', token.substring(0, 10));
-        return { accessToken: 'new-stub-access-token' };
+        // Find user and verify the stored refresh token matches
+        const user = await User.findById(payload.id).select('+refreshToken');
+        if (!user || user.refreshToken !== token) {
+            throw ApiError.unauthorized('Sesión inválida — inicie sesión nuevamente');
+        }
+
+        if (!user.isActive) {
+            throw ApiError.forbidden('Cuenta desactivada');
+        }
+
+        // Generate new access token only (refresh token stays the same)
+        const accessToken = tokenService.generateAccessToken({
+            id: user.id as string,
+            email: user.email,
+            role: user.role,
+        });
+
+        return { accessToken };
     }
 
-    async logout(userId: string): Promise<LogoutResult> {
-        // TODO: Invalidate refresh token (add to blacklist or remove from DB)
-        // TODO: Log audit event (action: 'user:logout')
+    async logout(userId: string): Promise<void> {
+        // Nullify refresh token — prevents reuse
+        await User.findByIdAndUpdate(userId, { refreshToken: null });
 
-        // STUB: Return mock message
-        console.log('[STUB] Logging out user:', userId);
-        return { message: 'Sesión cerrada' };
+        // Audit: fire-and-forget
+        auditService.log({
+            userId,
+            action: 'USER_LOGOUT',
+            resource: 'user',
+            resourceId: userId,
+        });
     }
 }
+
+export const authService = new AuthService();
