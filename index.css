@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+.bg-gradient-delphi {
+  background: linear-gradient(135deg, #2BBAA5 0%, #93D3AE 100%);
+}

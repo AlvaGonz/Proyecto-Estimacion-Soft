@@ -128,7 +128,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel }) => {
           {step === 2 && (
             <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="space-y-4" role="group" aria-labelledby="unit-label">
-                <label id="unit-label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Unidad de Estimación (RF006)</label>
+                <label id="unit-label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Unidad de Estimación</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {['Horas', 'Puntos de Historia', 'Días Persona'].map(u => (
                     <button
