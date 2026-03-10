@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { projectService } from '../services/project.service.js';
 import { taskService } from '../services/task.service.js';
+import { auditService } from '../services/audit.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Role } from '../config/constants.js';
 
@@ -116,3 +117,14 @@ export const updateTask = asyncHandler(async (req: Request, res: Response) => {
         data: task
     });
 });
+
+export const getProjectAuditLogs = asyncHandler(async (req: Request, res: Response) => {
+    const { id: projectId } = req.params;
+    const logs = await auditService.findByProject(projectId);
+
+    res.json({
+        success: true,
+        data: logs
+    });
+});
+

@@ -13,12 +13,21 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
     path: '/',
 };
 
+const ACCESS_TOKEN_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: '/',
+};
+
 export const register = asyncHandler(async (req: Request, res: Response) => {
     const data: RegisterDTO = req.body;
     const result = await authService.register(data);
 
-    // Set refresh token as httpOnly cookie — NEVER in response body
+    // Set tokens as httpOnly cookies
     res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.cookie('accessToken', result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
 
     res.status(201).json({
         success: true,
@@ -34,8 +43,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     const data: LoginDTO = req.body;
     const result = await authService.login(data);
 
-    // Set refresh token as httpOnly cookie
+    // Set tokens as httpOnly cookies
     res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.cookie('accessToken', result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
 
     res.json({
         success: true,
@@ -55,6 +65,8 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
     }
 
     const result = await authService.refreshToken(refreshToken);
+
+    res.cookie('accessToken', result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
 
     res.json({
         success: true,

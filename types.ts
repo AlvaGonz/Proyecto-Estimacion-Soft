@@ -78,3 +78,12 @@ export interface AuditEntry {
   timestamp: number;
   details: string;
 }
+
+export interface Comment {
+  id: string;
+  roundId: string;
+  userId?: string;
+  content: string;
+  isAnonymous: boolean;
+  timestamp: number;
+}

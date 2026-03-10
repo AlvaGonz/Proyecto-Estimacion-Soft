@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
     createProject, getProjects, getProjectById, updateProject,
-    archiveProject, manageExperts,
+    archiveProject, manageExperts, getProjectAuditLogs,
     createTask, getTasksByProject, updateTask
 } from '../controllers/project.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -56,6 +56,9 @@ router.patch(
     validate(manageExpertsSchema),
     manageExperts
 );
+
+// GET /api/projects/:id/audit-logs
+router.get('/:id/audit-logs', getProjectAuditLogs);
 
 // ─── Nested Task Endpoints ──────────────────────────────────────────
 
