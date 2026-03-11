@@ -5,6 +5,13 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './vitest.setup.ts',
+        include: ['components/**/*.test.{ts,tsx}'],
+        exclude: ['**/node_modules/**', '**/server/**'],
+      },
       server: {
         port: 3000,
         host: '0.0.0.0',
