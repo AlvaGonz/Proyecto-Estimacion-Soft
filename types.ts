@@ -17,10 +17,10 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  unit: 'Horas' | 'Puntos de Historia' | 'Días Persona';
+  unit: 'hours' | 'storyPoints' | 'personDays';
   facilitatorId: string;
   expertIds: string[];
-  status: 'Preparación' | 'Kickoff' | 'Activo' | 'Finalizado';
+  status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
   hasStartedRounds?: boolean;
@@ -32,7 +32,7 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'Pendiente' | 'Estimando' | 'Consensuada';
+  status: 'pending' | 'estimating' | 'consensus';
   finalEstimate?: number;
 }
 
@@ -50,7 +50,7 @@ export interface Round {
   id: string;
   taskId: string;
   roundNumber: number;
-  status: 'Abierta' | 'Cerrada';
+  status: 'open' | 'closed';
   startTime: number;
   endTime?: number;
   stats?: RoundStats;
@@ -61,10 +61,10 @@ export interface RoundStats {
   median: number;
   stdDev: number;
   variance: number;
-  coefficientOfVariation: number;
+  cv: number; // Coefficient of Variation
   range: [number, number];
   iqr: number;
-  outliers: string[]; // IDs of estimations
+  outlierEstimationIds: string[]; // IDs of estimations
 }
 
 export interface ConvergenceAnalysis {

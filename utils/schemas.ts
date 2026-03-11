@@ -45,7 +45,7 @@ export const estimationMethodSchema = z.enum(
 export const projectSchemaV2 = z.object({
   name: z.string().min(3, 'Mínimo 3 caracteres').max(100),
   description: z.string().min(10, 'Mínimo 10 caracteres').max(1000),
-  unit: z.enum(['Horas', 'Puntos de Historia', 'Días Persona']),
+  unit: z.enum(['hours', 'storyPoints', 'personDays']),
   estimationMethod: estimationMethodSchema,
   convergenceConfig: z.object({
     cvThreshold: z.number().min(0.01).max(1).default(0.25),

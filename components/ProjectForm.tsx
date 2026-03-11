@@ -14,11 +14,24 @@ interface ProjectFormProps {
 const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingProject }) => {
   const [name, setName] = useState(editingProject?.name ?? '');
   const [description, setDescription] = useState(editingProject?.description ?? '');
-  const [unit, setUnit] = useState<'Horas' | 'Puntos de Historia' | 'Días Persona'>(editingProject?.unit ?? 'Horas');
+  const [unit, setUnit] = useState<'hours' | 'storyPoints' | 'personDays'>(editingProject?.unit ?? 'hours');
   const [estimationMethod, setEstimationMethod] = useState<EstimationMethod>(editingProject?.estimationMethod ?? 'wideband-delphi');
   const [hasStartedRounds] = useState(editingProject?.hasStartedRounds ?? false);
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const UNIT_LABELS = {
+    'hours': 'Horas',
+    'storyPoints': 'Puntos de Historia',
+    'personDays': 'Días Persona'
+  } as const;
+
+  const STATUS_MAP = {
+    'preparation': 'preparation',
+    'kickoff': 'kickoff',
+    'active': 'active',
+    'finished': 'finished'
+  } as const;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +48,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
         unit,
         facilitatorId: editingProject?.facilitatorId ?? '',
         expertIds: editingProject?.expertIds ?? [],
-        status: editingProject?.status ?? 'Preparación',
+        status: editingProject?.status ?? 'preparation',
         estimationMethod,
         convergenceConfig: { cvThreshold: 0.25, maxOutlierPercent: 0.30 },
         hasStartedRounds,
         createdAt: editingProject?.createdAt ?? Date.now(),
-      } as Project);
+      } as any);
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -213,18 +226,18 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
               <div className="space-y-4" role="group" aria-labelledby="unit-label">
                 <label id="unit-label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Unidad de Estimación</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {['Horas', 'Puntos de Historia', 'Días Persona'].map(u => (
+                  {(['hours', 'storyPoints', 'personDays'] as const).map(u => (
                     <button
                       key={u}
                       type="button"
                       aria-pressed={unit === u}
-                      onClick={() => setUnit(u as 'Horas' | 'Puntos de Historia' | 'Días Persona')}
+                      onClick={() => setUnit(u)}
                       className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-4 ${unit === u ? 'border-delphi-keppel bg-delphi-keppel/5 text-delphi-keppel shadow-xl shadow-delphi-keppel/5' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-200'}`}
                     >
                       <div className={`p-3 rounded-2xl ${unit === u ? 'bg-delphi-keppel text-white' : 'bg-slate-50 text-slate-400'}`}>
                         <Plus className="w-6 h-6" />
                       </div>
-                      <span className="font-black text-[10px] uppercase tracking-widest">{u}</span>
+                      <span className="font-black text-[10px] uppercase tracking-widest">{UNIT_LABELS[u]}</span>
                     </button>
                   ))}
                 </div>

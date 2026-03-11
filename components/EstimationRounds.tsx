@@ -76,7 +76,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
         if (isMounted) {
           setRounds(taskRounds);
-          const active = taskRounds.find(r => r.status === 'Abierta') || null;
+          const active = taskRounds.find(r => r.status === 'open') || null;
           setActiveRound(active);
 
           if (taskRounds.length > 0) {
@@ -197,7 +197,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const roundIsOpen = activeRound?.status === 'Abierta';
+  const roundIsOpen = activeRound?.status === 'open';
 
   const renderEstimationInput = () => {
     switch (estimationMethod) {
@@ -233,7 +233,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'Cerrada');
+  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
   const currentRoundEstimations = estimations.filter(e =>
     e.roundId === (activeRound ? activeRound.id : lastClosedRound?.id)
   );
@@ -248,7 +248,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     .sort((a, b) => a.name - b.name);
 
   const evolutionData = rounds
-    .filter(r => r.status === 'Cerrada' && r.stats)
+    .filter(r => r.status === 'closed' && r.stats)
     .map(r => ({
       name: `R${r.roundNumber}`,
       media: r.stats?.mean,
@@ -256,7 +256,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return lastClosedRound?.stats?.outliers?.includes(estimationId) || false;
+    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -288,7 +288,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               {rounds.map(r => (
                 <div
                   key={r.id}
-                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'Abierta'
+                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'open'
                     ? 'bg-delphi-keppel text-white border-delphi-keppel'
                     : activeRound === null && r.id === lastClosedRound?.id
                       ? 'bg-slate-900 text-white border-slate-900'
@@ -407,7 +407,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                             <span className="text-[10px] font-black text-slate-400">ID: {est.id.slice(0, 4)}</span>
                             {outlier && <AlertTriangle className="w-3 h-3 text-delphi-giants" />}
                           </div>
-                          <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit}</span>
+                          <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Puntos de Historia' : unit === 'personDays' ? 'Días Persona' : unit}</span>
                         </div>
                         <p className="text-xs text-slate-500 italic leading-relaxed">"{est.justification || 'Sin comentario'}"</p>
                       </div>

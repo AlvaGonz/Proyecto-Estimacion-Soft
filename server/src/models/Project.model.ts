@@ -52,6 +52,11 @@ const projectSchema = new Schema<IProject>(
             enum: Object.values(PROJECT_STATUS),
             default: PROJECT_STATUS.ACTIVE
         },
+        estimationMethod: {
+            type: String,
+            enum: ['wideband-delphi', 'planning-poker', 'three-point'],
+            default: 'wideband-delphi'
+        },
         convergenceConfig: {
             type: convergenceConfigSchema,
             default: () => ({ cvThreshold: 0.25, maxOutlierPercent: 0.30 })
