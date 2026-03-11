@@ -163,7 +163,7 @@ const App: React.FC = () => {
               <p className="text-[9px] uppercase tracking-[0.2em] text-delphi-celadon font-black mt-1">UCE Engineering</p>
             </div>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
+          <button onClick={() => setIsSidebarOpen(false)} aria-label="Cerrar menú lateral" className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -203,6 +203,7 @@ const App: React.FC = () => {
                 onClick={handleLogout}
                 className="p-2 rounded-xl bg-delphi-giants/20 text-delphi-giants hover:bg-delphi-giants hover:text-white transition-all"
                 title="Cerrar Sesión"
+                aria-label="Cerrar sesión"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -241,6 +242,7 @@ const App: React.FC = () => {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-delphi-keppel/10 hover:text-delphi-keppel transition-all"
+              aria-label="Ver notificaciones"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-delphi-giants border-2 border-white rounded-full"></span>
