@@ -332,6 +332,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   taskId={currentTask.id}
                   taskTitle={currentTask.title}
                   unit={project.unit || "Horas"}
+                  estimationMethod={project.estimationMethod}
                   onConsensusReached={handleTaskConsensus}
                   isFacilitator={isFacilitator}
                   projectId={project.id}
