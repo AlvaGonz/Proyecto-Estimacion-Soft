@@ -115,11 +115,16 @@ const App: React.FC = () => {
     p.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const activeCount = projects.filter(p => p.status === 'active').length;
+  const finishedCount = projects.filter(p => p.status === 'finished').length;
+  const totalCount = projects.length;
+  const consensusRate = totalCount > 0 ? Math.round((finishedCount / totalCount) * 100) : 0;
+
   const stats = [
-    { label: 'Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
-    { label: 'Activos', val: projects.filter(p => p.status === 'active').length.toString(), icon: Zap, color: 'orange' },
-    { label: 'Pendientes', val: projects.filter(p => !p.status || p.status === 'preparation').length.toString(), icon: Clock, color: 'celadon' },
-    { label: 'Equipo', val: 'UCE', icon: Users, color: 'giants' },
+    { label: 'Proyectos', val: totalCount.toString(), icon: FolderKanban, color: 'keppel' },
+    { label: 'Activos', val: activeCount.toString(), icon: Clock, color: 'orange' },
+    { label: 'Consenso', val: `${consensusRate}%`, icon: Zap, color: 'celadon' },
+    { label: 'Finalizados', val: finishedCount.toString(), icon: Users, color: 'giants' },
   ];
 
   const NavButton = ({ target, icon: Icon, label, color = 'keppel' }: { target: any, icon: any, label: string, color?: string }) => {
@@ -310,17 +315,20 @@ const App: React.FC = () => {
                         Auditoría Reciente
                       </h3>
                       <div className="space-y-6">
-                        {[
-                          { t: '12:45', msg: 'Ronda cerrada', dot: 'keppel' },
-                          { t: '11:20', msg: 'Nuevo experto', dot: 'orange' },
-                          { t: '09:15', msg: 'Reporte listo', dot: 'celadon' },
-                        ].map((log, i) => (
-                          <div key={i} className="flex gap-4 items-start">
-                            <span className="text-[10px] font-black text-slate-500 w-10 shrink-0">{log.t}</span>
-                            <div className={`w-1.5 h-1.5 rounded-full bg-delphi-${log.dot} mt-1.5`} />
-                            <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">{log.msg}</p>
-                          </div>
-                        ))}
+                        {projects.length > 0 ? [...projects]
+                          .sort((a, b) => b.createdAt - a.createdAt)
+                          .slice(0, 3)
+                          .map((p, i) => (
+                            <div key={i} className="flex gap-4 items-start">
+                              <span className="text-[10px] font-black text-slate-500 w-10 shrink-0">
+                                {new Date(p.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className={`w-1.5 h-1.5 rounded-full bg-delphi-${p.status === 'active' ? 'keppel' : p.status === 'finished' ? 'celadon' : 'orange'} mt-1.5`} />
+                              <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">Proyecto: {p.name}</p>
+                            </div>
+                          )) : (
+                          <p className="text-xs text-slate-500 italic">Sin actividad reciente.</p>
+                        )}
                       </div>
                     </div>
 
@@ -328,7 +336,11 @@ const App: React.FC = () => {
                       <Zap className="w-10 h-10 text-delphi-orange mb-6" />
                       <h3 className="text-lg font-black text-slate-900 mb-2">IA Tip</h3>
                       <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                        Divergencia detectada en el Módulo de Seguridad. Revise justificaciones de E1.
+                        {projects.filter(p => p.status === 'active').length > 0
+                          ? `Tienes ${projects.filter(p => p.status === 'active').length} proyecto(s) activo(s). Revisa las rondas pendientes de consenso.`
+                          : projects.length === 0
+                            ? 'Bienvenido. Crea tu primer proyecto para comenzar la estimación.'
+                            : 'Todos tus proyectos están al día. ¡Buen trabajo!'}
                       </p>
                     </div>
                   </div>
@@ -390,7 +402,7 @@ const App: React.FC = () => {
         {showProfileModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowProfileModal(false)} />
-            <div className="bg-white w-full max-w-md rounded-[3rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
+            <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
               <button onClick={() => setShowProfileModal(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900">
                 <X className="w-6 h-6" />
               </button>
@@ -401,14 +413,21 @@ const App: React.FC = () => {
                 <h3 className="text-2xl font-black text-slate-900">{currentUser.name}</h3>
                 <p className="text-delphi-keppel font-black uppercase tracking-widest text-xs mt-1">{currentUser.role}</p>
                 <p className="text-slate-400 font-medium text-sm mt-4">{currentUser.email}</p>
-                
-                <div className="mt-10 pt-8 border-t border-slate-100 space-y-4">
-                  <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
-                    Cambiar Contraseña
-                  </button>
-                  <button onClick={handleLogout} className="w-full py-4 rounded-2xl bg-delphi-giants/10 text-delphi-giants font-black text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all">
-                    Cerrar Sesión
-                  </button>
+
+                <div className="mt-8 pt-8 border-t border-slate-100 text-left">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID de sesión</p>
+                  <code className="text-xs bg-slate-50 px-3 py-2 rounded-xl block font-mono text-slate-600 truncate mb-6">
+                    {currentUser.id}
+                  </code>
+                  
+                  <div className="space-y-3">
+                    <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
+                      Cambiar Contraseña
+                    </button>
+                    <button onClick={handleLogout} className="w-full py-4 rounded-2xl bg-delphi-giants/10 text-delphi-giants font-black text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all">
+                      Cerrar Sesión
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
