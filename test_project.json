@@ -1,0 +1,11 @@
+{
+  "name": "E-commerce Platform UCE",
+  "description": "Plataforma de comercio electronico",
+  "unit": "storyPoints",
+  "facilitatorId": "69b1e75e20bf8bd1672a6024",
+  "expertIds": ["69b1e75e20bf8bd1672a6026", "69b1e75f20bf8bd1672a6028"],
+  "convergenceConfig": {
+    "cvThreshold": 0.25,
+    "maxOutlierPercent": 0.3
+  }
+}
