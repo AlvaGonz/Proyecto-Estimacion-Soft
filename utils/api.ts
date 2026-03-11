@@ -34,9 +34,8 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
 
     const response = await fetch(fullUrl, config);
 
-    // 401 interceptor: redirect to login on expired session (skip for login endpoint itself)
-    if (response.status === 401 && !endpoint.includes('/auth/login')) {
-        window.location.href = '/';
+    if (response.status === 401 && !endpoint.includes('/auth/')) {
+        // window.location.href = '/'; // Commented out to avoid reloading the page
         throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
     }
 
