@@ -177,6 +177,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const handleStartNextRound = async () => {
+    if (activeRound) return;
     try {
       setIsAnalyzing(true);
       const nextRound = await roundService.openRound(projectId, taskId);
