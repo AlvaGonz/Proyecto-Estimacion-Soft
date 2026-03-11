@@ -1,11 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  body {
-    font-family: 'Inter', sans-serif;
-  }
+@theme {
+  --font-family-inter: 'Inter', sans-serif;
+  
+  --color-delphi-keppel: #2BBAA5;
+  --color-delphi-celadon: #93D3AE;
+  --color-delphi-vanilla: #FAECB6;
+  --color-delphi-orange: #F9A822;
+  --color-delphi-giants: #F96635;
+}
+
+body {
+  font-family: var(--font-family-inter);
 }
 
 .bg-gradient-delphi {
