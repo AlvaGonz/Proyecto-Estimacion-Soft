@@ -21,6 +21,9 @@ export interface Project {
   facilitatorId: string;
   expertIds: string[];
   status: 'Preparación' | 'Kickoff' | 'Activo' | 'Finalizado';
+  estimationMethod?: EstimationMethod;
+  convergenceConfig?: ConvergenceConfig;
+  hasStartedRounds?: boolean;
   createdAt: number;
 }
 
@@ -87,3 +90,22 @@ export interface Comment {
   isAnonymous: boolean;
   timestamp: number;
 }
+
+// ─── RF031/032/034 — Estimation Methods ──────────────────────────
+export type EstimationMethod = 'wideband-delphi' | 'planning-poker' | 'three-point';
+
+export interface ConvergenceConfig {
+  cvThreshold: number;       // default: 0.25
+  maxOutlierPercent: number; // default: 0.30
+}
+
+export interface ThreePointEstimation {
+  optimistic: number;   // O
+  mostLikely: number;   // M
+  pessimistic: number;  // P
+  expected?: number;    // E = (O + 4M + P) / 6  — calculated, not entered
+  stdDev?: number;      // σ = (P - O) / 6       — calculated, not entered
+}
+
+export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '?'] as const;
+export type FibonacciCard = typeof FIBONACCI_SEQUENCE[number];
