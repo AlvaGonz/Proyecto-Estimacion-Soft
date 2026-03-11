@@ -35,3 +35,34 @@ export const estimationSchema = z.object({
 export const discussionCommentSchema = z.object({
   content: z.string().min(5, 'El comentario debe tener al menos 5 caracteres').max(1000, 'El comentario no puede exceder 1000 caracteres'),
 });
+
+// RF031/032/034 — Estimation methods
+export const estimationMethodSchema = z.enum(
+  ['wideband-delphi', 'planning-poker', 'three-point'],
+  { errorMap: () => ({ message: 'Selecciona un método de estimación válido' }) }
+);
+
+export const projectSchemaV2 = z.object({
+  name: z.string().min(3, 'Mínimo 3 caracteres').max(100),
+  description: z.string().min(10, 'Mínimo 10 caracteres').max(1000),
+  unit: z.enum(['Horas', 'Puntos de Historia', 'Días Persona']),
+  estimationMethod: estimationMethodSchema,
+  convergenceConfig: z.object({
+    cvThreshold: z.number().min(0.01).max(1).default(0.25),
+    maxOutlierPercent: z.number().min(0.01).max(1).default(0.30),
+  }).optional(),
+});
+
+export type ProjectFormDataV2 = z.infer<typeof projectSchemaV2>;
+
+export const threePointSchema = z.object({
+  optimistic: z.number().min(0, 'O debe ser >= 0'),
+  mostLikely: z.number().min(0, 'M debe ser >= 0'),
+  pessimistic: z.number().min(0, 'P debe ser >= 0'),
+}).refine(d => d.optimistic <= d.mostLikely, {
+  message: 'O debe ser ≤ M',
+  path: ['optimistic'],
+}).refine(d => d.mostLikely <= d.pessimistic, {
+  message: 'M debe ser ≤ P',
+  path: ['mostLikely'],
+});
