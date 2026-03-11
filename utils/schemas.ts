@@ -39,7 +39,7 @@ export const discussionCommentSchema = z.object({
 // RF031/032/034 — Estimation methods
 export const estimationMethodSchema = z.enum(
   ['wideband-delphi', 'planning-poker', 'three-point'],
-  { errorMap: () => ({ message: 'Selecciona un método de estimación válido' }) }
+  { message: 'Selecciona un método de estimación válido' }
 );
 
 export const projectSchemaV2 = z.object({
