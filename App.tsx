@@ -39,6 +39,8 @@ const App: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -108,6 +110,18 @@ const App: React.FC = () => {
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isExpert = currentUser.role === UserRole.EXPERT;
 
+  const filteredProjects = projects.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const stats = [
+    { label: 'Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
+    { label: 'Activos', val: projects.filter(p => p.status === 'activo').length.toString(), icon: Zap, color: 'orange' },
+    { label: 'Pendientes', val: projects.filter(p => !p.status || p.status === 'pending').length.toString(), icon: Clock, color: 'celadon' },
+    { label: 'Equipo', val: 'UCE', icon: Users, color: 'giants' },
+  ];
+
   const NavButton = ({ target, icon: Icon, label, color = 'keppel' }: { target: any, icon: any, label: string, color?: string }) => {
     const isActive = view === target || (target === 'projects' && (view === 'project-detail' || view === 'create-project'));
     return (
@@ -174,7 +188,10 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] font-black uppercase tracking-widest">
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] font-black uppercase tracking-widest"
+              >
                 Perfil
               </button>
               <button
@@ -206,7 +223,9 @@ const App: React.FC = () => {
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-delphi-keppel transition-colors" />
               <input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Buscar proyectos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Buscar proyectos o tareas"
                 className="pl-11 pr-6 py-2.5 bg-slate-100 border-none rounded-2xl text-xs font-bold w-40 lg:w-64 focus:ring-2 focus:ring-delphi-keppel/30 transition-all outline-none"
               />
@@ -261,12 +280,7 @@ const App: React.FC = () => {
 
                 {/* Stats Grid Responsive */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-                  {[
-                    { label: 'Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
-                    { label: 'Rondas', val: isExpert ? '03' : '04', icon: isExpert ? AlertCircle : Clock, color: 'orange' },
-                    { label: 'Consenso', val: '88%', icon: Zap, color: 'celadon' },
-                    { label: 'Equipo', val: '92%', icon: Users, color: 'giants' },
-                  ].map((s, i) => (
+                  {stats.map((s, i) => (
                     <div key={i} className={`bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 hover:shadow-xl transition-all group`}>
                       <div className={`bg-delphi-${s.color}/10 p-3 md:p-4 rounded-2xl text-delphi-${s.color} w-fit mb-4 group-hover:bg-delphi-${s.color} group-hover:text-white transition-all`}>
                         <s.icon className="w-6 h-6 md:w-8 md:h-8" />
@@ -285,7 +299,7 @@ const App: React.FC = () => {
                         <h3 className="text-xl md:text-2xl font-black tracking-tight">Proyectos Recientes</h3>
                         <button onClick={() => setView('projects')} className="text-delphi-keppel font-black text-xs uppercase tracking-widest hover:underline">Ver todo</button>
                       </div>
-                      <ProjectList projects={projects} onProjectSelect={navigateToProject} />
+                      <ProjectList projects={filteredProjects} onProjectSelect={navigateToProject} />
                     </div>
                   </div>
 
@@ -337,7 +351,7 @@ const App: React.FC = () => {
                   )}
                 </header>
                 <div className="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-100">
-                  <ProjectList projects={projects} onProjectSelect={navigateToProject} />
+                  <ProjectList projects={filteredProjects} onProjectSelect={navigateToProject} />
                 </div>
               </div>
             )}
@@ -371,6 +385,35 @@ const App: React.FC = () => {
             )}
           </AppErrorBoundary>
         </div>
+
+        {/* Profile Modal */}
+        {showProfileModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowProfileModal(false)} />
+            <div className="bg-white w-full max-w-md rounded-[3rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
+              <button onClick={() => setShowProfileModal(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900">
+                <X className="w-6 h-6" />
+              </button>
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-delphi mx-auto flex items-center justify-center text-white text-3xl font-black mb-6 shadow-xl">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">{currentUser.name}</h3>
+                <p className="text-delphi-keppel font-black uppercase tracking-widest text-xs mt-1">{currentUser.role}</p>
+                <p className="text-slate-400 font-medium text-sm mt-4">{currentUser.email}</p>
+                
+                <div className="mt-10 pt-8 border-t border-slate-100 space-y-4">
+                  <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Cambiar Contraseña
+                  </button>
+                  <button onClick={handleLogout} className="w-full py-4 rounded-2xl bg-delphi-giants/10 text-delphi-giants font-black text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all">
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
