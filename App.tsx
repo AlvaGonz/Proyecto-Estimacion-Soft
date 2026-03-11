@@ -117,8 +117,8 @@ const App: React.FC = () => {
 
   const stats = [
     { label: 'Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
-    { label: 'Activos', val: projects.filter(p => p.status === 'activo').length.toString(), icon: Zap, color: 'orange' },
-    { label: 'Pendientes', val: projects.filter(p => !p.status || p.status === 'pending').length.toString(), icon: Clock, color: 'celadon' },
+    { label: 'Activos', val: projects.filter(p => p.status === 'active').length.toString(), icon: Zap, color: 'orange' },
+    { label: 'Pendientes', val: projects.filter(p => !p.status || p.status === 'preparation').length.toString(), icon: Clock, color: 'celadon' },
     { label: 'Equipo', val: 'UCE', icon: Users, color: 'giants' },
   ];
 

@@ -42,7 +42,8 @@ export interface IProject extends Document {
     unit: 'hours' | 'storyPoints' | 'personDays';
     facilitatorId: Types.ObjectId;
     expertIds: Types.ObjectId[];
-    status: 'active' | 'finished' | 'archived';
+    status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+    estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
     createdAt: Date;
     updatedAt: Date;
