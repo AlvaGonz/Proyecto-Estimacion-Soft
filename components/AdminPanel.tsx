@@ -119,6 +119,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    const [showCreateModal, setShowCreateModal] = useState(false);
    const [modalLoading, setModalLoading] = useState(false);
    const [modalError, setModalError] = useState<string | null>(null);
+   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
 
    const loadUsers = useCallback(async () => {
       if (activeTab !== 'users') { setIsLoading(false); return; }
@@ -145,6 +147,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       try {
          await adminService.createUser(data);
          setShowCreateModal(false);
+         setSuccessMessage(`Usuario ${data.name} creado exitosamente.`);
+         setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
          setModalError(err.message || 'Error al crear usuario');
@@ -157,6 +161,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       if (!window.confirm(`¿Desactivar a ${user.name}?`)) return;
       try {
          await adminService.deactivateUser(user.id || user._id || '');
+         setSuccessMessage(`Usuario ${user.name} desactivado.`);
+         setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
          setError(err.message || 'Error al desactivar usuario');
@@ -226,6 +232,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                      Nuevo Usuario
                   </button>
                </div>
+ 
+               {successMessage && (
+                  <div className="mx-8 mt-6 flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+                     <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                     {successMessage}
+                  </div>
+               )}
 
                {error && (
                   <div className="mx-8 mt-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold">

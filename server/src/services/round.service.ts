@@ -82,9 +82,9 @@ export const roundService = {
 
         // Evaluate convergence
         const convergence = convergenceService.evaluateConsensus(
-            stats.cv,
+            stats.coefficientOfVariation,
             estimations.length,
-            stats.outlierEstimationIds.length,
+            stats.outliers.length,
             config
         );
 

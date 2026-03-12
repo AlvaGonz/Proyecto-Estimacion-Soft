@@ -9,8 +9,19 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './vitest.setup.ts',
-      include: ['components/**/*.test.{ts,tsx}'],
-      exclude: ['**/node_modules/**', '**/server/**'],
+      include: ['**/*.test.{ts,tsx}'],
+      exclude: ['**/node_modules/**', '**/server/**', '**/dist/**'],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'lcov', 'html'],
+        exclude: ['node_modules/', 'dist/', '*.config.*', 'PWF*/**'],
+        thresholds: {
+          lines: 70,
+          functions: 70,
+          branches: 60,
+          statements: 70,
+        },
+      },
     },
     server: {
       port: 3001,

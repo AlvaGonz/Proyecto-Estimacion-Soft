@@ -257,7 +257,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
+    return lastClosedRound?.stats?.outliers?.includes(estimationId) || false;
   };
 
   if (isLoading) {
