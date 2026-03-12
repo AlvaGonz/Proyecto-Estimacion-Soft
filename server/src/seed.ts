@@ -31,19 +31,23 @@ const seedDatabase = async () => {
         // 1. Create Users
         const adminData = { name: 'Administrador UCE', email: 'admin@uce.edu.do', password: 'password123', role: 'admin', isActive: true };
         const facilitatorData = { name: 'Adrian Alvarez', email: 'aalvarez@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
+        const facilitator2Data = { name: 'Facilitador 2', email: 'facilitador2@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
         const expert1Data = { name: 'Experto 1', email: 'expert1@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
         const expert2Data = { name: 'Experto 2', email: 'expert2@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
         const expert3Data = { name: 'Experto 3', email: 'expert3@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
         const expert4Data = { name: 'Experto 4', email: 'expert4@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
+        const expert5Data = { name: 'Experto 5', email: 'expert5@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
 
         const admin = await User.create(adminData);
         const facilitator = await User.create(facilitatorData);
+        await User.create(facilitator2Data);
         const expert1 = await User.create(expert1Data);
         const expert2 = await User.create(expert2Data);
         const expert3 = await User.create(expert3Data);
         const expert4 = await User.create(expert4Data);
+        const expert5 = await User.create(expert5Data);
 
-        console.log(`✅ Created users (Admin, Facilitator, 4 Experts)`);
+        console.log(`✅ Created users (Admin, 2 Facilitators, 5 Experts)`);
 
         // 2. Create Project
         const project = await Project.create({
@@ -52,7 +56,7 @@ const seedDatabase = async () => {
             unit: 'storyPoints',
             status: 'active',
             facilitatorId: facilitator._id,
-            expertIds: [expert1._id, expert2._id, expert3._id, expert4._id],
+            expertIds: [expert1._id, expert2._id, expert3._id, expert4._id, expert5._id],
             convergenceConfig: {
                 cvThreshold: 0.25,
                 maxOutlierPercent: 0.30
