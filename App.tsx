@@ -61,8 +61,14 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogout = async () => {
-    await authService.logout();
-    setCurrentUser(null);
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      // Siempre limpiar el estado local aunque el API falle
+      setCurrentUser(null);
+    }
   };
 
   if (isInitializing) {
