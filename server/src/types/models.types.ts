@@ -66,10 +66,10 @@ export interface IRoundStats {
     median: number;
     stdDev: number;
     variance: number;
-    cv: number;              // Coefficient of Variation
+    coefficientOfVariation: number;
     range: [number, number]; // [min, max]
     iqr: number;
-    outlierEstimationIds: Types.ObjectId[];
+    outliers: Types.ObjectId[];
 }
 
 export interface IRound extends Document {
