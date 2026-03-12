@@ -39,6 +39,8 @@ const App: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -108,6 +110,23 @@ const App: React.FC = () => {
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isExpert = currentUser.role === UserRole.EXPERT;
 
+  const filteredProjects = projects.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const activeCount = projects.filter(p => p.status === 'active').length;
+  const finishedCount = projects.filter(p => p.status === 'finished').length;
+  const totalCount = projects.length;
+  const consensusRate = totalCount > 0 ? Math.round((finishedCount / totalCount) * 100) : 0;
+
+  const stats = [
+    { label: 'Proyectos', val: totalCount.toString(), icon: FolderKanban, color: 'keppel' },
+    { label: 'Activos', val: activeCount.toString(), icon: Clock, color: 'orange' },
+    { label: 'Consenso', val: `${consensusRate}%`, icon: Zap, color: 'celadon' },
+    { label: 'Finalizados', val: finishedCount.toString(), icon: Users, color: 'giants' },
+  ];
+
   const NavButton = ({ target, icon: Icon, label, color = 'keppel' }: { target: any, icon: any, label: string, color?: string }) => {
     const isActive = view === target || (target === 'projects' && (view === 'project-detail' || view === 'create-project'));
     return (
@@ -144,7 +163,7 @@ const App: React.FC = () => {
               <p className="text-[9px] uppercase tracking-[0.2em] text-delphi-celadon font-black mt-1">UCE Engineering</p>
             </div>
           </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
+          <button onClick={() => setIsSidebarOpen(false)} aria-label="Cerrar menú lateral" className="lg:hidden p-2 text-slate-400 hover:text-white transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -174,13 +193,17 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <button className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] font-black uppercase tracking-widest">
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 transition-colors text-[10px] font-black uppercase tracking-widest"
+              >
                 Perfil
               </button>
               <button
                 onClick={handleLogout}
                 className="p-2 rounded-xl bg-delphi-giants/20 text-delphi-giants hover:bg-delphi-giants hover:text-white transition-all"
                 title="Cerrar Sesión"
+                aria-label="Cerrar sesión"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -206,7 +229,9 @@ const App: React.FC = () => {
               <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-delphi-keppel transition-colors" />
               <input
                 type="text"
-                placeholder="Buscar..."
+                placeholder="Buscar proyectos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Buscar proyectos o tareas"
                 className="pl-11 pr-6 py-2.5 bg-slate-100 border-none rounded-2xl text-xs font-bold w-40 lg:w-64 focus:ring-2 focus:ring-delphi-keppel/30 transition-all outline-none"
               />
@@ -217,6 +242,7 @@ const App: React.FC = () => {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-delphi-keppel/10 hover:text-delphi-keppel transition-all"
+              aria-label="Ver notificaciones"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-delphi-giants border-2 border-white rounded-full"></span>
@@ -261,12 +287,7 @@ const App: React.FC = () => {
 
                 {/* Stats Grid Responsive */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-                  {[
-                    { label: 'Proyectos', val: projects.length.toString(), icon: FolderKanban, color: 'keppel' },
-                    { label: 'Rondas', val: isExpert ? '03' : '04', icon: isExpert ? AlertCircle : Clock, color: 'orange' },
-                    { label: 'Consenso', val: '88%', icon: Zap, color: 'celadon' },
-                    { label: 'Equipo', val: '92%', icon: Users, color: 'giants' },
-                  ].map((s, i) => (
+                  {stats.map((s, i) => (
                     <div key={i} className={`bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 hover:shadow-xl transition-all group`}>
                       <div className={`bg-delphi-${s.color}/10 p-3 md:p-4 rounded-2xl text-delphi-${s.color} w-fit mb-4 group-hover:bg-delphi-${s.color} group-hover:text-white transition-all`}>
                         <s.icon className="w-6 h-6 md:w-8 md:h-8" />
@@ -285,7 +306,7 @@ const App: React.FC = () => {
                         <h3 className="text-xl md:text-2xl font-black tracking-tight">Proyectos Recientes</h3>
                         <button onClick={() => setView('projects')} className="text-delphi-keppel font-black text-xs uppercase tracking-widest hover:underline">Ver todo</button>
                       </div>
-                      <ProjectList projects={projects} onProjectSelect={navigateToProject} />
+                      <ProjectList projects={filteredProjects} onProjectSelect={navigateToProject} />
                     </div>
                   </div>
 
@@ -296,17 +317,20 @@ const App: React.FC = () => {
                         Auditoría Reciente
                       </h3>
                       <div className="space-y-6">
-                        {[
-                          { t: '12:45', msg: 'Ronda cerrada', dot: 'keppel' },
-                          { t: '11:20', msg: 'Nuevo experto', dot: 'orange' },
-                          { t: '09:15', msg: 'Reporte listo', dot: 'celadon' },
-                        ].map((log, i) => (
-                          <div key={i} className="flex gap-4 items-start">
-                            <span className="text-[10px] font-black text-slate-500 w-10 shrink-0">{log.t}</span>
-                            <div className={`w-1.5 h-1.5 rounded-full bg-delphi-${log.dot} mt-1.5`} />
-                            <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">{log.msg}</p>
-                          </div>
-                        ))}
+                        {projects.length > 0 ? [...projects]
+                          .sort((a, b) => b.createdAt - a.createdAt)
+                          .slice(0, 3)
+                          .map((p, i) => (
+                            <div key={i} className="flex gap-4 items-start">
+                              <span className="text-[10px] font-black text-slate-500 w-10 shrink-0">
+                                {new Date(p.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className={`w-1.5 h-1.5 rounded-full bg-delphi-${p.status === 'active' ? 'keppel' : p.status === 'finished' ? 'celadon' : 'orange'} mt-1.5`} />
+                              <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">Proyecto: {p.name}</p>
+                            </div>
+                          )) : (
+                          <p className="text-xs text-slate-500 italic">Sin actividad reciente.</p>
+                        )}
                       </div>
                     </div>
 
@@ -314,7 +338,11 @@ const App: React.FC = () => {
                       <Zap className="w-10 h-10 text-delphi-orange mb-6" />
                       <h3 className="text-lg font-black text-slate-900 mb-2">IA Tip</h3>
                       <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                        Divergencia detectada en el Módulo de Seguridad. Revise justificaciones de E1.
+                        {projects.filter(p => p.status === 'active').length > 0
+                          ? `Tienes ${projects.filter(p => p.status === 'active').length} proyecto(s) activo(s). Revisa las rondas pendientes de consenso.`
+                          : projects.length === 0
+                            ? 'Bienvenido. Crea tu primer proyecto para comenzar la estimación.'
+                            : 'Todos tus proyectos están al día. ¡Buen trabajo!'}
                       </p>
                     </div>
                   </div>
@@ -337,7 +365,7 @@ const App: React.FC = () => {
                   )}
                 </header>
                 <div className="bg-white rounded-[2.5rem] p-6 md:p-10 shadow-sm border border-slate-100">
-                  <ProjectList projects={projects} onProjectSelect={navigateToProject} />
+                  <ProjectList projects={filteredProjects} onProjectSelect={navigateToProject} />
                 </div>
               </div>
             )}
@@ -371,6 +399,42 @@ const App: React.FC = () => {
             )}
           </AppErrorBoundary>
         </div>
+
+        {/* Profile Modal */}
+        {showProfileModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowProfileModal(false)} />
+            <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
+              <button onClick={() => setShowProfileModal(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900">
+                <X className="w-6 h-6" />
+              </button>
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-delphi mx-auto flex items-center justify-center text-white text-3xl font-black mb-6 shadow-xl">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">{currentUser.name}</h3>
+                <p className="text-delphi-keppel font-black uppercase tracking-widest text-xs mt-1">{currentUser.role}</p>
+                <p className="text-slate-400 font-medium text-sm mt-4">{currentUser.email}</p>
+
+                <div className="mt-8 pt-8 border-t border-slate-100 text-left">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID de sesión</p>
+                  <code className="text-xs bg-slate-50 px-3 py-2 rounded-xl block font-mono text-slate-600 truncate mb-6">
+                    {currentUser.id}
+                  </code>
+                  
+                  <div className="space-y-3">
+                    <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
+                      Cambiar Contraseña
+                    </button>
+                    <button onClick={handleLogout} className="w-full py-4 rounded-2xl bg-delphi-giants/10 text-delphi-giants font-black text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all">
+                      Cerrar Sesión
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

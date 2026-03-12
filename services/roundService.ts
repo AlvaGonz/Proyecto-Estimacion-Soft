@@ -14,8 +14,13 @@ export const roundService = {
     },
 
     async closeRound(roundId: string): Promise<{ round: Round, analysis: ConvergenceAnalysis }> {
-        return fetchApi<{ round: Round, analysis: ConvergenceAnalysis }>(`/rounds/${roundId}/close`, {
+        const response = await fetchApi<{ round: Round, convergence: ConvergenceAnalysis }>(`/rounds/${roundId}/close`, {
             method: 'POST'
         });
+        
+        return {
+            round: response.round,
+            analysis: response.convergence
+        };
     }
 };

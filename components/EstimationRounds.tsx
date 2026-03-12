@@ -12,12 +12,13 @@ import {
   Lock,
   MessageSquare
 } from 'lucide-react';
-import { Estimation, Round, ConvergenceAnalysis } from '../types';
+import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
+import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
 import { calculateRoundStats } from '../utils/statistics';
 import { analyzeConsensus } from '../services/geminiService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart as ReLineChart, Line } from 'recharts';
 import { EmptyState } from './ui/EmptyState';
-import { estimationSchema } from '../utils/schemas';
+import { estimationSchema, threePointSchema } from '../utils/schemas';
 import { z } from 'zod';
 import { roundService } from '../services/roundService';
 import { estimationService } from '../services/estimationService';
@@ -30,22 +31,34 @@ interface EstimationRoundsProps {
   taskId: string;
   taskTitle: string;
   unit: string;
+  estimationMethod?: EstimationMethod;
   onConsensusReached?: (value: number) => void;
   isFacilitator?: boolean;
 }
+
+const METHOD_LABELS: Record<EstimationMethod, string> = {
+  'wideband-delphi': 'Wideband Delphi',
+  'planning-poker': 'Planning Poker',
+  'three-point': 'Tres Puntos',
+};
 
 const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   projectId,
   taskId,
   taskTitle,
   unit,
+  estimationMethod = 'wideband-delphi',
   onConsensusReached,
   isFacilitator = true
 }) => {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [activeRound, setActiveRound] = useState<Round | null>(null);
   const [estimations, setEstimations] = useState<Estimation[]>([]);
-  const [inputValue, setInputValue] = useState('');
+  const [delphiValue, setDelphiValue] = useState<number | ''>('');
+  const [pokerCard, setPokerCard] = useState<FibonacciCard | null>(null);
+  const [threePoint, setThreePoint] = useState<{ optimistic: number | ''; mostLikely: number | ''; pessimistic: number | '' }>({
+    optimistic: '', mostLikely: '', pessimistic: '',
+  });
   const [justification, setJustification] = useState('');
   const [analysis, setAnalysis] = useState<ConvergenceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -63,7 +76,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
         if (isMounted) {
           setRounds(taskRounds);
-          const active = taskRounds.find(r => r.status === 'Abierta') || null;
+          const active = taskRounds.find(r => r.status === 'open') || null;
           setActiveRound(active);
 
           if (taskRounds.length > 0) {
@@ -84,31 +97,55 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     return () => { isMounted = false; };
   }, [projectId, taskId]);
 
+  const getSubmitValue = (): number | null => {
+    switch (estimationMethod) {
+      case 'wideband-delphi':
+        return delphiValue === '' ? null : delphiValue;
+      case 'planning-poker':
+        return pokerCard !== null && typeof pokerCard === 'number' ? pokerCard : null;
+      case 'three-point': {
+        const o = threePoint.optimistic;
+        const m = threePoint.mostLikely;
+        const p = threePoint.pessimistic;
+        if (o === '' || m === '' || p === '') return null;
+        const result = threePointSchema.safeParse({ optimistic: o, mostLikely: m, pessimistic: p });
+        if (!result.success) return null;
+        return (o + 4 * m + p) / 6;
+      }
+    }
+  };
+
+  const canSubmit = (): boolean => {
+    const v = getSubmitValue();
+    if (v === null || v <= 0) return false;
+    if (justification.length < 10) return false;
+    return true;
+  };
+
   const handleSubmitEstimate = async () => {
-    if (!activeRound || !inputValue) return;
+    const value = getSubmitValue();
+    if (!activeRound || value === null || value <= 0 || justification.length < 10) return;
 
     try {
-      estimationSchema.parse({ value: Number(inputValue), justification });
+      estimationSchema.parse({ value, justification });
       setErrors({});
       setIsAnalyzing(true);
-      const newEst = await estimationService.submitEstimation(activeRound.id,
-        Number(inputValue),
-        justification
-      );
+      const newEst = await estimationService.submitEstimation(activeRound.id, value, justification);
       setEstimations(prev => [...prev, newEst]);
-      setInputValue('');
+      setDelphiValue('');
+      setPokerCard(null);
+      setThreePoint({ optimistic: '', mostLikely: '', pessimistic: '' });
       setJustification('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
-        error.issues.forEach((err: any) => {
-          if (err.path[0]) {
-            newErrors[err.path[0].toString()] = err.message;
-          }
+        error.issues.forEach((err) => {
+          const path = err.path[0];
+          if (path && typeof path === 'string') newErrors[path] = err.message;
         });
         setErrors(newErrors);
       } else {
-        alert(error.message || 'Error submitting estimation');
+        alert(error instanceof Error ? error.message : 'Error submitting estimation');
       }
     } finally {
       setIsAnalyzing(false);
@@ -140,6 +177,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const handleStartNextRound = async () => {
+    if (activeRound) return;
     try {
       setIsAnalyzing(true);
       const nextRound = await roundService.openRound(projectId, taskId);
@@ -160,7 +198,43 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'Cerrada');
+  const roundIsOpen = activeRound?.status === 'open';
+
+  const renderEstimationInput = () => {
+    switch (estimationMethod) {
+      case 'wideband-delphi':
+        return (
+          <DelphiInput
+            value={delphiValue}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
+            disabled={!roundIsOpen}
+          />
+        );
+      case 'planning-poker':
+        return (
+          <PokerCards
+            selectedCard={pokerCard}
+            justification={justification}
+            onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
+            disabled={!roundIsOpen}
+          />
+        );
+      case 'three-point':
+        return (
+          <ThreePointInput
+            values={threePoint}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
+            disabled={!roundIsOpen}
+          />
+        );
+    }
+  };
+
+  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
   const currentRoundEstimations = estimations.filter(e =>
     e.roundId === (activeRound ? activeRound.id : lastClosedRound?.id)
   );
@@ -175,7 +249,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     .sort((a, b) => a.name - b.name);
 
   const evolutionData = rounds
-    .filter(r => r.status === 'Cerrada' && r.stats)
+    .filter(r => r.status === 'closed' && r.stats)
     .map(r => ({
       name: `R${r.roundNumber}`,
       media: r.stats?.mean,
@@ -183,7 +257,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return lastClosedRound?.stats?.outliers?.includes(estimationId) || false;
+    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -201,8 +275,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             </div>
             <div>
               <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">{taskTitle}</h3>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-[10px] font-black text-delphi-keppel uppercase tracking-widest">{unit}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Método: {METHOD_LABELS[estimationMethod]}
+                </span>
               </div>
             </div>
           </div>
@@ -212,7 +289,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               {rounds.map(r => (
                 <div
                   key={r.id}
-                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'Abierta'
+                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'open'
                     ? 'bg-delphi-keppel text-white border-delphi-keppel'
                     : activeRound === null && r.id === lastClosedRound?.id
                       ? 'bg-slate-900 text-white border-slate-900'
@@ -331,7 +408,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                             <span className="text-[10px] font-black text-slate-400">ID: {est.id.slice(0, 4)}</span>
                             {outlier && <AlertTriangle className="w-3 h-3 text-delphi-giants" />}
                           </div>
-                          <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit}</span>
+                          <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Puntos de Historia' : unit === 'personDays' ? 'Días Persona' : unit}</span>
                         </div>
                         <p className="text-xs text-slate-500 italic leading-relaxed">"{est.justification || 'Sin comentario'}"</p>
                       </div>
@@ -361,35 +438,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
                 <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="estimationValue" className="text-[10px] font-black uppercase text-slate-400 ml-1">Valor ({unit})</label>
-                    <input
-                      id="estimationValue"
-                      type="number"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      aria-describedby="value-error"
-                      className={`w-full bg-slate-50 border ${errors.value ? 'border-red-500' : 'border-slate-100'} rounded-xl px-4 py-3 text-lg font-black focus:border-delphi-keppel outline-none transition-all`}
-                      placeholder="0"
-                    />
-                    {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="estimationJustification" className="text-[10px] font-black uppercase text-slate-400 ml-1">Justificación</label>
-                    <textarea
-                      id="estimationJustification"
-                      rows={4}
-                      value={justification}
-                      onChange={(e) => setJustification(e.target.value)}
-                      aria-describedby="justification-error"
-                      className={`w-full bg-slate-50 border ${errors.justification ? 'border-red-500' : 'border-slate-100'} rounded-xl px-4 py-3 text-xs font-medium focus:border-delphi-keppel outline-none resize-none`}
-                      placeholder="Escribe tu razonamiento..."
-                    />
-                    {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
-                  </div>
+                  {renderEstimationInput()}
+                  {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
+                  {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
                   <button
                     onClick={handleSubmitEstimate}
-                    disabled={!inputValue}
+                    disabled={!canSubmit()}
                     className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
                   >
                     Enviar Estimación

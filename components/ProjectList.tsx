@@ -31,8 +31,8 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects = [], onProjectSelec
           <div className="flex-1 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
               <h4 className="font-black text-slate-900 group-hover:text-delphi-keppel transition-colors text-lg">{project.name}</h4>
-              <span className={`w-fit text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full ${project.status === 'Activo' ? 'bg-delphi-celadon/20 text-delphi-keppel border border-delphi-keppel/20' : 'bg-slate-200 text-slate-600'}`}>
-                {project.status}
+              <span className={`w-fit text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full ${project.status === 'active' ? 'bg-delphi-celadon/20 text-delphi-keppel border border-delphi-keppel/20' : project.status === 'kickoff' ? 'bg-delphi-orange/20 text-delphi-giants border border-delphi-giants/20' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>
+                {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
               </span>
             </div>
             <p className="text-sm text-slate-500 line-clamp-2 sm:line-clamp-1 mb-3">{project.description}</p>
