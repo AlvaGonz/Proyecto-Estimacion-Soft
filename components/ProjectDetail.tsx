@@ -98,7 +98,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     const fetchActiveRound = async () => {
       try {
         const rounds = await roundService.getRoundsByTask(projectId, selectedTaskId);
-        const active = rounds.find(r => r.status === 'Abierta');
+        const active = rounds.find(r => r.status === 'open');
         setActiveRound(active || rounds[rounds.length - 1] || null);
       } catch (err) {
         console.error("Error fetching rounds for discussion", err);
@@ -133,7 +133,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     if (!selectedTaskId) return;
     setTasks(prev => prev.map(t =>
       t.id === selectedTaskId
-        ? { ...t, status: 'Consensuada', finalEstimate: finalValue }
+        ? { ...t, status: 'consensus', finalEstimate: finalValue }
         : t
     ));
   };
@@ -153,18 +153,21 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
           <button
             onClick={onBack}
             className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center bg-white border-2 border-slate-100 rounded-2xl md:rounded-3xl text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel transition-all shadow-sm group"
+            aria-label="Volver a la lista de proyectos"
           >
             <ArrowLeft className="w-6 h-6 md:w-8 md:h-8 group-hover:-translate-x-1 transition-transform" />
           </button>
           <div>
             <div className="flex items-center gap-3 md:gap-4 flex-wrap">
               <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight leading-none">{project.name}</h2>
-              <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${project.status === 'Activo' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 'bg-slate-200 text-slate-600'}`}>{project.status}</span>
+              <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${project.status === 'active' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 'bg-slate-200 text-slate-600'}`}>
+                {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
+              </span>
             </div>
             <div className="flex items-center gap-4 md:gap-6 mt-3 flex-wrap">
               <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
                 <FileText className="w-4 h-4 text-delphi-keppel" />
-                Unidad: {project.unit}
+                Unidad: {project.unit === 'hours' ? 'Horas' : project.unit === 'storyPoints' ? 'Puntos de Historia' : project.unit === 'personDays' ? 'Días Persona' : project.unit}
               </p>
               <div className="hidden sm:block h-4 w-px bg-slate-200" />
               <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
@@ -285,13 +288,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                     >
                       <div className="flex items-start gap-4">
                         <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status === 'Consensuada' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                          {task.status === 'consensus' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
                             {task.title}
                           </h4>
-                          {task.status === 'Consensuada' ? (
+                          {task.status === 'consensus' ? (
                             <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
                               <Award className="w-3 h-3" />
                               <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate}h</span>
@@ -299,9 +302,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                           ) : (
                             <div className="space-y-1.5 mt-2">
                               <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'Estimando' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
+                                <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'estimating' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
                               </div>
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{task.status}</span>
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -332,6 +337,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   taskId={currentTask.id}
                   taskTitle={currentTask.title}
                   unit={project.unit || "Horas"}
+                  estimationMethod={project.estimationMethod}
                   onConsensusReached={handleTaskConsensus}
                   isFacilitator={isFacilitator}
                   projectId={project.id}
