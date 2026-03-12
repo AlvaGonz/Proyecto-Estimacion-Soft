@@ -61,10 +61,10 @@ export interface RoundStats {
   median: number;
   stdDev: number;
   variance: number;
-  cv: number; // Coefficient of Variation
+  coefficientOfVariation: number;
   range: [number, number];
   iqr: number;
-  outlierEstimationIds: string[]; // IDs of estimations
+  outliers: string[]; // IDs of outlier estimations
 }
 
 export interface ConvergenceAnalysis {

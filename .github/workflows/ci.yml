@@ -28,8 +28,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
       - run: npm ci
-      - name: Run lint (typecheck)
+      - name: Frontend Typecheck
         run: npm run lint
+      - name: Server Typecheck
+        run: |
+          cd server
+          npm ci
+          npx tsc --noEmit
 
   # ─────────────────────────────────────────────
   # JOB 2: Unit Tests + Coverage
