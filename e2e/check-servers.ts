@@ -6,8 +6,10 @@
  */
 
 const SERVERS = [
-  { name: 'Frontend (Vite)',    url: 'http://localhost:5173' },
-  { name: 'Backend (Express)',  url: 'http://localhost:4000/api/users' },
+  // ⚠️ Frontend es OPCIONAL en global-setup (login via API)
+  // pero los TESTS sí necesitan Vite — incluirlo en la verificación
+  { name: 'Frontend (Vite)',   url: 'http://localhost:5173',           required: true },
+  { name: 'Backend (Express)', url: 'http://localhost:4000/api/users', required: true },
 ] as const;
 
 async function checkServer(name: string, url: string): Promise<boolean> {

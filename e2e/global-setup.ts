@@ -1,18 +1,19 @@
-import { chromium, FullConfig } from '@playwright/test';
+import { chromium, FullConfig, APIRequestContext, request } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-// ESM-compatible __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 export const AUTH_DIR  = path.join(__dirname, '.auth');
 export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
 
+const BASE_API          = 'http://localhost:4000/api';
+const BASE_URL          = 'http://localhost:5173';
+
 const ADMIN_CREDS       = { email: 'admin@uce.edu.do',    password: 'password123' };
 const FACILITATOR_CREDS = { email: 'aalvarez@uce.edu.do', password: 'password123' };
-const BASE_API          = 'http://localhost:4000/api';
 
 const E2E_EXPERTS = [
   { name: 'E2E Experto 1', email: 'e2e.expert1@uce.edu.do', password: 'TestPass1', role: 'experto' },
@@ -20,112 +21,123 @@ const E2E_EXPERTS = [
   { name: 'E2E Experto 3', email: 'e2e.expert3@uce.edu.do', password: 'TestPass1', role: 'experto' },
 ] as const;
 
-async function globalSetup(_config: FullConfig) {
-  const BASE_URL = 'http://localhost:5173';
+// ── Helper: login via API → retorna cookie string ─────────────────────────
+async function loginViaAPI(
+  apiCtx: APIRequestContext,
+  email: string,
+  password: string
+): Promise<string> {
+  const res = await apiCtx.post(`${BASE_API}/auth/login`, {
+    data: { email, password },
+  });
 
+  if (!res.ok()) {
+    const body = await res.text();
+    throw new Error(
+      `[Global Setup] Login falló para ${email}: ${res.status()} — ${body}\n` +
+      'Verificar: cd server && npm run seed'
+    );
+  }
+
+  // Extraer la cookie httpOnly del header Set-Cookie
+  const headers     = res.headers();
+  const setCookie   = headers['set-cookie'] ?? '';
+
+  // La cookie puede venir como string separado por comas o newlines
+  // Extraer accessToken (o la primera cookie que aparezca)
+  const cookieValue = setCookie.split(/,(?=[^ ])|[\r\n]+/)
+    .map(c => c.trim().split(';')[0])  // solo nombre=valor, sin flags
+    .filter(Boolean)
+    .join('; ');
+
+  if (!cookieValue) {
+    // Fallback: el token puede venir en el body como JSON
+    const body = await res.json();
+    const token = body?.data?.accessToken ?? body?.accessToken ?? '';
+    if (!token) throw new Error(`[Global Setup] No se obtuvo cookie/token para ${email}`);
+    return `accessToken=${token}`;
+  }
+
+  return cookieValue;
+}
+
+async function globalSetup(_config: FullConfig) {
   if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 
-  // ── 1. Verificar que el backend responde antes de proceder ─────────────────
-  console.log('\n🔍 [Setup] Verificando backend...');
-  try {
-    const ping = await fetch(`${BASE_API}/users`, {
-      signal: AbortSignal.timeout(5_000),
-    });
-    console.log(`   Backend respondió: ${ping.status}`);
-  } catch {
+  // ── STEP 1: Verificar backend ─────────────────────────────────────────────
+  console.log('\n🔍 [Setup] Verificando backend en :4000...');
+  const apiCtx = await request.newContext({ baseURL: BASE_API });
+  const ping   = await apiCtx.get('/users').catch(() => null);
+  if (!ping) {
     throw new Error(
       '[Global Setup] Backend no responde en http://localhost:4000\n' +
       'Ejecutar: cd server && npm run dev'
     );
   }
+  console.log(`   ✅ Backend activo (${ping.status()})\n`);
 
-  // ── 2. Login como Admin via UI → obtener cookie ────────────────────────────
-  console.log('🔐 [Setup] Admin login para crear expertos E2E...');
-  const adminBrowser = await chromium.launch();
-  const adminCtx     = await adminBrowser.newContext();
-  const adminPage    = await adminCtx.newPage();
+  // ── STEP 2: Login Admin via API ───────────────────────────────────────────
+  console.log('🔐 [Setup] Login admin via API...');
+  const adminCookie = await loginViaAPI(apiCtx, ADMIN_CREDS.email, ADMIN_CREDS.password);
+  console.log('   ✅ Admin autenticado');
 
-  await adminPage.goto(BASE_URL);
-  await adminPage.waitForLoadState('networkidle');
-  await adminPage.getByLabel(/correo institucional/i).fill(ADMIN_CREDS.email);
-  await adminPage.getByLabel(/contraseña/i).fill(ADMIN_CREDS.password);
-  await adminPage.getByRole('button', { name: /ingresar al sistema/i }).click();
-  await adminPage.waitForLoadState('networkidle');
-
-  const adminCookies     = await adminCtx.cookies();
-  const adminCookieStr   = adminCookies.map(c => `${c.name}=${c.value}`).join('; ');
-
-  // ── 3. Obtener usuarios existentes → evitar duplicados ────────────────────
-  const usersRes = await adminPage.request.get(`${BASE_API}/users`, {
-    headers: { Cookie: adminCookieStr },
+  // ── STEP 3: Obtener usuarios existentes ───────────────────────────────────
+  const usersRes = await apiCtx.get('/users', {
+    headers: { Cookie: adminCookie },
   });
   const existingEmails: string[] = usersRes.ok()
     ? ((await usersRes.json()).data ?? []).map((u: { email: string }) => u.email)
     : [];
+  console.log(`📋 [Setup] Usuarios existentes: ${existingEmails.length}`);
 
-  // ── 4. Crear expertos E2E que no existan ──────────────────────────────────
-  console.log('👥 [Setup] Creando expertos E2E...');
+  // ── STEP 4: Crear expertos E2E que no existan ─────────────────────────────
+  console.log('👥 [Setup] Verificando expertos E2E...');
   for (const expert of E2E_EXPERTS) {
     if (existingEmails.includes(expert.email)) {
       console.log(`   ⏭  Ya existe: ${expert.name}`);
       continue;
     }
-    const res = await adminPage.request.post(`${BASE_API}/admin/users`, {
-      headers: { 'Content-Type': 'application/json', Cookie: adminCookieStr },
+    const res = await apiCtx.post('/admin/users', {
+      headers: { Cookie: adminCookie },
       data: expert,
     });
     console.log(res.ok()
-      ? `   ✅ Creado: ${expert.name}`
+      ? `   ✅ Creado: ${expert.name} (${expert.email})`
       : `   ❌ Error ${res.status()}: ${await res.text()}`
     );
   }
 
-  await adminBrowser.close();
+  // ── STEP 5: Guardar storageState del Facilitador ──────────────────────────
+  // El storageState necesita un contexto de browser (para las cookies httpOnly)
+  // Usamos un browser headless SOLO para inyectar la cookie y guardar el estado
+  console.log('\n🔐 [Setup] Guardando sesión facilitador...');
+  const facCookie = await loginViaAPI(apiCtx, FACILITATOR_CREDS.email, FACILITATOR_CREDS.password);
 
-  // ── 5. Login como Facilitador → guardar storageState ─────────────────────
-  console.log('🔐 [Setup] Guardando sesión del facilitador...');
-  const facBrowser = await chromium.launch();
-  const facCtx     = await facBrowser.newContext();
-  const facPage    = await facCtx.newPage();
+  // Parsear cookie para inyectarla en el browser context
+  const cookiePairs = facCookie.split(';').map(c => c.trim());
+  const [cookieName, ...rest] = cookiePairs[0].split('=');
+  const cookieValue = rest.join('=');
 
-  await facPage.goto(BASE_URL);
-  await facPage.waitForLoadState('networkidle');
-  await facPage.getByLabel(/correo institucional/i).fill(FACILITATOR_CREDS.email);
-  await facPage.getByLabel(/contraseña/i).fill(FACILITATOR_CREDS.password);
-  await facPage.getByRole('button', { name: /ingresar al sistema/i }).click();
-  await facPage.waitForLoadState('networkidle');
+  const browser = await chromium.launch();
+  const ctx     = await browser.newContext();
 
-  // Verificar login exitoso
-  const loggedIn = await facPage
-    .getByRole('button', { name: /proyectos/i })
-    .isVisible({ timeout: 10_000 })
-    .catch(() => false);
+  // Inyectar la cookie en el dominio del frontend
+  await ctx.addCookies([{
+    name:     cookieName.trim(),
+    value:    cookieValue.trim(),
+    domain:   'localhost',
+    path:     '/',
+    httpOnly: true,
+    secure:   false,
+    sameSite: 'Lax',
+  }]);
 
-  if (!loggedIn) {
-    throw new Error(
-      '[Global Setup] Login de facilitador falló.\n' +
-      'Verificar: cd server && npm run seed'
-    );
-  }
+  await ctx.storageState({ path: AUTH_FILE });
+  await browser.close();
+  await apiCtx.dispose();
 
-  // Dismissar onboarding
-  const modal = facPage.locator('[aria-labelledby="onboarding-title"]');
-  if (await modal.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    for (const txt of ['Comenzar', 'Entendido', 'Saltar', 'Cerrar', 'Continuar']) {
-      const btn = facPage.getByRole('button', { name: new RegExp(txt, 'i') });
-      if (await btn.isVisible().catch(() => false)) {
-        await btn.click();
-        await modal.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
-        break;
-      }
-    }
-    if (await modal.isVisible().catch(() => false)) await facPage.keyboard.press('Escape');
-  }
-
-  await facCtx.storageState({ path: AUTH_FILE });
-  await facBrowser.close();
-
-  console.log(`✅ [Setup] Sesión guardada. Expertos E2E listos.\n`);
+  console.log(`✅ [Setup] storageState guardado → ${AUTH_FILE}`);
+  console.log('🚀 [Setup] Global setup completado. Tests listos.\n');
 }
 
 export default globalSetup;
