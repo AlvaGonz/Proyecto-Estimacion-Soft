@@ -17,6 +17,7 @@ coverage
 playwright-report
 test-results
 *.txt
+e2e/.auth/
 
 # Editor directories and files
 .vscode/*
