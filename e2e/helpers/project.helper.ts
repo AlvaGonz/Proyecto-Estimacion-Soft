@@ -36,51 +36,48 @@ export async function createProjectViaWizard(
   await page.waitForTimeout(1_000); // dar tiempo al API call de expertos
 
   // ── Step 4 — Asignar Panel de Expertos ───────────────────────────────────────
-  await page.waitForSelector('text=/asignar panel|panel de expertos/i', { timeout: 8_000 });
+  // Esperar que la sección de expertos cargue completamente
+  await page.waitForSelector('h4:has-text("Asignar Panel"), h4:has-text("Panel de Expertos"), text=/asignar panel|panel de expertos/i', {
+    timeout: 8_000,
+  });
 
-  // Verificar que los expertos cargaron
-  const noExperts = page.getByText(/no hay expertos registrados/i);
-  const hasNoExperts = await noExperts.isVisible().catch(() => false);
-  if (hasNoExperts) {
+  // Aumentar tiempo de espera al API call — la cookie httpOnly tarda en propagarse
+  await page.waitForTimeout(2_000);
+
+  // Verificar expertos cargados — fallar con mensaje claro y screenshot si no
+  const noExperts = await page.getByText(/no hay expertos registrados/i)
+    .isVisible({ timeout: 1_000 }).catch(() => false);
+
+  if (noExperts) {
+    // Capturar screenshot para debug
+    await page.screenshot({ path: 'playwright-report/step4-no-experts.png' });
     throw new Error(
       '[createProjectViaWizard] Step 4: Expertos no cargaron.\n' +
-      'Abrir DevTools → Network → verificar GET /api/users retorna 200 con data[].\n' +
-      'Si retorna 401: storageState no tiene cookie válida → re-ejecutar global-setup.'
+      'Causa: storageState inválido o cookie expirada.\n' +
+      'Fix: npm run e2e:reset-auth && npm run e2e'
     );
   }
 
-  // Seleccionar "E2E Experto 1" por nombre exacto (creado por global-setup)
-  const expertItem = page.getByText(PRIMARY_E2E_EXPERT.displayName).first();
-  const expertVisible = await expertItem.isVisible({ timeout: 5_000 }).catch(() => false);
-
-  if (expertVisible) {
-    await expertItem.click();
+  // Intentar click por nombre exacto primero (E2E Experto 1)
+  const byName = page.getByText(/E2E Experto 1/i).first();
+  if (await byName.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await byName.click();
   } else {
-    // Fallback: primer elemento clickeable en la lista de expertos
-    const expertButtons = page.locator('button[type="button"]').filter({ hasText: /@/ });
-    const count = await expertButtons.count();
-    if (count > 0) {
-      await expertButtons.first().click();
-    } else {
-      await page.locator('[class*="expert"], [class*="user-item"], ul li').first().click();
-    }
+    // Fallback: primer item de la lista de expertos (cualquier experto sirve)
+    await page.locator('ul li, [role="listitem"]')
+      .filter({ hasNot: page.locator('nav, header, footer') })
+      .first()
+      .click({ timeout: 5_000 });
   }
 
-  await page.waitForTimeout(300);
+  // Esperar que el contador actualice
+  await page.waitForSelector('text=/seleccionados:\\s*[1-9]/i', { timeout: 4_000 });
 
-  // Confirmar que el contador cambió (Seleccionados: 0 → Seleccionados: 1+)
-  await page.waitForSelector('text=/seleccionados:\\s*[1-9]/i', { timeout: 3_000 });
+  // Esperar habilitación del botón Finalizar
+  await page.getByRole('button', { name: /finalizar/i })
+    .waitFor({ state: 'enabled', timeout: 5_000 });
 
-  // Verificar que Finalizar está habilitado
-  const finalizar = page.getByRole('button', { name: /finalizar/i });
-  await page.waitForFunction(
-    () => ![...document.querySelectorAll('button')]
-      .find(b => /finalizar/i.test(b.textContent ?? ''))
-      ?.hasAttribute('disabled'),
-    { timeout: 5_000 }
-  );
-
-  await finalizar.click();
+  await page.getByRole('button', { name: /finalizar/i }).click();
   await page.waitForLoadState('networkidle');
 
   return name;
