@@ -37,9 +37,7 @@ async function globalSetup(_config: FullConfig) {
 
   // ── STEP 2: Login Admin via API ───────────────────────────────────────────
   console.log('🔐 [Setup] Login admin via API...');
-  const loginRes = await apiCtx.post('/api/auth/login', {
-    data: ADMIN_CREDS,
-  });
+  const loginRes = await apiCtx.post('/api/auth/login', { data: ADMIN_CREDS });
   if (!loginRes.ok()) {
     throw new Error(`[Global Setup] Admin login falló: ${await loginRes.text()}`);
   }
@@ -71,8 +69,20 @@ async function globalSetup(_config: FullConfig) {
 
   await apiCtx.dispose();
 
-  // ── STEP 5: Login como Facilitador via Browser → guardar storageState ─────
-  console.log('\n🔐 [Setup] Login facilitador y guardando sesión...');
+  // ── STEP 5: Verificar frontend antes de browser login ─────────────────────
+  console.log('\n🔍 [Setup] Verificando frontend en :5173...');
+  const frontCheck = await fetch(BASE_URL, { signal: AbortSignal.timeout(3_000) }).catch(() => null);
+  if (!frontCheck) {
+    throw new Error(
+      '[Global Setup] Frontend no responde en http://localhost:5173\n' +
+      'Ejecutar en otra terminal: npm run dev\n' +
+      'Luego volver a correr: npm run e2e'
+    );
+  }
+  console.log(`   ✅ Frontend activo (${frontCheck.status})\n`);
+
+  // ── STEP 6: Login como Facilitador via Browser → guardar storageState ─────
+  console.log('🔐 [Setup] Login facilitador y guardando sesión...');
   const browser = await chromium.launch();
   const ctx     = await browser.newContext();
   const page    = await ctx.newPage();
