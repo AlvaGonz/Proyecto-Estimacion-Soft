@@ -9,7 +9,10 @@ const __dirname  = path.dirname(__filename);
 export const AUTH_DIR  = path.join(__dirname, '.auth');
 export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
 
-const BASE_API   = 'http://localhost:4000/api';
+// ⚠️ TRAILING SLASH obligatorio en baseURL:
+// Sin slash: 'http://localhost:4000/api' + '/auth/login' → :4000/auth/login  ❌
+// Con slash: 'http://localhost:4000/api/' + 'auth/login' → :4000/api/auth/login ✅
+const BASE_API   = 'http://localhost:4000/api/';
 const BASE_URL   = 'http://localhost:3001';
 
 const ADMIN       = { email: 'admin@uce.edu.do',    password: 'password123' };
@@ -25,15 +28,29 @@ const E2E_EXPERTS = [
 
 async function verifyServer(label: string, url: string): Promise<void> {
   const res = await fetch(url, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
-  if (!res) throw new Error(`[Setup] ${label} no responde en ${url}\nEjecutar: npm run dev`);
+  if (!res) throw new Error(`[Setup] ${label} no responde en ${url}`);
   console.log(`   ✅ ${label} activo (${res.status})`);
 }
 
-async function loginViaAPI(apiCtx: APIRequestContext, email: string, password: string): Promise<string> {
-  const res = await apiCtx.post('/auth/login', { data: { email, password } });
-  if (!res.ok()) throw new Error(`[Setup] Login API falló para ${email}: ${res.status()} ${await res.text()}`);
+async function loginViaAPI(
+  apiCtx: APIRequestContext,
+  email: string,
+  password: string
+): Promise<string> {
+  // Rutas SIN slash inicial — Playwright las resuelve contra baseURL con trailing slash
+  const res = await apiCtx.post('auth/login', { data: { email, password } });
+  if (!res.ok()) {
+    throw new Error(
+      `[Setup] Login API falló para ${email}: ${res.status()} ${await res.text()}\n` +
+      'Verificar: cd server && npm run seed'
+    );
+  }
   const setCookie = res.headers()['set-cookie'] ?? '';
-  return setCookie.split(/,(?=[^ ])|[\r\n]+/).map(c => c.trim().split(';')[0]).filter(Boolean).join('; ');
+  return setCookie
+    .split(/,(?=[^ ])|[\r\n]+/)
+    .map(c => c.trim().split(';')[0])
+    .filter(Boolean)
+    .join('; ');
 }
 
 async function dismissOnboarding(page: import('@playwright/test').Page): Promise<void> {
@@ -59,27 +76,30 @@ async function globalSetup(_config: FullConfig) {
   console.log('  EstimaPro E2E — Global Setup');
   console.log('══════════════════════════════════════════');
 
-  // 1. Verificar servidores
+  // 1. Verificar servidores ────────────────────────────────────────────────────
   console.log('\n🔍 Verificando servidores...');
-  await verifyServer('Backend (Express :4000)', `${BASE_API}/users`);
+  await verifyServer('Backend (Express :4000)', `${BASE_API}health`);
   await verifyServer('Frontend (Vite :3001)', BASE_URL);
 
-  // 2. Crear expertos via API (no necesita UI — admin login via API es suficiente)
+  // 2. Crear expertos E2E via Admin API ────────────────────────────────────────
   console.log('\n👥 Preparando expertos E2E...');
-  const apiCtx = await request.newContext({ baseURL: BASE_API });
+  const apiCtx      = await request.newContext({ baseURL: BASE_API });
   const adminCookie = await loginViaAPI(apiCtx, ADMIN.email, ADMIN.password);
+  console.log('   ✅ Admin autenticado via API');
 
-  const usersRes = await apiCtx.get('/users', { headers: { Cookie: adminCookie } });
+  // Rutas relativas SIN slash inicial
+  const usersRes = await apiCtx.get('users', { headers: { Cookie: adminCookie } });
   const existingEmails: string[] = usersRes.ok()
     ? ((await usersRes.json()).data ?? []).map((u: { email: string }) => u.email)
     : [];
+  console.log(`   📋 Usuarios en BD: ${existingEmails.length}`);
 
   for (const expert of E2E_EXPERTS) {
     if (existingEmails.includes(expert.email)) {
       console.log(`   ⏭  Ya existe: ${expert.name}`);
       continue;
     }
-    const res = await apiCtx.post('/admin/users', {
+    const res = await apiCtx.post('admin/users', {
       headers: { Cookie: adminCookie },
       data: expert,
     });
@@ -90,10 +110,10 @@ async function globalSetup(_config: FullConfig) {
   }
   await apiCtx.dispose();
 
-  // 3. Login UI REAL como facilitador → storageState correcto con cookie httpOnly
-  // CRÍTICO: hacerlo via browser UI para que la cookie quede en el origen :3001
-  // addCookies() NO funciona porque SameSite:Lax bloquea cross-port requests
-  console.log('\n🔐 Login UI del facilitador para storageState...');
+  // 3. Login UI REAL como facilitador → storageState correcto ──────────────────
+  // addCookies() falla: SameSite:Lax bloquea cross-port (:3001 → :4000)
+  // Login UI = browser guarda la cookie httpOnly en el contexto de :3001 directamente
+  console.log('\n🔐 Login UI facilitador → guardando storageState...');
   const browser = await chromium.launch({ headless: true });
   const ctx     = await browser.newContext();
   const page    = await ctx.newPage();
@@ -106,27 +126,28 @@ async function globalSetup(_config: FullConfig) {
   await page.getByRole('button', { name: /ingresar al sistema/i }).click();
   await page.waitForLoadState('networkidle');
 
-  // Verificar login exitoso
-  const loggedIn = await page.getByRole('button', { name: /proyectos/i })
-    .isVisible({ timeout: 10_000 }).catch(() => false);
+  const loggedIn = await page
+    .getByRole('button', { name: /proyectos/i })
+    .isVisible({ timeout: 10_000 })
+    .catch(() => false);
 
   if (!loggedIn) {
+    await page.screenshot({ path: 'playwright-report/login-failed.png' });
     await browser.close();
     throw new Error(
       '[Setup] Login UI del facilitador falló.\n' +
-      'Verificar: cd server && npm run seed\n' +
-      `Credenciales: ${FACILITATOR.email} / password123`
+      `Credenciales: ${FACILITATOR.email} / password123\n` +
+      'Screenshot guardado: playwright-report/login-failed.png\n' +
+      'Fix: cd server && npm run seed'
     );
   }
 
   await dismissOnboarding(page);
-
-  // Guardar estado con cookies httpOnly correctamente asignadas al origen :3001
   await ctx.storageState({ path: AUTH_FILE });
   await browser.close();
 
   console.log(`\n✅ storageState guardado → ${AUTH_FILE}`);
-  console.log('🚀 Global setup completado — todos los tests pueden correr\n');
+  console.log('🚀 Global setup completado — tests listos\n');
 }
 
 export default globalSetup;
