@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const AUTH_FILE  = path.join(__dirname, 'e2e', '.auth', 'facilitator.json');
+const AUTH_FILE    = path.join(__dirname, 'e2e', '.auth', 'facilitator.json');
 const storageState = fs.existsSync(AUTH_FILE) ? AUTH_FILE : undefined;
 
 export default defineConfig({
@@ -18,21 +18,15 @@ export default defineConfig({
   reporter:    [['html', { outputFolder: 'playwright-report' }], ['list']],
 
   use: {
-    baseURL:       'http://localhost:5173',
+    baseURL:    'http://localhost:3001',
     storageState,
-    trace:         'on-first-retry',
-    screenshot:    'only-on-failure',
-    video:         'retain-on-failure',
+    trace:      'on-first-retry',
+    screenshot: 'only-on-failure',
+    video:      'retain-on-failure',
   },
 
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-
-  // ── SIN webServer ──────────────────────────────────────────────────────────
-  // Los servidores se levantan MANUALMENTE antes de npm run e2e:
-  //   Terminal 1: docker compose up -d   (MongoDB)
-  //   Terminal 2: cd server && npm run dev  (Express :4000)
-  //   Terminal 3: npm run dev              (Vite :5173)
-  // Luego: npm run e2e
+  // No webServer — servidores levantados manualmente antes de npm run e2e
 });
