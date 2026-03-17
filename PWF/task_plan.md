@@ -1,70 +1,41 @@
-# Plan de Tarea: FIX-UI-010 — Funcionalidad de Creación de Proyecto (Métricas y Expertos)
+# Task Plan: E2E Audit & Compliance (RF001–RF034)
 
-## Objetivo
-Hacer que el flujo de creación de proyectos sea completamente funcional, específicamente en la selección de la unidad de métrica y la asignación de expertos.
+## Objective
+Execute a complete audit of the platform using Playwright to ensure compliance with the LDR requirements, fixing bugs as they are found.
 
-## Fases
-### Fase 1: Investigación y Análisis [COMPLETO]
-- [x] Localizar el componente responsable del formulario de creación de proyectos (`ProjectForm.tsx`).
-- [x] Analizar cómo se gestiona el estado de `unit` (horas, puntos, días).
-- [x] Investigar la fuente de datos para el listado de expertos (`userService.getAllUsers()`).
+## Phases
+### Phase 1: Dashboard Audit (SPEC 1) [COMPLETE]
+- [x] Run `dashboard.spec.ts`.
+- [x] Verify RF026 (Facilitator Dashboard), RF004 (RBAC), RF029 (Audit History).
+- [x] Log results and update findings.
 
-### Fase 2: Implementación de Métricas [EN PROGRESO]
-- [ ] Mejorar la visualización de los botones de unidad (iconos más descriptivos).
-- [ ] Asegurar que la selección se refleje correctamente en el payload final.
+### Phase 2: Projects & Wizard Audit (SPEC 2) [COMPLETE]
+- [x] Fix `userService.ts` (experts loading).
+- [x] Fix `UserRole` enum discordance.
+- [x] Run `projects.spec.ts`.
+- [x] Verify RF006 (Creation), RF007 (Update), RF008 (Tasks), RF009 (Experts), RF031 (Method Selection).
+- [x] Fix failing test `T012` (Wideband Delphi Creation). (Zod validation & Step guards fixed).
+- [x] Fix failing test `T010` (Mandatory name) & `T011` (Valid advancement).
+- [x] Correct server-side ID mapping in models (User, Project, Task).
 
-### Fase 3: Implementación de Selección de Expertos [EN PROGRESO]
-- [ ] Cargar la lista de expertos mediante `userService`.
-- [ ] Implementar el estado `expertIds` en `ProjectForm`.
-- [ ] Reemplazar el mockup del Step 4 con un selector real.
-- [ ] Validar que se seleccione al menos un experto.
+### Phase 3: Delphi Flow Audit (SPEC 3) [IN_PROGRESS]
+- [ ] Run `estimation-rounds.spec.ts`.
+- [ ] Verify RF012 (Individual Register), RF013 (Anonymity), RF014 (Justification).
 
-### Fase 4: Verificación
-- [ ] Realizar una creación de proyecto de prueba.
-- [ ] Verificar en la base de datos (o logs) que el proyecto se guarda con la unidad y expertos correctos.
+### Phase 4: Statistics & Rounds Audit (SPEC 4) [PLANNED]
+- [ ] Verify RF015 (Metrics), RF016 (Outliers IQR), RF017/RF018 (Graphs).
 
-## Error Log
-- *Ninguno aún.*
-# Plan de Implementación: CICD-001 - GitHub Actions CI/CD + Pruebas
+### Phase 5: Method-Specific Audit (SPEC 5) [PLANNED]
+- [ ] Run `three-point.spec.ts`.
+- [ ] Verify RF032 (Adaptive UI), RF015c (PERT).
 
-## Objetivo
-Configurar el entorno de pruebas unitarias (Vitest) y E2E (Playwright), implementar pruebas para lógica crítica y esquemas, y establecer pipelines de CI/CD robustos en GitHub Actions.
+### Phase 6: Gap Remediation [PLANNED]
+- [ ] Implement missing tests for RF001, RF005, RF028.
 
-## Fases
-
-### Fase 0: Setup de Git y Rama [COMPLETADO]
-- [x] Crear rama `chore/cicd-unit-tests-setup`.
-- [x] Verificar estructura existente.
-
-### Fase 1: Configuración de Vitest [COMPLETADO]
-- [x] Ajustar `vite.config.ts` para incluir cobertura y configuraciones faltantes.
-- [x] Verificar `vitest.setup.ts`.
-
-### Fase 2: Pruebas Unitarias (Statistics & Schemas) [COMPLETADO]
-- [x] Implementar `utils/__tests__/statistics.test.ts`.
-- [x] Implementar `utils/__tests__/schemas.test.ts`.
-- [x] Verificar que pasen localmente (20/20 passed, coverage > 90%).
-
-### Fase 3: Configuración de Playwright (E2E) [COMPLETADO]
-- [x] Instalar `@playwright/test`.
-- [x] Crear `playwright.config.ts`.
-- [x] Crear script `e2e` en `package.json`.
-
-### Fase 4: Pruebas E2E (Delphi Flow) [COMPLETADO]
-- [x] Implementar `e2e/delphi-flow.spec.ts`.
-- [!] Nota: Las pruebas fallan localmente porque el backend/DB sigue inactivo, pero el código está listo para CI.
-
-### Fase 5: GitHub Actions Pipelines [COMPLETADO]
-- [x] Crear `.github/workflows/ci.yml`.
-- [x] Crear `.github/workflows/deploy.yml`.
-- [x] Crear `.github/workflows/pr-check.yml`.
-
-### Fase 6: Dockerización Backend [COMPLETADO]
-- [x] Crear `server/Dockerfile` (Multi-stage).
-
-### Fase 7: Validación y Envío [EN PROGRESO]
-- [x] Ejecución final de lint/test/build.
-- [ ] Merge a `develop` vía PR.
+## Current Focus
+- Fixing `T012` in `projects.spec.ts`. Error: `getByText('Sistema Biblioteca ...')` not found after creation.
 
 ## Error Log
-- *Ninguno aún.*
+- `T012`: Timeout waiting for project card. Likely needs `networkidle` or form submission verification.
+- `userService`: Returned `[]` for experts. **FIXED**.
+- `UserRoles`: Mismatch between 'Administrador' and 'admin'. **FIXED**.
