@@ -77,28 +77,47 @@ test.describe('DASHBOARD — Métricas y Navegación', () => {
     await expect(auditPanel).toBeVisible({ timeout: 5_000 });
   });
 
-  test('T035 — Dashboard actualiza stats al crear proyecto', async ({ page }) => {
-    // Obtener valor inicial
+  test('T035 — Stats del dashboard se actualizan al crear proyecto', async ({ page }) => {
+    test.setTimeout(60_000);
+
+    // ── LEER STAT INICIAL ANTES DE CREAR ──────────────────────────────────────
     await page.waitForLoadState('networkidle');
     
-    // Anclar al sidebar para clicks de navegación
+    // El stat-card "Proyectos" tiene: label "Proyectos" + valor numérico
+    // Buscar el contenedor que tiene el texto "Proyectos" y un número
+    const statCard = page.locator('div, article, [class*="card"]').filter({
+      has: page.getByText('Proyectos', { exact: true })
+    }).filter({
+      has: page.locator('text=/^\\d+$/')  // contiene solo dígitos
+    }).first();
+
+    // Leer el número actual ANTES de crear el proyecto
+    const countEl = statCard.locator('text=/^\\d+$/').first();
+    const beforeText = await countEl.textContent({ timeout: 5_000 }).catch(() => '0');
+    const beforeCount = parseInt(beforeText.trim(), 10);
+
+    // ── CREAR PROYECTO VIA WIZARD ──────────────────────────────────────────────
     const sidebar = page.locator('nav, [role="navigation"]').first();
-    
-    // Crear un proyecto nuevo
     await sidebar.getByRole('button', { name: /proyectos/i }).click();
     await page.waitForLoadState('networkidle');
     
-    await createProjectViaWizard(page, { 
-      name: `Dashboard Stats ${Date.now()}`,
+    await createProjectViaWizard(page, {
+      name: `Stats Test ${Date.now()}`,
+      description: 'Proyecto creado por Playwright E2E',
     });
 
-    // Volver al dashboard y esperar a que cargue
+    // ── VOLVER AL DASHBOARD ───────────────────────────────────────────────────
     await sidebar.getByRole('button', { name: 'Dashboard', exact: true }).click();
-    await expect(page.getByRole('heading', { name: /métrica general/i })).toBeVisible({ timeout: 10_000 });
-    
-    // Los stats deben ser visibles
-    await expect(page.getByText('Proyectos')).toBeVisible();
-    await expect(page.getByText('Activos')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+
+    // ── VERIFICAR INCREMENTO CON DELTA RELATIVO ───────────────────────────────
+    // Esperar a que el número se actualice
+    await expect(countEl).not.toHaveText(String(beforeCount), { timeout: 8_000 });
+
+    const afterText = await countEl.textContent({ timeout: 5_000 });
+    const afterCount = parseInt(afterText?.trim() ?? '0', 10);
+
+    expect(afterCount).toBe(beforeCount + 1);
   });
 
   test('T036 — Botón Nueva Sesión en Dashboard funciona', async ({ page }) => {
