@@ -1,4 +1,4 @@
-# Reporte de QA y Debugging: DelphiEstimator Pro
+# Reporte de QA y Debugging: EstimaPro
 
 ## 📅 Fecha: 2026-03-11
 ## 🛠️ Entorno: Local (Vite 3001, Express 4000)

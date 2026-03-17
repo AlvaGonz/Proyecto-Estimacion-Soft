@@ -56,7 +56,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="bg-delphi-keppel w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-delphi-keppel/30 rotate-6">
               <BrainCircuit className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tight leading-none">DelphiPro</h1>
+            <h1 className="text-4xl font-black text-white tracking-tight leading-none">EstimaPro</h1>
             <p className="text-delphi-celadon font-black text-[10px] uppercase tracking-[0.3em] mt-3">Sistema de Estimación UCE</p>
           </div>
 

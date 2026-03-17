@@ -1,4 +1,4 @@
-# Estimación Software — Backend API
+# EstimaPro — Backend API
 
 Backend server for the Wideband Delphi software estimation platform.
 
