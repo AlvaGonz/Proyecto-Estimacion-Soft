@@ -18,6 +18,16 @@ export async function loginAs(page: Page, user: keyof typeof USERS) {
   
   // Esperar navegación o error
   await page.waitForLoadState('networkidle', { timeout: 15_000 });
+  
+  // Cerrar tour de bienvenida si aparece (con timeout corto)
+  try {
+    const closeTour = page.getByRole('button', { name: /cerrar tour|saltar/i });
+    await closeTour.waitFor({ state: 'visible', timeout: 3_000 });
+    await closeTour.click();
+    await page.waitForTimeout(500);
+  } catch {
+    // Tour no apareció o ya fue cerrado
+  }
 }
 
 export async function loginAndGoTo(page: Page, user: keyof typeof USERS, section: string) {

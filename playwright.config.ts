@@ -7,7 +7,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
   use: {
-    baseURL: 'http://localhost:3001', // Coincide con el puerto de Vite en vite.config.ts
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -16,9 +16,9 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'concurrently "cd server && npm run dev" "npm run dev" --kill-others --success first',
     url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    timeout: 120_000,
   },
 });
