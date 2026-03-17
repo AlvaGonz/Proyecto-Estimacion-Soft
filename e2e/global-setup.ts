@@ -1,4 +1,4 @@
-import { chromium, FullConfig, APIRequestContext, request } from '@playwright/test';
+import { chromium, FullConfig, request } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -21,53 +21,13 @@ const E2E_EXPERTS = [
   { name: 'E2E Experto 3', email: 'e2e.expert3@uce.edu.do', password: 'TestPass1', role: 'experto' },
 ] as const;
 
-// ── Helper: login via API → retorna cookie string ─────────────────────────
-async function loginViaAPI(
-  apiCtx: APIRequestContext,
-  email: string,
-  password: string
-): Promise<string> {
-  const res = await apiCtx.post(`${BASE_API}/auth/login`, {
-    data: { email, password },
-  });
-
-  if (!res.ok()) {
-    const body = await res.text();
-    throw new Error(
-      `[Global Setup] Login falló para ${email}: ${res.status()} — ${body}\n` +
-      'Verificar: cd server && npm run seed'
-    );
-  }
-
-  // Extraer la cookie httpOnly del header Set-Cookie
-  const headers     = res.headers();
-  const setCookie   = headers['set-cookie'] ?? '';
-
-  // La cookie puede venir como string separado por comas o newlines
-  // Extraer accessToken (o la primera cookie que aparezca)
-  const cookieValue = setCookie.split(/,(?=[^ ])|[\r\n]+/)
-    .map(c => c.trim().split(';')[0])  // solo nombre=valor, sin flags
-    .filter(Boolean)
-    .join('; ');
-
-  if (!cookieValue) {
-    // Fallback: el token puede venir en el body como JSON
-    const body = await res.json();
-    const token = body?.data?.accessToken ?? body?.accessToken ?? '';
-    if (!token) throw new Error(`[Global Setup] No se obtuvo cookie/token para ${email}`);
-    return `accessToken=${token}`;
-  }
-
-  return cookieValue;
-}
-
 async function globalSetup(_config: FullConfig) {
   if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 
   // ── STEP 1: Verificar backend ─────────────────────────────────────────────
   console.log('\n🔍 [Setup] Verificando backend en :4000...');
   const apiCtx = await request.newContext({ baseURL: BASE_API });
-  const ping   = await apiCtx.get('/users').catch(() => null);
+  const ping   = await apiCtx.get('/health').catch(() => null);
   if (!ping) {
     throw new Error(
       '[Global Setup] Backend no responde en http://localhost:4000\n' +
@@ -78,17 +38,22 @@ async function globalSetup(_config: FullConfig) {
 
   // ── STEP 2: Login Admin via API ───────────────────────────────────────────
   console.log('🔐 [Setup] Login admin via API...');
-  const adminCookie = await loginViaAPI(apiCtx, ADMIN_CREDS.email, ADMIN_CREDS.password);
+  const loginRes = await apiCtx.post('/auth/login', {
+    data: ADMIN_CREDS,
+  });
+  if (!loginRes.ok()) {
+    throw new Error(`[Global Setup] Admin login falló: ${await loginRes.text()}`);
+  }
   console.log('   ✅ Admin autenticado');
+  loginRes.dispose();
 
   // ── STEP 3: Obtener usuarios existentes ───────────────────────────────────
-  const usersRes = await apiCtx.get('/users', {
-    headers: { Cookie: adminCookie },
-  });
+  const usersRes = await apiCtx.get('/users');
   const existingEmails: string[] = usersRes.ok()
     ? ((await usersRes.json()).data ?? []).map((u: { email: string }) => u.email)
     : [];
   console.log(`📋 [Setup] Usuarios existentes: ${existingEmails.length}`);
+  usersRes.dispose();
 
   // ── STEP 4: Crear expertos E2E que no existan ─────────────────────────────
   console.log('👥 [Setup] Verificando expertos E2E...');
@@ -97,44 +62,50 @@ async function globalSetup(_config: FullConfig) {
       console.log(`   ⏭  Ya existe: ${expert.name}`);
       continue;
     }
-    const res = await apiCtx.post('/admin/users', {
-      headers: { Cookie: adminCookie },
-      data: expert,
-    });
+    const res = await apiCtx.post('/admin/users', { data: expert });
     console.log(res.ok()
       ? `   ✅ Creado: ${expert.name} (${expert.email})`
       : `   ❌ Error ${res.status()}: ${await res.text()}`
     );
+    res.dispose();
   }
 
-  // ── STEP 5: Guardar storageState del Facilitador ──────────────────────────
-  // El storageState necesita un contexto de browser (para las cookies httpOnly)
-  // Usamos un browser headless SOLO para inyectar la cookie y guardar el estado
-  console.log('\n🔐 [Setup] Guardando sesión facilitador...');
-  const facCookie = await loginViaAPI(apiCtx, FACILITATOR_CREDS.email, FACILITATOR_CREDS.password);
+  await apiCtx.dispose();
 
-  // Parsear cookie para inyectarla en el browser context
-  const cookiePairs = facCookie.split(';').map(c => c.trim());
-  const [cookieName, ...rest] = cookiePairs[0].split('=');
-  const cookieValue = rest.join('=');
-
+  // ── STEP 5: Login como Facilitador via Browser → guardar storageState ─────
+  // Necesitamos un browser para guardar el storageState con cookies httpOnly
+  console.log('\n🔐 [Setup] Login facilitador y guardando sesión...');
   const browser = await chromium.launch();
   const ctx     = await browser.newContext();
+  const page    = await ctx.newPage();
 
-  // Inyectar la cookie en el dominio del frontend
-  await ctx.addCookies([{
-    name:     cookieName.trim(),
-    value:    cookieValue.trim(),
-    domain:   'localhost',
-    path:     '/',
-    httpOnly: true,
-    secure:   false,
-    sameSite: 'Lax',
-  }]);
+  // Navegar al login y autenticar
+  await page.goto(`${BASE_URL}/login`);
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel(/correo institucional/i).fill(FACILITATOR_CREDS.email);
+  await page.getByLabel(/contraseña/i).fill(FACILITATOR_CREDS.password);
+  await page.getByRole('button', { name: /ingresar al sistema/i }).click();
+  
+  // Esperar redirección al dashboard (login exitoso)
+  await page.waitForURL(/dashboard|proyectos/, { timeout: 10_000 });
 
+  // Dismissar onboarding si aparece
+  const modal = page.locator('[aria-labelledby="onboarding-title"]');
+  if (await modal.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    for (const txt of ['Comenzar', 'Entendido', 'Saltar', 'Cerrar', 'Continuar']) {
+      const btn = page.getByRole('button', { name: new RegExp(txt, 'i') });
+      if (await btn.isVisible().catch(() => false)) {
+        await btn.click();
+        await modal.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
+        break;
+      }
+    }
+    if (await modal.isVisible().catch(() => false)) await page.keyboard.press('Escape');
+  }
+
+  // Guardar storageState (cookies httpOnly incluidas)
   await ctx.storageState({ path: AUTH_FILE });
   await browser.close();
-  await apiCtx.dispose();
 
   console.log(`✅ [Setup] storageState guardado → ${AUTH_FILE}`);
   console.log('🚀 [Setup] Global setup completado. Tests listos.\n');
