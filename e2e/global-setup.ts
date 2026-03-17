@@ -123,21 +123,33 @@ async function globalSetup(_config: FullConfig) {
 
   await page.getByLabel(/correo institucional/i).fill(FACILITATOR.email);
   await page.getByLabel(/contraseña/i).fill(FACILITATOR.password);
-  await page.getByRole('button', { name: /ingresar al sistema/i }).click();
+  
+  // Click login y esperar navegación (redirección a /dashboard o /proyectos)
+  await Promise.all([
+    page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 }),
+    page.getByRole('button', { name: /ingresar al sistema/i }).click(),
+  ]);
+  
   await page.waitForLoadState('networkidle');
+  console.log('   ✅ Login exitoso, URL:', page.url());
 
+  // Verificar que estamos autenticados (botón de proyectos visible)
   const loggedIn = await page
     .getByRole('button', { name: /proyectos/i })
-    .isVisible({ timeout: 10_000 })
+    .isVisible({ timeout: 5_000 })
     .catch(() => false);
 
   if (!loggedIn) {
     await page.screenshot({ path: 'playwright-report/login-failed.png' });
+    const html = await page.content();
+    await fs.promises.writeFile('playwright-report/login-failed.html', html);
     await browser.close();
     throw new Error(
       '[Setup] Login UI del facilitador falló.\n' +
+      `URL actual: ${page.url()}\n` +
       `Credenciales: ${FACILITATOR.email} / password123\n` +
-      'Screenshot guardado: playwright-report/login-failed.png\n' +
+      'Screenshot: playwright-report/login-failed.png\n' +
+      'HTML: playwright-report/login-failed.html\n' +
       'Fix: cd server && npm run seed'
     );
   }
