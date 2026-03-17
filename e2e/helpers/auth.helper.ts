@@ -5,6 +5,10 @@ export const USERS = {
   expert:      { email: 'expert1@uce.edu.do',  password: 'password123', role: 'Experto' },
 } as const;
 
+/**
+ * Hace login y SIEMPRE dismissea el OnboardingModal si aparece.
+ * Todos los tests deben usar esta función — nunca hacer login manual.
+ */
 export async function loginAs(page: Page, user: keyof typeof USERS) {
   await page.goto('/');
   const creds = USERS[user];
@@ -19,14 +23,55 @@ export async function loginAs(page: Page, user: keyof typeof USERS) {
   // Esperar navegación o error
   await page.waitForLoadState('networkidle', { timeout: 15_000 });
   
-  // Cerrar tour de bienvenida si aparece (con timeout corto)
-  try {
-    const closeTour = page.getByRole('button', { name: /cerrar tour|saltar/i });
-    await closeTour.waitFor({ state: 'visible', timeout: 3_000 });
-    await closeTour.click();
-    await page.waitForTimeout(500);
-  } catch {
-    // Tour no apareció o ya fue cerrado
+  // ── Dismiss OnboardingModal si aparece ─────────────────────────────────────
+  await dismissOnboardingIfPresent(page);
+}
+
+/**
+ * Cierra el OnboardingModal si está presente.
+ * Safe — no falla si el modal no aparece (usuario ya completó onboarding).
+ */
+export async function dismissOnboardingIfPresent(page: Page): Promise<void> {
+  // El modal tiene hasta 3 segundos para aparecer post-login
+  const modal = page.locator('[aria-labelledby="onboarding-title"]');
+  const modalVisible = await modal.isVisible().catch(() => false);
+
+  if (!modalVisible) {
+    // Esperar brevemente por si el modal tarda en renderizar
+    await page.waitForTimeout(800);
+    const modalVisibleAfterWait = await modal.isVisible().catch(() => false);
+    if (!modalVisibleAfterWait) return; // No hay modal — continuar
+  }
+
+  // ── Estrategia 1: Botón de cierre por texto ────────────────────────────────
+  const closeButtonSelectors = [
+    page.getByRole('button', { name: /saltar/i }),        // Botón "Saltar" en footer
+    page.getByLabel('Cerrar tour'),                       // Botón X en header
+    page.getByRole('button', { name: /finalizar/i }),     // Botón Finalizar en último paso
+  ];
+
+  for (const selector of closeButtonSelectors) {
+    const isVisible = await selector.isVisible().catch(() => false);
+    if (isVisible) {
+      await selector.click();
+      // Esperar que el modal desaparezca del DOM
+      await modal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+      return;
+    }
+  }
+
+  // ── Estrategia 2: Tecla Escape como fallback ──────────────────────────────
+  await page.keyboard.press('Escape');
+  await modal.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
+
+  // ── Estrategia 3: localStorage — marcar onboarding como completado ─────────
+  const stillVisible = await modal.isVisible().catch(() => false);
+  if (stillVisible) {
+    await page.evaluate(() => {
+      localStorage.setItem('onboarding_complete', 'true');
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
   }
 }
 
