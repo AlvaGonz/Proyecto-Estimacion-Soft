@@ -124,16 +124,26 @@ async function globalSetup(_config: FullConfig) {
   await page.getByLabel(/correo institucional/i).fill(FACILITATOR.email);
   await page.getByLabel(/contraseña/i).fill(FACILITATOR.password);
   
-  // Click login y esperar navegación (redirección a /dashboard o /proyectos)
+  // Verificar que el botón está habilitado antes de hacer click
+  const loginBtn = page.getByRole('button', { name: /ingresar al sistema/i });
+  const isEnabled = await loginBtn.isEnabled();
+  console.log('   Botón login habilitado:', isEnabled);
+  
+  if (!isEnabled) {
+    await page.screenshot({ path: 'playwright-report/login-btn-disabled.png', fullPage: true });
+    await browser.close();
+    throw new Error('[Setup] Botón de login está deshabilitado');
+  }
+  
+  // Click login y esperar navegación
   try {
     await Promise.all([
       page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 }),
-      page.getByRole('button', { name: /ingresar al sistema/i }).click(),
+      loginBtn.click(),
     ]);
     await page.waitForLoadState('networkidle');
     console.log('   ✅ Login exitoso, URL:', page.url());
   } catch (e) {
-    // Login falló o no redirigió — capturar debug
     const url = page.url();
     const title = await page.title().catch(() => 'N/A');
     try {
@@ -142,8 +152,7 @@ async function globalSetup(_config: FullConfig) {
     await browser.close();
     throw new Error(
       `[Setup] Login/navegación falló.\n\n` +
-      `URL actual: ${url}\n` +
-      `Título: ${title}\n\n` +
+      `URL: ${url} | Título: ${title}\n` +
       `Error: ${e instanceof Error ? e.message : String(e)}\n\n` +
       'Fix: cd server && npm run seed'
     );
