@@ -135,7 +135,7 @@ async function globalSetup(_config: FullConfig) {
     throw new Error('[Setup] Botón de login está deshabilitado');
   }
   
-  // Click login y esperar respuesta + navegación
+  // Click login y esperar respuesta + navegación SPA
   try {
     // Esperar la respuesta del POST login
     const loginResponsePromise = page.waitForResponse(
@@ -154,8 +154,9 @@ async function globalSetup(_config: FullConfig) {
       throw new Error(`Login API retornó ${loginResponse.status()}: ${body}`);
     }
     
-    // Esperar redirección después del login exitoso
-    await page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 });
+    // SPA: No hay navegación real, esperar que el botón de proyectos aparezca
+    console.log('   Esperando indicador de login exitoso...');
+    await page.getByRole('button', { name: /proyectos/i }).waitFor({ state: 'visible', timeout: 15_000 });
     await page.waitForLoadState('networkidle');
     console.log('   ✅ Login exitoso, URL:', page.url());
     
