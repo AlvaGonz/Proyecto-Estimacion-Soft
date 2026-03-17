@@ -6,8 +6,8 @@ test.describe('AUTH — Login y Seguridad', () => {
 
   test('T001 — Login exitoso como Facilitador muestra el dashboard', async ({ page }) => {
     await loginAs(page, 'facilitator');
-    await expect(page.getByText(/proyectos activos|métrica general|dashboard/i))
-      .toBeVisible({ timeout: 15_000 });
+    // Verificar dashboard cargado: sidebar con botón Proyectos siempre visible post-login
+    await expect(page.getByRole('button', { name: /proyectos/i })).toBeVisible({ timeout: 15_000 });
   });
 
   test('T002 — Login con credenciales inválidas muestra error', async ({ page }) => {
@@ -16,8 +16,12 @@ test.describe('AUTH — Login y Seguridad', () => {
     await page.getByLabel(/contraseña/i).fill('wrongpassword');
     await page.getByRole('button', { name: /ingresar al sistema/i }).click();
     // Error message debe aparecer — NO redirigir al dashboard
-    await expect(page.getByText(/credenciales|inválid|incorrecto|error/i))
-      .toBeVisible({ timeout: 8_000 });
+    await expect(
+      page.locator('[role="alert"], .text-red-500, .text-red-400').first()
+    ).toBeVisible({ timeout: 8_000 });
+    // Verificar que seguimos en la página de login
+    await expect(page.getByRole('button', { name: /ingresar al sistema/i }))
+      .toBeVisible({ timeout: 3_000 });
   });
 
   test('T003 — Login con contraseña vacía muestra validación', async ({ page }) => {
@@ -27,8 +31,8 @@ test.describe('AUTH — Login y Seguridad', () => {
     await page.getByRole('button', { name: /ingresar al sistema/i }).click();
     // El form no debe navegar — debe mostrar validación
     await expect(page.getByLabel(/contraseña/i)).toBeVisible();
-    // Verificar que NO llegamos al dashboard
-    await expect(page.getByText(/proyectos activos/i)).not.toBeVisible();
+    // Verificar que NO llegamos al dashboard (no hay botón de Proyectos)
+    await expect(page.getByRole('button', { name: /proyectos/i })).not.toBeVisible();
   });
 
   test('T004 — El rol del usuario se muestra correctamente en el sidebar', async ({ page }) => {
