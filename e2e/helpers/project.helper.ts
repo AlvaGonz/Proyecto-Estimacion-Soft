@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { PRIMARY_E2E_EXPERT } from './experts.helper.js';
 
 export async function createProjectViaWizard(
@@ -37,7 +37,7 @@ export async function createProjectViaWizard(
 
   // ── Step 4 — Asignar Panel de Expertos ───────────────────────────────────────
   // Esperar que la sección de expertos cargue completamente
-  await page.waitForSelector('h4:has-text("Asignar Panel"), h4:has-text("Panel de Expertos"), text=/asignar panel|panel de expertos/i', {
+  await page.waitForSelector('h4:has-text("Asignar Panel de Expertos")', {
     timeout: 8_000,
   });
 
@@ -63,22 +63,28 @@ export async function createProjectViaWizard(
   if (await byName.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await byName.click();
   } else {
-    // Fallback: primer item de la lista de expertos (cualquier experto sirve)
-    await page.locator('ul li, [role="listitem"]')
-      .filter({ hasNot: page.locator('nav, header, footer') })
-      .first()
-      .click({ timeout: 5_000 });
+    // Fallback: primer botón que parezca un experto (nombre + email)
+    // No usamos 'ul li' porque el componente usa un grid de 'button'
+    const firstExpert = page.locator('button:has-text("@")').first();
+    await firstExpert.waitFor({ state: 'visible', timeout: 5_000 });
+    await firstExpert.click();
   }
 
-  // Esperar que el contador actualice
-  await page.waitForSelector('text=/seleccionados:\\s*[1-9]/i', { timeout: 4_000 });
+  // Esperar que el contador actualice: "Seleccionados: 1"
+  await expect(page.getByText(/seleccionados:\s*[1-9]/i)).toBeVisible({ timeout: 5_000 });
 
   // Esperar habilitación del botón Finalizar
-  await page.getByRole('button', { name: /finalizar/i })
-    .waitFor({ state: 'enabled', timeout: 5_000 });
+  const finalizeBtn = page.getByRole('button', { name: /finalizar/i });
+  await finalizeBtn.waitFor({ state: 'visible', timeout: 5_000 });
+  await expect(finalizeBtn).toBeEnabled({ timeout: 5_000 });
 
-  await page.getByRole('button', { name: /finalizar/i }).click();
-  await page.waitForLoadState('networkidle');
+  // Click y esperar que el wizard se cierre (volvemos a ver el botón 'Nueva Sesión' o la lista)
+  await finalizeBtn.click();
+  
+  // En lugar de networkidle, esperamos que la vista cambie de vuelta a la lista
+  // O que el spinner desaparezca
+  await page.waitForSelector('text=Sesiones', { timeout: 15_000 });
+  await page.waitForLoadState('load');
 
   return name;
 }

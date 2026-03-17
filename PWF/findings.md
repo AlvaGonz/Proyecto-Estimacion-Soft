@@ -1,38 +1,30 @@
-## Hallazgos de Implementación (FIX-UI-010)
+# Findings & Discoveries — E2E Compliance Audit
 
-### ProjectForm.tsx
-- [x] El estado de la unidad (`unit`) ahora usa iconos descriptivos (`Clock`, `BarChart3`, `Users`).
-- [x] Se añadió la carga real de expertos desde `userService.getAllUsers()` cuando se llega al paso 4.
-- [x] Se implementó el estado `expertIds` y el filtro para mostrar solo usuarios con el rol `EXPERT`.
-- [x] Se agregó un bloqueador visual (disabled) en el botón "Finalizar" si no hay expertos seleccionados.
-- [x] La UI del paso 4 ahora es una cuadrícula scrollable con checkboxes visuales (Check icon).
+## LDR Compliance Map (RF001–RF034)
 
-### userService.ts
-- [x] `getAllUsers()` funciona perfectamente como fuente de verdad para el panel de expertos.
+| RF    | Requirement                       | Test Covered       | Status    |
+|-------|-----------------------------------|--------------------|-----------|
+| RF001 | User Registration                 | GAP                | PENDING   |
+| RF002 | Login / Auth                      | T001, T002, T003   | PASS ✅   |
+| RF003 | Role Assignment                   | global-setup (API) | PASS ✅   |
+| RF004 | Permissions (RBAC)                | T004, T039, T040   | PASS ✅   |
+| RF005 | Admin User Management             | GAP                | PENDING   |
+| RF006 | Create Estimation Project         | T010, T011, T012   | PASS ✅   |
+| RF007 | Update Project                    | GAP                | PENDING   |
+| RF008 | Manage Tasks                      | T021, T027         | PENDING   |
+| RF009 | Assign Experts                    | T012 (Step 4)      | PASS ✅   |
+| RF010 | Documentation per Project         | T024 (Docs tab)    | PENDING   |
+| RF026 | Facilitator Control Panel         | dashboard.spec.ts  | PASS ✅   |
+| RF029 | Historic Register (Audit Log)     | T034               | PASS ✅   |
 
-### App.tsx
-- [x] `handleCreateProject` ya está preparado para recibir el objeto `Project` con los `expertIds` actualizados.
+## Technical Discoveries:
+- **Enum Mismatch**: Frontend used capitalized Spanish strings for Roles (`Administrador`), while Backend used lowercase English identifiers (`admin`). Result: Permission gates (`PermissionGate`) failed even after login.
+- ** userService **: API interaction was broken; `getAllUsers` expected `response.users` but `fetchApi` already extracts the `data` array. Result: Expert list empty in Wizard. **FIXED**.
+- **T012 failure**: The test was failing due to `400 Bad Request` in project creation (invalid `expertIds` format and missing name validation). Combined with server-side `_id` vs `id` mismatch in JSON responses.
+- **Model ID Mapping**: Mongoose models (`User`, `Project`, `Task`) were outputting `_id` instead of `id` as string. Added `toJSON` transforms to ensure consistency with frontend `types.ts`. **FIXED**.
+- **Wizard Navigation**: Manual `setStep` in `ProjectForm` was flakier than using `type="submit"` but `type="submit"` was triggering native browser 'required' popups that blocked Playwright. Unified with `handleNextStep` and manual `type="button"`. **FIXED**.
 
-
-# Descubrimientos y Hallazgos: CICD-001
-
-### package.json
-- `vitest` ya está instalado (`^4.0.18`).
-- `test` script apunta a `vitest run --config vite.config.ts`.
-- Falta `playwright`.
-
-### vite.config.ts
-- Bloque `test` existe pero le falta configuración de cobertura y umbrales.
-- `setupFiles` apunta a `./vitest.setup.ts`. Necesito verificar si ese archivo existe.
-
-### Unit Tests
-- Total: 20 passed.
-- Cobertura: > 90% en archivos críticos (`statistics.ts`, `schemas.ts`).
-- Se instaló `@vitest/coverage-v8` exitosamente.
-
-### E2E Tests (Playwright)
-- Se identificaron los labels correctos: "CORREO INSTITUCIONAL", "CONTRASEÑA", "INGRESAR AL SISTEMA".
-- Las pruebas fallan por timeout (30s) al intentar iniciar sesión, lo cual es esperado dado el bloqueo de la base de datos (Docker). El flujo está listo para ejecutarse una vez el entorno sea estable.
-
-### Docker
-- El `Dockerfile` del backend se optimizó a multi-stage, reduciendo el tamaño de la imagen final y mejorando la seguridad al no incluir herramientas de compilación ni correr como root.
+## Detected Gaps:
+- RF001 (Registration UI): Exists in `App.tsx`? No registration UI found, only login. Needs implementation or mapping.
+- RF005 (Admin Panel): `AdminPanel.tsx` exists but is not linked in UI for Admins or needs explicit E2E.
+- RF015 (Statistics): Formulas implemented in `utils/statistics.ts` but need automated E2E verification of visual outcomes.
