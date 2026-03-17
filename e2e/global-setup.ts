@@ -1,6 +1,10 @@
 import { chromium, FullConfig } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
 export const AUTH_DIR  = path.join(__dirname, '.auth');
 export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
