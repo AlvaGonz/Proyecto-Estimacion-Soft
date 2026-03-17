@@ -135,14 +135,30 @@ async function globalSetup(_config: FullConfig) {
     throw new Error('[Setup] Botón de login está deshabilitado');
   }
   
-  // Click login y esperar navegación
+  // Click login y esperar respuesta + navegación
   try {
-    await Promise.all([
-      page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 }),
-      loginBtn.click(),
-    ]);
+    // Esperar la respuesta del POST login
+    const loginResponsePromise = page.waitForResponse(
+      res => res.url().includes('/auth/login') && res.request().method() === 'POST',
+      { timeout: 10_000 }
+    );
+    
+    await loginBtn.click();
+    console.log('   Click realizado, esperando respuesta...');
+    
+    const loginResponse = await loginResponsePromise;
+    console.log('   Respuesta login:', loginResponse.status(), loginResponse.statusText());
+    
+    if (!loginResponse.ok()) {
+      const body = await loginResponse.text();
+      throw new Error(`Login API retornó ${loginResponse.status()}: ${body}`);
+    }
+    
+    // Esperar redirección después del login exitoso
+    await page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 });
     await page.waitForLoadState('networkidle');
     console.log('   ✅ Login exitoso, URL:', page.url());
+    
   } catch (e) {
     const url = page.url();
     const title = await page.title().catch(() => 'N/A');
