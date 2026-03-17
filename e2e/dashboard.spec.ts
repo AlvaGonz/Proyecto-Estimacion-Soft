@@ -81,8 +81,11 @@ test.describe('DASHBOARD — Métricas y Navegación', () => {
     // Obtener valor inicial
     await page.waitForLoadState('networkidle');
     
+    // Anclar al sidebar para clicks de navegación
+    const sidebar = page.locator('nav, [role="navigation"]').first();
+    
     // Crear un proyecto nuevo
-    await page.getByRole('button', { name: /proyectos/i }).click();
+    await sidebar.getByRole('button', { name: /proyectos/i }).click();
     await page.waitForLoadState('networkidle');
     
     await createProjectViaWizard(page, { 
@@ -90,7 +93,7 @@ test.describe('DASHBOARD — Métricas y Navegación', () => {
     });
 
     // Volver al dashboard y esperar a que cargue
-    await page.getByRole('button', { name: /dashboard/i }).click();
+    await sidebar.getByRole('button', { name: 'Dashboard', exact: true }).click();
     await expect(page.getByRole('heading', { name: /métrica general/i })).toBeVisible({ timeout: 10_000 });
     
     // Los stats deben ser visibles
@@ -134,8 +137,10 @@ test.describe('DASHBOARD — Acceso por Rol', () => {
 
   test('T039 — Facilitador ve botón Nueva Sesión', async ({ page }) => {
     await loginAs(page, 'facilitator');
+    // Anclar al sidebar para evitar ambigüedad
+    const sidebar = page.locator('nav, [role="navigation"]').first();
     // Forzar navegación a dashboard por si acaso
-    await page.getByRole('button', { name: /dashboard/i }).click();
+    await sidebar.getByRole('button', { name: 'Dashboard', exact: true }).click();
     await expect(page.getByRole('heading', { name: /métrica general/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /nueva sesión/i })).toBeVisible();
   });
