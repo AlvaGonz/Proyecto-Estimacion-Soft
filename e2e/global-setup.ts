@@ -125,13 +125,29 @@ async function globalSetup(_config: FullConfig) {
   await page.getByLabel(/contraseña/i).fill(FACILITATOR.password);
   
   // Click login y esperar navegación (redirección a /dashboard o /proyectos)
-  await Promise.all([
-    page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 }),
-    page.getByRole('button', { name: /ingresar al sistema/i }).click(),
-  ]);
-  
-  await page.waitForLoadState('networkidle');
-  console.log('   ✅ Login exitoso, URL:', page.url());
+  try {
+    await Promise.all([
+      page.waitForURL(/dashboard|proyectos/, { timeout: 15_000 }),
+      page.getByRole('button', { name: /ingresar al sistema/i }).click(),
+    ]);
+    await page.waitForLoadState('networkidle');
+    console.log('   ✅ Login exitoso, URL:', page.url());
+  } catch (e) {
+    // Login falló o no redirigió — capturar debug
+    const url = page.url();
+    const title = await page.title().catch(() => 'N/A');
+    try {
+      await page.screenshot({ path: 'playwright-report/login-failed.png', fullPage: true });
+    } catch {}
+    await browser.close();
+    throw new Error(
+      `[Setup] Login/navegación falló.\n\n` +
+      `URL actual: ${url}\n` +
+      `Título: ${title}\n\n` +
+      `Error: ${e instanceof Error ? e.message : String(e)}\n\n` +
+      'Fix: cd server && npm run seed'
+    );
+  }
 
   // Verificar que estamos autenticados (botón de proyectos visible)
   const loggedIn = await page
@@ -140,16 +156,26 @@ async function globalSetup(_config: FullConfig) {
     .catch(() => false);
 
   if (!loggedIn) {
-    await page.screenshot({ path: 'playwright-report/login-failed.png' });
-    const html = await page.content();
-    await fs.promises.writeFile('playwright-report/login-failed.html', html);
+    // Capturar información de debug
+    const url = page.url();
+    const title = await page.title().catch(() => 'N/A');
+    const html = await page.content().catch(() => 'N/A');
+    
+    // Guardar screenshot y HTML
+    try {
+      await page.screenshot({ path: 'playwright-report/login-failed.png', fullPage: true });
+      await fs.promises.writeFile('playwright-report/login-failed.html', html);
+    } catch {}
+    
     await browser.close();
     throw new Error(
-      '[Setup] Login UI del facilitador falló.\n' +
-      `URL actual: ${page.url()}\n` +
-      `Credenciales: ${FACILITATOR.email} / password123\n` +
-      'Screenshot: playwright-report/login-failed.png\n' +
-      'HTML: playwright-report/login-failed.html\n' +
+      '[Setup] Login UI del facilitador falló.\n\n' +
+      `URL actual: ${url}\n` +
+      `Título: ${title}\n` +
+      `Credenciales: ${FACILITATOR.email} / password123\n\n` +
+      'Archivos de debug:\n' +
+      '  - playwright-report/login-failed.png\n' +
+      '  - playwright-report/login-failed.html\n\n' +
       'Fix: cd server && npm run seed'
     );
   }
