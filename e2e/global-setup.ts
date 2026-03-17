@@ -9,7 +9,6 @@ const __dirname  = path.dirname(__filename);
 export const AUTH_DIR  = path.join(__dirname, '.auth');
 export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
 
-const BASE_API          = 'http://localhost:4000/api';
 const BASE_URL          = 'http://localhost:5173';
 
 const ADMIN_CREDS       = { email: 'admin@uce.edu.do',    password: 'password123' };
@@ -26,8 +25,8 @@ async function globalSetup(_config: FullConfig) {
 
   // ── STEP 1: Verificar backend ─────────────────────────────────────────────
   console.log('\n🔍 [Setup] Verificando backend en :4000...');
-  const apiCtx = await request.newContext({ baseURL: BASE_API });
-  const ping   = await apiCtx.get('/health').catch(() => null);
+  const apiCtx = await request.newContext({ baseURL: 'http://localhost:4000' });
+  const ping   = await apiCtx.get('/api/health').catch(() => null);
   if (!ping) {
     throw new Error(
       '[Global Setup] Backend no responde en http://localhost:4000\n' +
@@ -38,7 +37,7 @@ async function globalSetup(_config: FullConfig) {
 
   // ── STEP 2: Login Admin via API ───────────────────────────────────────────
   console.log('🔐 [Setup] Login admin via API...');
-  const loginRes = await apiCtx.post('/auth/login', {
+  const loginRes = await apiCtx.post('/api/auth/login', {
     data: ADMIN_CREDS,
   });
   if (!loginRes.ok()) {
@@ -48,7 +47,7 @@ async function globalSetup(_config: FullConfig) {
   loginRes.dispose();
 
   // ── STEP 3: Obtener usuarios existentes ───────────────────────────────────
-  const usersRes = await apiCtx.get('/users');
+  const usersRes = await apiCtx.get('/api/users');
   const existingEmails: string[] = usersRes.ok()
     ? ((await usersRes.json()).data ?? []).map((u: { email: string }) => u.email)
     : [];
@@ -62,7 +61,7 @@ async function globalSetup(_config: FullConfig) {
       console.log(`   ⏭  Ya existe: ${expert.name}`);
       continue;
     }
-    const res = await apiCtx.post('/admin/users', { data: expert });
+    const res = await apiCtx.post('/api/admin/users', { data: expert });
     console.log(res.ok()
       ? `   ✅ Creado: ${expert.name} (${expert.email})`
       : `   ❌ Error ${res.status()}: ${await res.text()}`
@@ -73,20 +72,17 @@ async function globalSetup(_config: FullConfig) {
   await apiCtx.dispose();
 
   // ── STEP 5: Login como Facilitador via Browser → guardar storageState ─────
-  // Necesitamos un browser para guardar el storageState con cookies httpOnly
   console.log('\n🔐 [Setup] Login facilitador y guardando sesión...');
   const browser = await chromium.launch();
   const ctx     = await browser.newContext();
   const page    = await ctx.newPage();
 
-  // Navegar al login y autenticar
   await page.goto(`${BASE_URL}/login`);
   await page.waitForLoadState('networkidle');
   await page.getByLabel(/correo institucional/i).fill(FACILITATOR_CREDS.email);
   await page.getByLabel(/contraseña/i).fill(FACILITATOR_CREDS.password);
   await page.getByRole('button', { name: /ingresar al sistema/i }).click();
   
-  // Esperar redirección al dashboard (login exitoso)
   await page.waitForURL(/dashboard|proyectos/, { timeout: 10_000 });
 
   // Dismissar onboarding si aparece
@@ -103,7 +99,6 @@ async function globalSetup(_config: FullConfig) {
     if (await modal.isVisible().catch(() => false)) await page.keyboard.press('Escape');
   }
 
-  // Guardar storageState (cookies httpOnly incluidas)
   await ctx.storageState({ path: AUTH_FILE });
   await browser.close();
 
