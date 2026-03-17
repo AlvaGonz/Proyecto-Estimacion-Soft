@@ -1,8 +1,8 @@
-# AGENTS.md — Proyecto-Estimacion-Soft
+# AGENTS.md — EstimaPro
 > Repository constitution for AI agents (Cursor, Copilot, Antigravity)
 
 ## Project Overview
-Multi-method collaborative software estimation platform (Wideband Delphi).
+Multi-method collaborative software estimation platform — EstimaPro.
 University project — UCE, Escuela de Ingeniería de Software, 2024.
 Authors: Adrian Alexander Alvarez Gonzalez | Ray Rubén Ventura López
 

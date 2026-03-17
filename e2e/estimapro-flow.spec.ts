@@ -1,4 +1,4 @@
-// e2e/delphi-flow.spec.ts
+// e2e/estimapro-flow.spec.ts
 import { test, expect } from '@playwright/test';
 import { loginAs, USERS } from './helpers/auth.helper';
 

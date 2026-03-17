@@ -73,7 +73,7 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
           <ShieldCheck className="w-8 h-8" />
         </div>
         <p className="text-sm font-bold text-slate-600 leading-relaxed">
-          <strong>Integridad Garantizada:</strong> Este registro histórico es inmutable. Cada entrada está vinculada criptográficamente a la anterior para asegurar la validez de la auditoría en la plataforma DelphiPro.
+          <strong>Integridad Garantizada:</strong> Este registro histórico es inmutable. Cada entrada está vinculada criptográficamente a la anterior para asegurar la validez de la auditoría en la plataforma EstimaPro.
         </p>
       </div>
     </div>

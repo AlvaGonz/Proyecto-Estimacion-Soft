@@ -165,7 +165,7 @@ const App: React.FC = () => {
               <BrainCircuit className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="font-black text-xl tracking-tight leading-none">DelphiPro</h1>
+              <h1 className="font-black text-xl tracking-tight leading-none">EstimaPro</h1>
               <p className="text-[9px] uppercase tracking-[0.2em] text-delphi-celadon font-black mt-1">UCE Engineering</p>
             </div>
           </div>
