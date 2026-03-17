@@ -86,13 +86,13 @@ test.describe('DASHBOARD — Métricas y Navegación', () => {
       name: `Dashboard Stats ${Date.now()}`,
     });
 
-    // Volver al dashboard
+    // Volver al dashboard y esperar a que cargue
     await page.getByRole('button', { name: /dashboard/i }).click();
-    await page.waitForLoadState('networkidle');
-
-    // El dashboard debe mostrar stats (no importa el valor exacto, solo que existan)
-    await expect(page.getByText(/proyectos|activos|consenso/i).first())
-      .toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: /métrica general/i })).toBeVisible({ timeout: 10_000 });
+    
+    // Los stats deben ser visibles
+    await expect(page.getByText('Proyectos')).toBeVisible();
+    await expect(page.getByText('Activos')).toBeVisible();
   });
 
   test('T036 — Botón Nueva Sesión en Dashboard funciona', async ({ page }) => {
@@ -131,17 +131,19 @@ test.describe('DASHBOARD — Acceso por Rol', () => {
 
   test('T039 — Facilitador ve botón Nueva Sesión', async ({ page }) => {
     await loginAs(page, 'facilitator');
-    
-    await expect(page.getByRole('button', { name: /nueva sesión/i }).first())
-      .toBeVisible({ timeout: 10_000 });
+    // Forzar navegación a dashboard por si acaso
+    await page.getByRole('button', { name: /dashboard/i }).click();
+    await expect(page.getByRole('heading', { name: /métrica general/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /nueva sesión/i })).toBeVisible();
   });
 
   test('T040 — Sidebar muestra opciones de navegación correctas', async ({ page }) => {
     await loginAs(page, 'facilitator');
     
-    // Verificar que existen los botones principales
-    await expect(page.getByRole('button', { name: /dashboard/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /proyectos/i })).toBeVisible();
+    // El sidebar debe tener los links principales
+    const sidebar = page.locator('aside');
+    await expect(sidebar.getByRole('button', { name: /dashboard/i })).toBeVisible();
+    await expect(sidebar.getByRole('button', { name: /proyectos/i })).toBeVisible();
   });
 
   test('T041 — User card en sidebar muestra información', async ({ page }) => {

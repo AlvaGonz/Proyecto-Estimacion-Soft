@@ -100,15 +100,12 @@ const App: React.FC = () => {
 
   const handleCreateProject = async (newProjectData: Project) => {
     try {
-      setIsInitializing(true);
       const created = await projectService.createProject(newProjectData);
       setProjects([created, ...projects]);
       setView('projects');
     } catch (err) {
       console.error(err);
       alert('Error creating project');
-    } finally {
-      setIsInitializing(false);
     }
   };
 

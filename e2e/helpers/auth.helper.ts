@@ -35,22 +35,23 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
 }
 
 export async function dismissOnboardingIfPresent(page: Page): Promise<void> {
-  const modal = page.locator('[aria-labelledby="onboarding-title"]');
-  await page.waitForTimeout(600);
-  const hasModal = await modal.isVisible().catch(() => false);
-  if (!hasModal) return;
+  const modalSelector = '[aria-labelledby="onboarding-title"]';
+  
+  // Esperar un momento corto por si el modal está apareciendo (animación)
+  const isVisible = await page.locator(modalSelector).isVisible({ timeout: 2000 }).catch(() => false);
+  if (!isVisible) return;
 
   const closeNames = ['Comenzar', 'Entendido', 'Saltar', 'Cerrar', 'Continuar', 'Completar'];
   for (const name of closeNames) {
     const btn = page.getByRole('button', { name: new RegExp(name, 'i') });
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
-      await modal.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+      await page.locator(modalSelector).waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
       return;
     }
   }
   await page.keyboard.press('Escape');
-  await modal.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
+  await page.locator(modalSelector).waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {});
 }
 
 export async function loginAndGoTo(page: Page, user: keyof typeof USERS, section: string) {
