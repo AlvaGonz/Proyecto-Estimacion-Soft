@@ -44,13 +44,16 @@ test.describe('DASHBOARD — Métricas y Navegación', () => {
   });
 
   test('T032 — Navegación sidebar: Proyectos → Dashboard → Proyectos', async ({ page }) => {
+    // Anclar al sidebar para evitar ambigüedad con nombres de proyectos
+    const sidebar = page.locator('nav, [role="navigation"]').first();
+
     // Ir a proyectos
-    await page.getByRole('button', { name: /proyectos/i }).click();
+    await sidebar.getByRole('button', { name: /proyectos/i }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByText(/sesiones|proyectos/i).first()).toBeVisible({ timeout: 5_000 });
 
-    // Volver al dashboard
-    await page.getByRole('button', { name: /dashboard/i }).click();
+    // Volver al dashboard — exact: true evita matchear "Dashboard Stats" en tarjetas
+    await sidebar.getByRole('button', { name: 'Dashboard', exact: true }).click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByText(/métrica general|panel/i).first()).toBeVisible({ timeout: 5_000 });
   });
