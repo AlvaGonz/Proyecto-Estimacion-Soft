@@ -31,7 +31,7 @@ export const authService = {
             id: backendUser._id || backendUser.id,
             name: backendUser.name,
             email: backendUser.email,
-            role: backendToRoleMap[backendUser.role] || UserRole.EXPERT
+            role: backendToRoleMap[backendUser.role?.toLowerCase()] || UserRole.EXPERT
         };
     },
 
@@ -52,7 +52,7 @@ export const authService = {
             id: backendUser._id || backendUser.id,
             name: backendUser.name,
             email: backendUser.email,
-            role: backendToRoleMap[backendUser.role] || UserRole.EXPERT
+            role: backendToRoleMap[backendUser.role?.toLowerCase()] || UserRole.EXPERT
         };
     },
 
@@ -64,7 +64,7 @@ export const authService = {
                 id: backendUser.id,
                 name: backendUser.name || 'Usuario',
                 email: backendUser.email,
-                role: backendToRoleMap[backendUser.role] || UserRole.EXPERT
+                role: backendToRoleMap[backendUser.role?.toLowerCase()] || UserRole.EXPERT
             };
         } catch (e) {
             return null;

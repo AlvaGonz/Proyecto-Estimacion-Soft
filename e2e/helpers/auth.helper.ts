@@ -1,32 +1,40 @@
 import { Page } from '@playwright/test';
 
 export const USERS = {
-  facilitator: { email: 'aalvarez@uce.edu.do', password: 'password123', role: 'Facilitador' },
-  expert:      { email: 'expert1@uce.edu.do',  password: 'password123', role: 'Experto' },
-  admin:       { email: 'admin@uce.edu.do',     password: 'password123', role: 'Admin' },
+  facilitator: { email: 'aalvarez@uce.edu.do', password: 'password123', role: 'facilitador' },
+  expert:      { email: 'expert1@uce.edu.do',  password: 'password123', role: 'experto' },
+  admin:       { email: 'admin@uce.edu.do',     password: 'password123', role: 'admin' },
 } as const;
 
 /**
- * Navega al home y verifica que la sesión está activa.
- * Con storageState global, NO necesita hacer el flujo de login.
- * Si la sesión expiró (edge case), hace login completo.
+ * Navega al home y verifica que la sesión está activa para el usuario solicitado.
  */
 export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitator') {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  // Verificar si ya estamos autenticados (el sidebar de la app está visible)
-  const isAuthenticated = await page
-    .getByRole('button', { name: /proyectos/i })
-    .isVisible({ timeout: 3_000 })
-    .catch(() => false);
+  const creds = USERS[_user];
 
-  if (!isAuthenticated) {
-    // Sesión no activa — hacer login completo
-    const creds = USERS[_user];
-    await page.getByLabel(/correo institucional/i).fill(creds.email);
+  // Verificar si ya estamos autenticados con el usuario CORRECTO
+  // Buscamos el email en el sidebar/perfil
+  const currentEmailVisible = await page.getByText(creds.email).isVisible({ timeout: 2_000 }).catch(() => false);
+  const isSidebarVisible = await page.getByRole('button', { name: /proyectos/i }).isVisible({ timeout: 1_000 }).catch(() => false);
+
+  if (!currentEmailVisible || !isSidebarVisible) {
+    // Si no estamos o es el usuario equivocado, desloguear (opcional) o simplemente navegar a / de nuevo si hace falta
+    // Pero en la app, si no hay sesión, se muestra el login. 
+    // Si hay sesión de OTRO, hay que desloguear.
+    if (isSidebarVisible && !currentEmailVisible) {
+      // Estamos logueados como alguien más. Forzar logout o borrar cookies.
+      await page.context().clearCookies();
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+    }
+
+    // Sesión no activa o usuario incorrecto — hacer login completo
+    await page.getByLabel(/correo electrónico/i).fill(creds.email);
     await page.getByLabel(/contraseña/i).fill(creds.password);
-    await page.getByRole('button', { name: /ingresar al sistema/i }).click();
+    await page.getByRole('button', { name: /entrar al sistema|ingresar|acceder/i }).click();
     await page.waitForLoadState('networkidle');
   }
 
