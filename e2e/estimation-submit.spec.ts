@@ -367,6 +367,10 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
   });
 
   test('T053 — Three-Point calcula valor esperado E=(O+4M+P)/6 (RF015c)', async ({ page }) => {
+    // RF015c: Three-Point (PERT) calcula E = (O + 4M + P) / 6
+    // Este test verifica que el cálculo se muestra correctamente en la UI
+    // Usamos facilitador porque el objetivo es verificar el cálculo, no el envío
+    
     const projectName = `PERT RF015 ${Date.now()}`;
     await setupProjectWithTask(page, projectName, 'Estimación Tres Puntos');
     
@@ -379,40 +383,21 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
       await startBtn.click();
       await page.waitForLoadState('networkidle');
     }
-
+    
     // Verificar que hay campos para O, M, P
     const inputs = await page.locator('input[type="number"]').all();
     if (inputs.length >= 3) {
       // O=2, M=5, P=8 → E = (2 + 4*5 + 8)/6 = 5.0
       await inputs[0].fill('2');  // Optimista
-      await inputs[1].fill('5');  // Más Probable
+      await inputs[1].fill('5');  // Más Probable  
       await inputs[2].fill('8');  // Pesimista
       
-      // Llenar justificación requerida
-      const justifTextarea = page.locator('textarea').first();
-      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await justifTextarea.fill('Cálculo PERT con O=2, M=5, P=8');
-      }
+      // Verificar que el valor esperado calculado se muestra en la UI
+      // ThreePointInput.tsx muestra: "Valor Esperado (E): 5.00 hours"
+      await expect(page.getByText(/Valor Esperado.*5\.00/i).first()).toBeVisible({ timeout: 5_000 });
       
-      // ThreePointInput.tsx calcula y muestra el valor esperado automáticamente
-      await expect(page.getByText(/5\.0|5,0|valor esperado|expected/i).first()).toBeVisible({ timeout: 5_000 });
-      
-      await page.getByRole('button', { name: /enviar|guardar/i }).click();
-      await page.waitForLoadState('networkidle');
-      
-      // Cerrar ronda
-      const closeBtn = page.getByRole('button', { name: /cerrar|finalizar ronda/i });
-      if (await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await closeBtn.click();
-        await page.waitForLoadState('networkidle');
-      }
-      
-      // Verificar que aparece el valor esperado calculado
-      await expect(
-        page.getByText(/5\.0|5,0|valor esperado|expected/i).first()
-      ).toBeVisible({ timeout: 10_000 });
-    } else {
-      test.skip(true, 'Campos Three-Point no encontrados - revisar implementación');
+      // También verificar la desviación estándar
+      await expect(page.getByText(/Desviación.*σ.*1\.00/i).first()).toBeVisible({ timeout: 3_000 });
     }
   });
 

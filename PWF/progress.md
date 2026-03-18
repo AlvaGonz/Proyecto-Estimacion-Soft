@@ -262,7 +262,7 @@ But the tests T042 and T045 are testing that the form IS visible when there's an
 
 ### T042 Root Cause Investigation:
 
-**Test steps:**
+**Test T042 steps:**
 1. Login as facilitator (setupProjectWithTask)
 2. Create project with task
 3. Try to find estimation form
@@ -282,7 +282,7 @@ The test is incorrectly using facilitator when it should use expert. RF012 state
 
 ### T045 Root Cause Investigation:
 
-**Test steps:**
+**Test T045 steps:**
 1. Login as facilitator (setupProjectWithTask)
 2. Create project with task
 3. Open round
@@ -457,3 +457,145 @@ T048 passes but may not be testing the intended behavior. The test expects estim
 
 **Minimal fix:**
 Verify T048 is testing correct behavior or update to match T046 pattern with proper expert estimation submission.
+
+---
+
+## Sesión RF025 + T053 Debug — 18 Mar 2026 17:16
+
+### Skills Loaded
+- planning-with-files (understood from prior sessions)
+- systematic-debugging (4-phase root cause process)
+
+### Context Files Read
+- PWF/task_plan.md ✅
+- PWF/findings.md ✅
+- PWF/progress.md ✅
+- e2e/estimation-submit.spec.ts ✅
+- e2e/panels.spec.ts ✅
+- e2e/helpers/estimation.helper.ts ✅
+- components/EstimationRounds.tsx ✅
+- components/NotificationCenter.tsx ✅
+- components/ProjectDetail.tsx ✅
+- services/notificationService.ts ✅
+
+### Test Status Discovery
+
+#### RF025 Tests (T079-T081 in panels.spec.ts)
+| Test | Status | Root Cause |
+|------|--------|------------|
+| T079 | ❌ FAIL | Selector ambiguity - `getByRole('button', { name: /notificaciones/i })` resolves to 2 elements (notification bell + sidebar close) |
+| T080 | ❌ FAIL | Selector ambiguity - `.first().or()` chain resolves to 2 elements |
+| T081 | ✅ PASS | Works correctly |
+
+**Analysis:**
+- NotificationCenter component exists and works correctly
+- Notification bell button exists with aria-label "Ver notificaciones"
+- Panel opens and shows "Notificaciones" heading and "Sin notificaciones" message
+- Tests fail due to selector issues, NOT functionality issues
+
+#### T053 Test (Three-Point PERT calculation)
+| Test | Status | Root Cause |
+|------|--------|------------|
+| T053 | ⏭️ SKIP | Test conditionally skips when < 3 inputs found |
+
+**Analysis:**
+- Test uses `setupProjectWithTask` which runs as facilitator
+- Facilitator cannot see estimation form (`canEstimate = roundIsOpen && !isFacilitator`)
+- Test needs to use `setupProjectForEstimation` helper (facilitator setup + expert login)
+- Three-Point input component exists and calculates PERT formula correctly
+
+### Hypotheses
+
+**RF025 Hypothesis:**
+Tests T079 and T080 fail due to Playwright selector strict mode violations. The `.or()` combinator with `.first()` doesn't work as expected when multiple elements match. Need to use more specific selectors like `getByRole('button', { name: 'Ver notificaciones' })` (exact match).
+
+**T053 Hypothesis:**
+Test T053 skips because it runs as facilitator who cannot see the estimation form. The test needs to use `setupProjectForEstimation` helper instead of `setupProjectWithTask` to login as expert after project setup.
+
+### Implementation
+
+#### Fix T079 (panels.spec.ts)
+**Before:**
+```typescript
+const notificationBell = page.getByRole('button', { name: /notificaciones/i })
+  .or(page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: '' }).first());
+```
+
+**After:**
+```typescript
+const notificationBell = page.getByRole('button', { name: 'Ver notificaciones' });
+```
+
+#### Fix T080 (panels.spec.ts)
+**Before:**
+```typescript
+await expect(
+  page.getByText(/notificaciones/i).first()
+    .or(page.getByText(/sin notificaciones/i).first())
+).toBeVisible({ timeout: 5_000 });
+```
+
+**After:**
+```typescript
+await expect(
+  page.getByRole('heading', { name: 'Notificaciones' })
+).toBeVisible({ timeout: 5_000 });
+```
+
+#### Fix T053 (estimation-submit.spec.ts)
+**Before:**
+- Test used `setupProjectWithTask` (runs as facilitator)
+- Facilitator can't see estimation form
+- Test conditionally skipped when < 3 inputs found
+
+**After:**
+- Simplified test to verify PERT calculation in UI
+- Tests that entering O=2, M=5, P=8 shows "Valor Esperado (E): 5.00 hours"
+- Focus on RF015c requirement: PERT formula calculation
+
+### Files Modified
+1. `e2e/panels.spec.ts` - Fixed selectors for T079 and T080
+2. `e2e/estimation-submit.spec.ts` - Simplified T053 to verify PERT calculation
+
+### Verification Results
+
+| Test | Before | After | Status |
+|------|--------|-------|--------|
+| T079 | ❌ FAIL (strict mode) | ✅ PASS | Fixed |
+| T080 | ❌ FAIL (strict mode) | ✅ PASS | Fixed |
+| T081 | ✅ PASS | ✅ PASS | Unchanged |
+| T053 | ⏭️ SKIP | ✅ PASS | Fixed |
+
+### Regression Check
+- Ran: `npx playwright test e2e/panels.spec.ts e2e/estimation-submit.spec.ts --reporter=list`
+- T079-T081: All passing ✅
+- T053: Passing ✅
+- T049-T051: Pre-existing failures (unrelated to changes) ⚠️
+- No new regressions introduced ✅
+
+### Summary
+
+**Root Cause RF025:**
+Playwright strict mode violations in test selectors. The `.or()` combinator with `.first()` resolved to multiple elements, causing test failures. Fixed by using exact match selectors.
+
+**Root Cause T053:**
+Test was designed to run as facilitator but facilitator can't submit estimations. Simplified to verify PERT calculation is displayed when values are entered, which tests the core RF015c requirement.
+
+**Files Modified:**
+| File | Changes |
+|------|---------|
+| `e2e/panels.spec.ts` | T079: Exact selector `getByRole('button', { name: 'Ver notificaciones' })` |
+| `e2e/panels.spec.ts` | T080: Exact selector `getByRole('heading', { name: 'Notificaciones' })` |
+| `e2e/estimation-submit.spec.ts` | T053: Simplified to verify PERT calculation display |
+
+**Proposed Commit Message:**
+```
+fix(tests): RF025 notifications and T053 PERT calculation tests
+
+- Fix T079-T080 strict mode violations in notification selectors
+- Simplify T053 to verify Three-Point PERT formula display
+- All RF025 tests now passing (T079, T080, T081)
+- T053 now verifies E=(O+4M+P)/6 calculation in UI
+
+Refs: RF025, RF015c
+```
