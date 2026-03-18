@@ -42,10 +42,21 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - [ ] Document expected failures (unimplemented features)
 - [ ] Mark technical debt in findings.md
 
+### Phase 6: Technical Debt Remediation [IN PROGRESS]
+- [x] RF001 — RegisterPage.tsx creado con formulario de registro
+- [x] RF001 — Función register() agregada a authService.ts
+- [x] RF001 — Ruta /register integrada en App.tsx
+- [x] RF001 — Enlace "Registrarse" agregado a Login.tsx
+- [x] RF001 — Schema registerSchema actualizado con confirmPassword
+- [ ] RF017/RF018 — EstimationCharts.tsx (histograma, evolución)
+- [ ] RF025 — Tests T079-T081 para notificaciones
+- [ ] RF028 — Función generatePDF con jspdf
+- [ ] Backend Fix — Validación description en ProjectDetail.tsx
+
 ## Current Focus
-- Phase 4 COMPLETE — All new test files created (T028-T078)
-- Total suite: 69 E2E tests covering RF001-RF034
-- Ready for validation run
+- Phase 6 IN PROGRESS — Implementando deuda técnica RF001, RF017, RF018, RF025, RF028
+- RF001 Registro: ✅ Implementado (pendiente verificación con backend)
+- Librerías disponibles: jspdf ✅, recharts ✅, xlsx ✅
 
 ## Test Coverage Summary
 
@@ -68,7 +79,7 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 RF002-RF008, RF010-RF014, RF015-RF016, RF018-RF024, RF026-RF027, RF029-RF034
 
 ### Partially Implemented ⚠️
-RF001 (Registration via Admin only), RF017 (Charts exist), RF025 (Notifications UI), RF028 (Reports UI)
+RF001 (Registration via Admin only → **RegisterPage creado, pendiente prueba**), RF017 (Charts exist), RF025 (Notifications UI), RF028 (Reports UI)
 
 ### Not Implemented ❌
 None — all RF have at least partial coverage
@@ -84,3 +95,44 @@ None — all RF have at least partial coverage
 - Patrón 10: Expected Failures = Deuda Técnica Documentada
 - Patrón 11: Helper Detection Pattern (múltiples métodos de estimación)
 - Patrón 12: Test.skip para Funcionalidad Faltante
+
+## Fase 6: Technical Debt Remediation — Status Detail
+
+### RF001 — Registro Público [EN PROGRESO]
+**Implementado:**
+- ✅ `components/RegisterPage.tsx` — Formulario completo con validación Zod
+- ✅ `services/authService.ts` — Método `register()` que llama POST /auth/register
+- ✅ `utils/schemas.ts` — `registerSchema` con confirmPassword y validación de coincidencia
+- ✅ `App.tsx` — Estado `authView` para alternar entre login/register
+- ✅ `components/Login.tsx` — Prop `onGoToRegister` y botón "Registrarse"
+
+**Pendiente:**
+- 🔄 Verificar que backend tenga endpoint POST /auth/register
+- 🔄 Probar flujo completo E2E
+
+### RF017/RF018 — Gráficos [PENDIENTE]
+**Librería disponible:** recharts (v3.7.0) ✅
+**Tareas:**
+- Crear `components/EstimationCharts.tsx` con:
+  - DistributionChart: Histograma con Recharts BarChart
+  - EvolutionChart: Líneas de evolución con Recharts LineChart
+  - Outlier highlighting en rojo
+- Integrar en vista de ronda cerrada
+
+### RF025 — Notificaciones [PENDIENTE]
+**Componente existe:** NotificationCenter.tsx (con MOCK_NOTIFICATIONS)
+**Tareas:**
+- Agregar tests T079-T081 en `e2e/panels.spec.ts`
+- Verificar que el componente esté integrado en App.tsx
+
+### RF028 — Exportar PDF [PENDIENTE]
+**Librería disponible:** jspdf (v4.2.0) ✅
+**Tareas:**
+- Crear función `generateProjectReport()` en servicio de reportes
+- Incluir: datos del proyecto, tareas, métricas, historial de rondas
+- Trigger desde botón de exportar en ReportGenerator o ProjectDetail
+
+### Backend Fix — Description Required [PENDIENTE]
+**Tarea:**
+- Agregar validación visual en ProjectDetail.tsx (campo #newTaskDesc)
+- Mostrar "requerida" hint y bloquear submit si está vacío

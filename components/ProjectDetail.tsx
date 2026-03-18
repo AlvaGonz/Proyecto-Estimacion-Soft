@@ -112,7 +112,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle) return;
+    if (!newTaskTitle || !newTaskDesc) return;
     try {
       const newTask = await taskService.createTask(projectId, {
         title: newTaskTitle,
@@ -216,15 +216,22 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="newTaskDesc" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Descripción Técnica</label>
+                <label htmlFor="newTaskDesc" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-2">
+                  Descripción Técnica
+                  <span className="text-delphi-giants">*</span>
+                </label>
                 <textarea
                   id="newTaskDesc"
                   rows={4}
+                  required
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-medium outline-none"
-                  placeholder="Detalla los requisitos específicos..."
+                  className={`w-full bg-slate-50 border ${!newTaskDesc && newTaskTitle ? 'border-delphi-giants/50 focus:border-delphi-giants' : 'border-slate-200'} rounded-2xl px-6 py-4 text-sm font-medium outline-none transition-colors`}
+                  placeholder="Detalla los requisitos específicos... (requerida)"
                 />
+                {!newTaskDesc && newTaskTitle && (
+                  <p className="text-delphi-giants text-xs ml-2">La descripción es requerida</p>
+                )}
               </div>
               <button type="submit" className="w-full bg-delphi-keppel text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] transition-all">
                 Crear Tarea

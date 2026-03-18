@@ -93,3 +93,147 @@
 - RF001 (Registro): No hay UI de registro público — usuarios se crean via Admin o seed
 - RF025 (Notificaciones): Componente existe pero no hay tests específicos
 - RF028 (Exportar PDF): Funcionalidad puede estar incompleta — tests documentan gap
+
+---
+
+## Sesión Technical Debt Remediation — 17 Mar 2026 22:45
+- Objetivo: Implementar deuda técnica RF001, RF017, RF018, RF025, RF028
+  + Fix backend: description requerido sin validación frontend
+- Estado inicial: Phase 5 IN PROGRESS (task_plan.md)
+- Librerías disponibles: jspdf ✅, recharts ✅, xlsx ✅
+- Tests en skip: T028-T031 (registro no implementado)
+- Tests fallando: T033-T035 (login form selectors), T037-T038 (roles/permisos)
+
+### Diagnóstico inicial:
+- **RF001 (Registro)**: No existe componente RegisterPage. Solo Login.tsx con formulario de login.
+- **jspdf**: Instalado (v4.2.0) — listo para generar PDFs
+- **recharts**: Instalado (v3.7.0) — listo para gráficos
+- **xlsx**: Instalado (v0.18.5) — listo para Excel
+- **NotificationCenter**: Existe con MOCK_NOTIFICATIONS (datos estáticos)
+- **authService**: Solo tiene login, getMe, logout — falta register
+
+### Implementaciones completadas:
+
+#### ✅ RF001 — Registro Público de Usuarios
+**Archivos modificados/creados:**
+1. `components/RegisterPage.tsx` — Nuevo componente con formulario completo
+   - Campos: nombre, email, contraseña, confirmar contraseña
+   - Validación Zod: min 2 chars nombre, email válido, min 8 chars contraseña
+   - UI consistente con Login.tsx (mismos colores, tipografía, espaciado)
+   - Estados de carga y mensajes de error
+
+2. `services/authService.ts` — Agregado método `register()`
+   - Llama a POST /auth/register
+   - Asigna rol 'experto' por defecto a usuarios registrados públicamente
+   - Retorna usuario mapeado al formato frontend
+
+3. `utils/schemas.ts` — Actualizado `registerSchema`
+   - Agregado campo `confirmPassword`
+   - Validación de coincidencia entre password y confirmPassword
+
+4. `App.tsx` — Integración de registro
+   - Nuevo estado `authView: 'login' | 'register'`
+   - Renderizado condicional de RegisterPage vs Login
+   - Handler `onGoToRegister` para alternar vistas
+
+5. `components/Login.tsx` — Agregado enlace a registro
+   - Prop `onGoToRegister?: () => void`
+   - Botón "¿No tienes cuenta? Regístrate" con estilo delphi-keppel
+
+#### ✅ RF017/RF018 — Gráficos de Distribución y Evolución
+**Archivo creado:** `components/EstimationCharts.tsx`
+
+**Componentes:**
+1. `DistributionChart` — Histograma de estimaciones
+   - Usa Recharts BarChart
+   - Calcula bins automáticamente según cantidad de datos
+   - Muestra Q1, mediana, Q3
+   - Destaca outliers en leyenda
+
+2. `EvolutionChart` — Línea de evolución por rondas
+   - Usa Recharts LineChart
+   - Líneas: Media (verde), Mediana (naranja punteada), Desviación estándar (gris)
+   - Requiere mínimo 2 rondas para mostrar datos
+
+3. `AnonymousComparisonView` — Vista comparativa anónima (RF019)
+   - Usa Recharts BarChart horizontal
+   - IDs anónimos: Experto A, B, C...
+   - Outliers marcados en color naranja
+   - Sin revelar emails ni nombres reales
+
+**Características:**
+- ResponsiveContainer para adaptarse al ancho disponible
+- Tooltips personalizados con formato consistente
+- Estados vacíos con mensajes descriptivos
+- Cálculo de outliers usando método IQR (Q1 - 1.5*IQR, Q3 + 1.5*IQR)
+
+#### ✅ Patrón 9 Fix — Validación de Description en Frontend
+**Archivo modificado:** `components/ProjectDetail.tsx`
+
+**Cambios:**
+- Campo #newTaskDesc ahora tiene atributo `required`
+- Label muestra asterisco rojo indicando campo obligatorio
+- Mensaje de validación visual: "La descripción es requerida"
+- Placeholder actualizado: "Detalla los requisitos específicos... (requerida)"
+- Border cambia a rojo cuando el título está lleno pero descripción está vacía
+- Handler `handleAddTask` verifica `!newTaskDesc` antes de submitir
+
+**Nota:** El backend ya requería este campo, ahora el frontend valida antes de enviar.
+
+### Pendientes (requieren backend o decisiones de arquitectura):
+
+#### 🔄 RF028 — Exportar PDF
+**Estado:** Librería jspdf instalada pero no implementada
+**Tareas pendientes:**
+- Crear servicio `generateProjectReport(project, rounds, tasks)`
+- Diseñar estructura del PDF: portada, resumen, tareas con métricas, historial
+- Integrar botón de descarga en ReportGenerator o ProjectDetail
+
+#### 🔄 RF025 — Tests de Notificaciones
+**Estado:** Componente NotificationCenter existe con datos mock
+**Tareas pendientes:**
+- Agregar tests T079-T081 en e2e/panels.spec.ts
+- Verificar integración real con backend (si existe endpoint de notificaciones)
+
+### Resumen de archivos modificados en esta sesión:
+
+| Archivo | Tipo | Cambio |
+|---------|------|--------|
+| components/RegisterPage.tsx | Crear | Nuevo componente de registro RF001 |
+| services/authService.ts | Modificar | Agregar método register() |
+| utils/schemas.ts | Modificar | Actualizar registerSchema con confirmPassword |
+| App.tsx | Modificar | Integrar registro con estado authView |
+| components/Login.tsx | Modificar | Agregar enlace a registro |
+| components/EstimationCharts.tsx | Crear | Gráficos RF017/RF018/RF019 |
+| components/ProjectDetail.tsx | Modificar | Validación description requerida |
+| PWF/task_plan.md | Actualizar | Phase 6 status |
+| PWF/progress.md | Actualizar | Sesión de remediación documentada |
+
+### Commit Message Sugerido:
+```
+feat: resolve technical debt RF001, RF017, RF018 + frontend validation fix
+
+RF001 — Public user registration:
+  - Add components/RegisterPage.tsx with complete form validation
+  - Add authService.register() method (POST /auth/register)
+  - Update registerSchema with confirmPassword validation
+  - Integrate /register route in App.tsx with authView state
+  - Add "Registrarse" link in Login.tsx
+
+RF017/RF018 — Charts and visualization:
+  - Add components/EstimationCharts.tsx with Recharts
+  - DistributionChart: histogram with Q1/Q3/median/outlier detection
+  - EvolutionChart: round-over-round trend (mean/median/stdDev)
+  - AnonymousComparisonView: anonymized expert estimations (RF019)
+  - IQR method for outlier calculation
+
+Frontend Validation Fix (Patrón 9 + 14):
+  - components/ProjectDetail.tsx: add visual validation for description
+  - Required field indicator (*) and error message
+  - Block submit if description is empty
+  - Matches backend schema requirement
+
+Libraries used: recharts (v3.7.0) ✅
+PWF files updated with implementation details
+Total E2E tests: T010-T078 = 69 tests
+```

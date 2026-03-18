@@ -35,6 +35,27 @@ export const authService = {
         };
     },
 
+    async register(data: { name: string; email: string; password: string }): Promise<User> {
+        const response = await fetchApi<{ user: any }>('/auth/register', {
+            method: 'POST',
+            body: {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                role: 'experto' // Los usuarios registrados públicamente son expertos por defecto
+            }
+        });
+
+        const backendUser = response.user;
+
+        return {
+            id: backendUser._id || backendUser.id,
+            name: backendUser.name,
+            email: backendUser.email,
+            role: backendToRoleMap[backendUser.role] || UserRole.EXPERT
+        };
+    },
+
     async getMe(): Promise<User | null> {
         try {
             const backendUser = await fetchApi<any>('/auth/me');

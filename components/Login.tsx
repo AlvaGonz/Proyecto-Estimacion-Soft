@@ -9,9 +9,10 @@ import { authService } from '../services/authService';
 
 interface LoginProps {
   onLogin: (user: User) => void;
+  onGoToRegister?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
   const [email, setEmail] = useState(''); // Clear initial placeholders
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -116,6 +117,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
             <button className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Olvidé mi clave</button>
           </div>
+
+          {/* Register Link */}
+          {onGoToRegister && (
+            <div className="text-center pt-2">
+              <button 
+                onClick={onGoToRegister}
+                className="text-[10px] font-black uppercase tracking-widest text-delphi-keppel hover:text-delphi-celadon transition-colors"
+              >
+                ¿No tienes cuenta? Regístrate
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="text-center mt-10 text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">
