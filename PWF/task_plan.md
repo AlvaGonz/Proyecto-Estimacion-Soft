@@ -123,6 +123,27 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - `e2e/panels.spec.ts` — Fixed selectors T079, T080
 - `e2e/estimation-submit.spec.ts` — Simplified T053 PERT calculation test
 
+### T049-T051 Fix COMPLETE — 18 Mar 2026 17:45
+- [x] T049 root-cause investigation — Facilitator can't see estimation form
+- [x] T050 root-cause investigation — Facilitator can't see Poker cards + strict mode
+- [x] T051 root-cause investigation — Facilitator can't see Three-Point form
+- [x] Implementation — Use setupProjectForEstimation helper for all three tests
+- [x] Implementation — Fix T050 strict mode with { exact: true }
+- [x] Regression verification — T049, T050, T051 all passing
+- [x] Regression verification — Full estimation-submit suite (13 tests) passing
+- [x] Pattern 19 documented: Reuso de Helpers Multi-Rol
+- [x] Pattern 20 documented: Strict Mode con Dígitos
+
+**Results:**
+| Test | Before | After |
+|------|--------|-------|
+| T049 | ❌ FAIL | ✅ PASS |
+| T050 | ❌ FAIL | ✅ PASS |
+| T051 | ❌ FAIL | ✅ PASS |
+
+**Files Modified:**
+- `e2e/estimation-submit.spec.ts` — T049, T050, T051 use setupProjectForEstimation
+
 ## Test Coverage Summary
 
 | Spec File | Test IDs | RF Covered | Status |
@@ -144,7 +165,7 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 RF002-RF008, RF010-RF014, RF015-RF016, RF018-RF024, RF026-RF027, RF029-RF034
 
 ### Partially Implemented ⚠️
-RF001 (Registration via Admin only → **RegisterPage creado, pendiente prueba**), RF017 (Charts exist), RF025 (Notifications UI → **Tests T079-T081 PASS**), RF028 (Reports UI)
+RF001 (Registration via Admin only → **RegisterPage creado, pendiente prueba**), RF017 (Charts exist), RF025 (Notifications UI → **Tests T079-T081 PASS**), RF028 (Reports UI), RF031 (**Tests T049-T051 PASS**), RF032 (**Tests T049-T051 PASS**)
 
 ### Not Implemented ❌
 None — all RF have at least partial coverage

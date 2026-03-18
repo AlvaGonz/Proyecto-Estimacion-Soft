@@ -272,17 +272,8 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
 
   test('T049 — Wideband Delphi muestra campo numérico libre (RS32a, RF032)', async ({ page }) => {
     const projectName = `WD RF032 ${Date.now()}`;
-    await setupProjectWithTask(page, projectName, 'Wideband Delphi');
-    
-    await page.getByText('Tarea de Estimación Test').first().click();
-    await page.waitForTimeout(500);
-    
-    // Abrir ronda
-    const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
-    if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await startBtn.click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Usar setupProjectForEstimation para crear proyecto, abrir ronda y loguear como experto
+    await setupProjectForEstimation(page, projectName, 'Wideband Delphi');
 
     // Campo numérico libre (no cartas, no campos O/M/P)
     await expect(page.locator('input[type="number"]').first()).toBeVisible({ timeout: 5_000 });
@@ -294,44 +285,23 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
 
   test('T050 — Planning Poker muestra baraja Fibonacci (RS32b, RF032)', async ({ page }) => {
     const projectName = `PP RF032 ${Date.now()}`;
-    await setupProjectWithTask(page, projectName, 'Planning Poker');
-    
-    await page.getByText('Tarea de Estimación Test').first().click();
-    await page.waitForTimeout(500);
-    
-    // Abrir ronda
-    const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
-    if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await startBtn.click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Usar setupProjectForEstimation para crear proyecto, abrir ronda y loguear como experto
+    await setupProjectForEstimation(page, projectName, 'Planning Poker');
 
-    // Deben verse cartas Fibonacci: 1, 2, 3, 5, 8, 13, ?, café
+    // Deben verse cartas Fibonacci: 0, 1, 2, 3, 5, 8, 13, 21, ?
     // PokerCards.tsx muestra botones con los valores de FIBONACCI_SEQUENCE
-    await expect(
-      page.getByRole('button', { name: '1' }).first()
-        .or(page.getByText('5', { exact: true }).first())
-        .or(page.getByText('8', { exact: true }).first())
-    ).toBeVisible({ timeout: 5_000 });
+    // Verificar al menos una carta visible (usar exact: true para evitar strict mode)
+    await expect(page.getByRole('button', { name: '1', exact: true })).toBeVisible({ timeout: 5_000 });
     
     // Verificar que hay múltiples cartas (grid de botones)
-    const cardButtons = await page.locator('button', { hasText: /^(1|2|3|5|8|13|\?)$/ }).count();
+    const cardButtons = await page.locator('button').filter({ hasText: /^(0|1|2|3|5|8|13|21|\?)$/ }).count();
     expect(cardButtons).toBeGreaterThanOrEqual(3);
   });
 
   test('T051 — Three-Point muestra campos O, M, P (RS32c, RF032)', async ({ page }) => {
     const projectName = `TP RF032 ${Date.now()}`;
-    await setupProjectWithTask(page, projectName, 'Estimación Tres Puntos');
-    
-    await page.getByText('Tarea de Estimación Test').first().click();
-    await page.waitForTimeout(500);
-    
-    // Abrir ronda
-    const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
-    if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await startBtn.click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Usar setupProjectForEstimation para crear proyecto, abrir ronda y loguear como experto
+    await setupProjectForEstimation(page, projectName, 'Estimación Tres Puntos');
 
     // Deben verse los tres campos o etiquetas: Optimista, Más Probable, Pesimista
     // ThreePointInput.tsx tiene labels: O (Optimista), M (Más Probable), P (Pesimista)
