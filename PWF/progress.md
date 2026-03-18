@@ -180,60 +180,76 @@
 
 **Nota:** El backend ya requería este campo, ahora el frontend valida antes de enviar.
 
-### Pendientes (requieren backend o decisiones de arquitectura):
+---
 
-#### 🔄 RF028 — Exportar PDF
-**Estado:** Librería jspdf instalada pero no implementada
-**Tareas pendientes:**
-- Crear servicio `generateProjectReport(project, rounds, tasks)`
-- Diseñar estructura del PDF: portada, resumen, tareas con métricas, historial
-- Integrar botón de descarga en ReportGenerator o ProjectDetail
+## Sesión Correcciones Post-Testing — 17 Mar 2026
 
-#### 🔄 RF025 — Tests de Notificaciones
-**Estado:** Componente NotificationCenter existe con datos mock
-**Tareas pendientes:**
-- Agregar tests T079-T081 en e2e/panels.spec.ts
-- Verificar integración real con backend (si existe endpoint de notificaciones)
+### Issues encontrados y corregidos:
+
+#### Issue 1: Facilitador NO debe poder registrar estimaciones (RF012)
+**Problema:** El facilitador actualmente puede ver y usar el formulario de estimación.
+**Fix aplicado en `components/EstimationRounds.tsx`:**
+- Agregada constante `canEstimate = roundIsOpen && !isFacilitator`
+- Modificada función `canSubmit()` para retornar `false` si es facilitador
+- Input de estimación ahora muestra mensaje informativo cuando el usuario es facilitador:
+  > "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos."
+- Los inputs de estimación están deshabilitados para facilitadores
+
+**Código clave:**
+```typescript
+const canEstimate = roundIsOpen && !isFacilitator;
+
+const canSubmit = (): boolean => {
+  if (isFacilitator) return false; // Solo expertos pueden estimar
+  // ... resto de validaciones
+};
+```
+
+#### Issue 2: Botón "Configurar" no hace nada
+**Problema:** El botón Configurar en ProjectDetail.tsx no tenía funcionalidad.
+**Fix aplicado en `components/ProjectDetail.tsx`:**
+- Agregado estado `showConfigModal` para controlar visibilidad del modal
+- Agregado estado `configForm` con campos editables:
+  - Nombre del proyecto
+  - Descripción
+  - Unidad de estimación (Horas/Puntos de Historia/Días Persona)
+  - Método de estimación (Wideband Delphi/Planning Poker/Tres Puntos)
+  - Umbral de convergencia (CV) - slider 0.05 a 0.5
+  - % Máximo de outliers - slider 10% a 50%
+- Agregada función `handleSaveConfig` que llama a `projectService.updateProject()`
+- Creado modal completo con diseño consistente (rounded-[2rem], colores delphi)
+- El modal carga los datos actuales del proyecto al abrirse
+
+**Archivos modificados:**
+- `components/ProjectDetail.tsx` — Modal de configuración implementado
+- `components/EstimationRounds.tsx` — Restricción de estimación solo para expertos
 
 ### Resumen de archivos modificados en esta sesión:
 
-| Archivo | Tipo | Cambio |
-|---------|------|--------|
-| components/RegisterPage.tsx | Crear | Nuevo componente de registro RF001 |
-| services/authService.ts | Modificar | Agregar método register() |
-| utils/schemas.ts | Modificar | Actualizar registerSchema con confirmPassword |
-| App.tsx | Modificar | Integrar registro con estado authView |
-| components/Login.tsx | Modificar | Agregar enlace a registro |
-| components/EstimationCharts.tsx | Crear | Gráficos RF017/RF018/RF019 |
-| components/ProjectDetail.tsx | Modificar | Validación description requerida |
-| PWF/task_plan.md | Actualizar | Phase 6 status |
-| PWF/progress.md | Actualizar | Sesión de remediación documentada |
+| Archivo | Cambio | Líneas |
+|---------|--------|--------|
+| components/EstimationRounds.tsx | canEstimate && isFacilitator check | ~10 |
+| components/ProjectDetail.tsx | Modal de configuración completo | ~150 |
 
-### Commit Message Sugerido:
+### Commit Message Sugerido (consolidado):
 ```
-feat: resolve technical debt RF001, RF017, RF018 + frontend validation fix
+fix: prevent facilitators from estimating + add project config modal
 
-RF001 — Public user registration:
-  - Add components/RegisterPage.tsx with complete form validation
-  - Add authService.register() method (POST /auth/register)
-  - Update registerSchema with confirmPassword validation
-  - Integrate /register route in App.tsx with authView state
-  - Add "Registrarse" link in Login.tsx
+RF012 — Estimación solo para expertos:
+  - EstimationRounds.tsx: Add canEstimate = roundIsOpen && !isFacilitator
+  - Disable estimation inputs when user is facilitator
+  - Show informative message: "Como facilitador, no puedes registrar 
+    estimaciones. Esta acción es exclusiva de los expertos."
+  - canSubmit() returns false for facilitators
 
-RF017/RF018 — Charts and visualization:
-  - Add components/EstimationCharts.tsx with Recharts
-  - DistributionChart: histogram with Q1/Q3/median/outlier detection
-  - EvolutionChart: round-over-round trend (mean/median/stdDev)
-  - AnonymousComparisonView: anonymized expert estimations (RF019)
-  - IQR method for outlier calculation
+Project Configuration Modal:
+  - ProjectDetail.tsx: Add showConfigModal state and configForm
+  - Implement handleSaveConfig() with projectService.updateProject()
+  - Add modal with fields: name, description, unit, estimationMethod,
+    cvThreshold (slider), maxOutlierPercent (slider)
+  - Consistent styling with rounded-[2rem] and delphi color palette
+  - Load current project data when modal opens
+  - Error handling and loading states
 
-Frontend Validation Fix (Patrón 9 + 14):
-  - components/ProjectDetail.tsx: add visual validation for description
-  - Required field indicator (*) and error message
-  - Block submit if description is empty
-  - Matches backend schema requirement
-
-Libraries used: recharts (v3.7.0) ✅
 PWF files updated with implementation details
-Total E2E tests: T010-T078 = 69 tests
 ```
