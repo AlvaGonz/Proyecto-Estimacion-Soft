@@ -174,17 +174,16 @@ test.describe('ESTIMATION ROUNDS — Gestión de Tareas', () => {
     
     await openProject(page, projectName);
 
-    // Contar tareas antes
-    const tasksBefore = await page.locator('[class*="rounded"]').filter({ hasText: /tarea|task/i }).count();
-
     // Abrir modal y cancelar
     await page.getByRole('button', { name: /añadir tarea/i }).click();
     await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
     await page.locator('#newTaskTitle').fill('Tarea Cancelada');
     
-    // Cerrar modal (botón X)
-    await page.locator('button').filter({ has: page.locator('svg') }).first().click();
-    await page.waitForTimeout(500);
+    // ✅ FIX: Cerrar modal con selector anclado al aria-label específico del botón X
+    await page.getByRole('button', { name: 'Cerrar modal' }).click();
+    
+    // ✅ FIX: Esperar que el modal desaparezca (condición, no timeout frágil)
+    await expect(page.locator('#newTaskTitle')).not.toBeVisible({ timeout: 5_000 });
 
     // No debe haber creado la tarea
     await expect(page.getByText('Tarea Cancelada')).not.toBeVisible();
@@ -200,23 +199,34 @@ test.describe('ESTIMATION ROUNDS — Gestión de Tareas', () => {
     
     await openProject(page, projectName);
 
-    // Crear primera tarea
+    // ── Primera tarea ──────────────────────────────────────────────────────────
     await page.getByRole('button', { name: /añadir tarea/i }).click();
     await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
     await page.locator('#newTaskTitle').fill('Primera Tarea');
+    await page.locator('#newTaskDesc').fill('Descripción de la primera tarea');
     await page.getByRole('button', { name: /crear tarea/i }).click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+    
+    // ✅ FIX: Esperar que la primera tarea aparezca en la lista (modal se cierra automáticamente)
+    await expect(page.getByText('Primera Tarea').first()).toBeVisible({ timeout: 10_000 });
+    
+    // ✅ FIX: Verificar que el modal se cerró
+    await expect(page.locator('#newTaskTitle')).not.toBeVisible({ timeout: 5_000 });
 
-    // Crear segunda tarea
+    // ── Segunda tarea ──────────────────────────────────────────────────────────
     await page.getByRole('button', { name: /añadir tarea/i }).click();
     await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
     await page.locator('#newTaskTitle').fill('Segunda Tarea');
+    await page.locator('#newTaskDesc').fill('Descripción de la segunda tarea');
     await page.getByRole('button', { name: /crear tarea/i }).click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+    
+    // ✅ FIX: Esperar que la segunda tarea aparezca en la lista
+    await expect(page.getByText('Segunda Tarea').first()).toBeVisible({ timeout: 10_000 });
 
     // Ambas deben estar visibles
-    await expect(page.getByText('Primera Tarea')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Segunda Tarea')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Primera Tarea').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Segunda Tarea').first()).toBeVisible({ timeout: 10_000 });
   });
 
 });
