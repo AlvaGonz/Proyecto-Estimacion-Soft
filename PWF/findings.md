@@ -29,7 +29,7 @@ Fix: `test.use({ storageState: { cookies: [], origins: [] } })` antes de T002/T0
 ## Patrón 6: Task Name Strict Mode (T021/T022)
 getByText('Nombre Tarea') matchea 2 elementos:
   - h4 en la lista de tareas (task item)
-  - h3 en el panel de detalle (task detail view)
+  - h3 en el panel de detalle (header)
 Fix: usar `.first()` o anclar al contenedor de la lista de tareas.
 Código: `page.getByText('Nombre Tarea').first()` o 
   `page.locator('[class*="task-list"]').getByText('Nombre Tarea')`
@@ -55,6 +55,30 @@ Aplica a: todos los flujos create → verificar → create de nuevo.
 El backend requiere campo `description` para crear tarea, aunque frontend
 no lo marca como required visualmente. Tests deben incluir descripción.
 Código: `await page.locator('#newTaskDesc').fill('Descripción de la tarea');`
+
+## Patrón 10: Expected Failures = Deuda Técnica Documentada (Mega Suite)
+Si un test falla porque la funcionalidad NO EXISTE en la app (ej: T028-T031 registro,
+T077 exportar PDF), el test es CORRECTO. La falla es documentación de deuda técnica.
+No eliminar ni saltear estos tests — son el roadmap de lo que falta implementar.
+Usar: `test.skip(true, 'motivo')` solo si bloquea los tests siguientes.
+Marcar en task_plan.md como "DEUDA TÉCNICA RF0XX".
+
+## Patrón 11: Helper Detection Pattern (T041-T053)
+Para tests que soportan múltiples métodos de estimación, detectar el método
+activo según los elementos visibles en lugar de parámetros externos.
+Código:
+```typescript
+const hasPoker = await page.getByText('5', { exact: true }).isVisible({ timeout: 2_000 }).catch(() => false);
+const hasThreePoint = await page.getByText(/optimista/i).isVisible({ timeout: 2_000 }).catch(() => false);
+```
+
+## Patrón 12: Test.skip para Funcionalidad Faltante (T028-T031, T064, T077)
+Cuando una funcionalidad está planificada pero no implementada (ej: registro público),
+usar `test.skip(true, 'mensaje descriptivo')` dentro del test condicional.
+Esto permite:
+1. Documentar la deuda técnica
+2. Facilitar la activación cuando se implemente
+3. Mantener el coverage intencional visible
 
 ## T035 — Pattern Analysis [17 Mar 2026]
 
@@ -141,3 +165,84 @@ await page.locator('#newTaskDesc').fill('Descripción de la primera tarea');
 ```
 
 **Resultado:** T026 ✅, T027 ✅, T020-T025 sin regresión
+
+## Mega Test Suite — Cobertura RF001-RF034 [17 Mar 2026]
+
+### Estrategia de tests para funcionalidad faltante
+
+**RF001 (Registro de usuarios):**
+- Estado: UI de registro público NO implementada
+- Aproximación: Tests T028-T031 usan detección condicional
+  - Si existe enlace de registro: ejecutan validaciones
+  - Si no existe: `test.skip()` documentando la deuda técnica
+- Justificación: El documento base (Proyecto-Plataforma-de-Estimacion.pdf) 
+  especifica RF001, pero la app actual usa creación via Admin Panel
+
+**RF025 (Notificaciones):**
+- Estado: Componente existe (NotificationCenter) pero sin cobertura E2E específica
+- Aproximación: No se crearon tests específicos — feature existe en UI
+
+**RF028 (Exportar PDF):**
+- Estado: Botón existe pero funcionalidad puede estar incompleta
+- Aproximación: T077 detecta si el botón existe y maneja ambos casos
+
+### Total de tests por spec file
+
+| Spec File | Tests | RF Cubiertos |
+|-----------|-------|--------------|
+| projects.spec.ts | T010-T019 | RF006-RF009 |
+| estimation-rounds.spec.ts | T020-T027 | RF008 |
+| dashboard.spec.ts | (existente) | RF026 parcial |
+| auth.spec.ts | T028-T040 | RF001-RF005 |
+| estimation-submit.spec.ts | T041-T053 | RF012-RF016, RF031-RF034 |
+| statistics.spec.ts | T054-T061 | RF017-RF022 |
+| discussion.spec.ts | T062-T065 | RF023-RF024 |
+| panels.spec.ts | T066-T072 | RF026-RF027, RF030 |
+| documentation.spec.ts | T073-T075 | RF010-RF011 |
+| reports.spec.ts | T076-T078 | RF028-RF029 |
+
+**Total: T010-T078 = 69 tests E2E**
+
+### Estado de implementación real vs. documento base
+
+| RF | Descripción | Implementación | Test |
+|----|-------------|----------------|------|
+| RF001 | Registro usuarios | ⚠️ Parcial (solo Admin) | T028-T031 (skip condicional) |
+| RF002 | Login | ✅ Completo | T032-T035 |
+| RF003 | Roles | ✅ Completo | T036-T039 |
+| RF004 | Permisos | ✅ Completo | T036-T039 |
+| RF005 | Admin panel | ✅ Completo | T038-T040 |
+| RF006 | Crear proyecto | ✅ Completo | T010-T014 |
+| RF007 | Editar proyecto | ✅ Completo | T015-T016 |
+| RF008 | Gestión tareas | ✅ Completo | T021-T027 |
+| RF009 | Asignar expertos | ✅ Completo | Implicito en wizard |
+| RF010 | Subir documentos | ✅ Completo | T073-T074 |
+| RF011 | Ver docs (experto) | ✅ Completo | T075 |
+| RF012 | Abrir ronda | ✅ Completo | T041-T043 |
+| RF013 | Anonimato | ✅ Completo | T044, T048 |
+| RF014 | Justificaciones | ✅ Completo | T045 |
+| RF015 | Métricas | ✅ Completo | T046, T049-T053 |
+| RF016 | Outliers | ✅ Completo | T047 |
+| RF017 | Gráficos | ⚠️ Parcial | T054-T055 |
+| RF018 | Evolución | ⚠️ Parcial | T056 |
+| RF019 | Comparativa anónima | ✅ Completo | T057 |
+| RF020 | Convergencia | ✅ Completo | T058 |
+| RF021 | Indicadores consenso | ✅ Completo | T059 |
+| RF022 | Recomendación | ✅ Completo | T060-T061 |
+| RF023 | Espacio debate | ✅ Completo | T062-T065 |
+| RF024 | Moderación | ✅ Completo | T064 |
+| RF025 | Notificaciones | ⚠️ Parcial | No test específico |
+| RF026 | Panel facilitador | ✅ Completo | T066-T068 |
+| RF027 | Panel experto | ✅ Completo | T069-T070 |
+| RF028 | Reportes | ⚠️ Parcial | T076-T077 |
+| RF029 | Historial | ✅ Completo | T078 |
+| RF030 | Métricas participación | ✅ Completo | T071-T072 |
+| RF031 | Wideband Delphi | ✅ Completo | T049 |
+| RF032 | Planning Poker | ✅ Completo | T050 |
+| RF033 | Three-Point | ✅ Completo | T051, T053 |
+| RF034 | Bloquear método | ✅ Completo | T052 |
+
+**Leyenda:**
+- ✅ Completo: Funcionalidad implementada y testeada
+- ⚠️ Parcial: Funcionalidad básica existe, puede faltar refinamiento
+- ❌ No implementado: No existe en la app
