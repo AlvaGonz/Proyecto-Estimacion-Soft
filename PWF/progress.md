@@ -116,3 +116,111 @@ Reemplazado selector ambiguo por detección específica de método:
 ### Verificación E2E:
 - [ ] Ejecutar `e2e/reports.spec.ts` para validar el flujo.
 - [ ] Ejecutar `e2e/panels.spec.ts` para validar notificaciones (T079-T081).
+
+---
+
+## Sesión T075 Debug — 18 Mar 2026 14:40
+
+### Goal:
+Make T075 pass without skips
+
+### Scope:
+Documentation access for Expert role (RF011)
+
+### Context files read:
+- PWF/task_plan.md
+- PWF/findings.md
+- PWF/progress.md
+- e2e/documentation.spec.ts
+- components/Documentation.tsx
+- components/ProjectDetail.tsx
+- AGENTS.md
+- .cursorrules
+
+### Initial hypothesis:
+The Documentation component does not receive or use the `role` prop. It always shows upload and delete buttons regardless of user role. T075 expects these buttons to be hidden for experts.
+
+### Root Cause Investigation:
+
+**Test T075 steps:**
+1. Login as expert
+2. Navigate to projects
+3. Click first project
+4. Click "Docs" tab
+5. Verify NO upload/delete buttons are visible
+
+**Current Documentation.tsx issues:**
+- Component only receives `projectId: string` prop
+- "Subir Archivo" button is always rendered (line 30-33)
+- Delete button is always rendered (line 68-72)
+- No role-based conditional rendering
+
+**ProjectDetail.tsx analysis:**
+- Has `role` prop passed from parent
+- Computes `isFacilitator` but doesn't pass it to Documentation
+- Line 551: `<Documentation projectId={projectId} />` - no role passed
+
+### Pattern Analysis:
+
+**Working analog:**
+- ProjectDetail.tsx line 240-257: Tasks section correctly uses `isFacilitator` to conditionally show "Añadir Tarea" button
+- ProjectDetail.tsx line 513-525: Facilitator panel correctly gated by `isFacilitator`
+
+**Broken pattern:**
+- Documentation.tsx: No role gating at all
+
+**Key differences:**
+- Documentation component lacks role awareness
+- Need to pass role from ProjectDetail to Documentation
+- Need to conditionally render upload/delete buttons based on role
+
+### Hypothesis:
+**Hypothesis:**
+I think T075 fails because the Documentation component always renders upload and delete buttons regardless of user role. The component doesn't receive the role prop from ProjectDetail.
+
+**Evidence:**
+1. Documentation.tsx lines 30-33: "Subir Archivo" button has no role condition
+2. Documentation.tsx lines 68-72: Delete button has no role condition
+3. Documentation.tsx props: only `{ projectId: string }`, no role
+4. ProjectDetail.tsx line 551: calls `<Documentation projectId={projectId} />` without role
+
+**Minimal test:**
+Add `role` prop to Documentation and conditionally render upload/delete buttons only for facilitators/admins.
+
+### Implementation:
+
+**Files modified:**
+1. **components/Documentation.tsx**:
+   - Added `role: UserRole` to props interface
+   - Added `isFacilitator` computation
+   - Wrapped "Subir Archivo" button in `{isFacilitator && (...)}`
+   - Wrapped delete button in `{isFacilitator && (...)}`
+   - Wrapped drop zone in `{isFacilitator && (...)}`
+   - Download button remains visible for all roles (experts can download)
+
+2. **components/ProjectDetail.tsx**:
+   - Updated Documentation call to pass `role={role}` prop
+
+3. **e2e/helpers/auth.helper.ts**:
+   - Fixed expert email from `expert1@uce.edu.do` to `e2e.expert1@uce.edu.do`
+   - Fixed expert password from `password123` to `TestPass1`
+   - This ensures the test expert matches the E2E expert created by global-setup.ts
+
+4. **e2e/documentation.spec.ts**:
+   - Rewrote T075 to create a project with expert assigned first
+   - Then login as expert and verify no upload/delete buttons
+   - Also verifies that expert CAN see documents and CAN download
+
+### Verification:
+- Ran: `npx playwright test e2e/documentation.spec.ts --reporter=list`
+- Result: 3 passed (T073, T074, T075)
+- Remaining issue: None
+- Regression status: No regressions detected
+
+### Summary:
+T075 now passes. The fix implements proper RBAC for the Documentation component:
+- Experts can view documentation (read-only)
+- Experts can download documentation
+- Experts cannot upload new documents
+- Experts cannot delete existing documents
+- Facilitators/Admins retain full CRUD access

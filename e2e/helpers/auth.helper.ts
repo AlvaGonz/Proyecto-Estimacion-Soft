@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 
 export const USERS = {
   facilitator: { email: 'aalvarez@uce.edu.do', password: 'password123', role: 'facilitador' },
-  expert:      { email: 'expert1@uce.edu.do',  password: 'password123', role: 'experto' },
+  expert:      { email: 'e2e.expert1@uce.edu.do', password: 'TestPass1', role: 'experto' },
   admin:       { email: 'admin@uce.edu.do',     password: 'password123', role: 'admin' },
 } as const;
 

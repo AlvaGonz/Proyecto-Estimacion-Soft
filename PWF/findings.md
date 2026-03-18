@@ -80,6 +80,19 @@ Esto permite:
 2. Facilitar la activación cuando se implemente
 3. Mantener el coverage intencional visible
 
+## Patrón 13: Componente React sin RBAC (T075)
+Problema: Componente Documentation.tsx mostraba botones de acción (subir, eliminar)
+para todos los usuarios sin verificar el rol.
+
+Fix:
+1. Agregar prop `role: UserRole` al componente
+2. Computar `isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN`
+3. Wrappear elementos sensibles: `{isFacilitator && (<button>...</button>)}`
+4. Pasar `role` desde el componente padre (ProjectDetail)
+
+Patrón aplicar: Todos los componentes con acciones CRUD deben recibir `role` y
+aplicar condicionales para mantener separación de privilegios.
+
 ## Patrón 15: Strict Mode Violation en Locators OR
 Problema: Playwright lanza "strict mode violation" cuando `.first().or()` resuelve múltiples elementos.
 Ejemplo problemático:
