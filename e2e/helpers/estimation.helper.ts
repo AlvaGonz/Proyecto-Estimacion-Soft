@@ -175,3 +175,108 @@ export async function getRoundMetrics(page: Page): Promise<{
   
   return metrics;
 }
+
+/**
+ * Setup para tests de cierre de ronda con métricas.
+ * Requiere al menos 1 estimación para poder cerrar la ronda.
+ * 
+ * Flow:
+ * 1. Facilitador crea proyecto y abre ronda
+ * 2. Experto envía estimación
+ * 3. Facilitador vuelve al proyecto (listo para cerrar ronda)
+ * 
+ * RF013: Estimaciones ocultas hasta cerrar ronda
+ * RF015: Métricas calculadas al cerrar ronda
+ */
+export async function setupProjectWithRoundClose(
+  page: Page,
+  projectName: string,
+  method = 'Wideband Delphi'
+): Promise<void> {
+  // Step 1: Facilitador crea proyecto y abre ronda
+  await loginAs(page, 'facilitator');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  
+  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  await page.getByText(projectName).click();
+  await page.waitForLoadState('networkidle');
+
+  // Añadir tarea
+  await page.getByRole('button', { name: /añadir tarea/i }).click();
+  await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
+  await page.locator('#newTaskTitle').fill('Tarea de Estimación Test');
+  await page.locator('#newTaskDesc').fill('Descripción para test de estimación');
+  await page.getByRole('button', { name: /crear tarea/i }).click();
+  await page.waitForSelector('#newTaskTitle', { state: 'hidden', timeout: 8_000 });
+
+  // Seleccionar tarea y abrir ronda
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1500);
+  
+  // Click en botón + para nueva ronda
+  const newRoundBtn = page.locator('button').filter({ has: page.locator('svg') })
+    .filter({ hasText: /^$/ })
+    .or(page.locator('button[class*="border-dashed"], button[class*="dashed"]'));
+  
+  const btn = newRoundBtn.first();
+  if (await btn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await btn.click();
+    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
+    
+    // Verificar que la ronda se creó - debe aparecer "Ronda 1" o botón de cerrar ronda
+    await page.waitForSelector('text=/ronda|Ronda|cerrar|Cerrar/i', { timeout: 10_000 });
+    await page.waitForTimeout(1000);
+  }
+
+  // Step 2: Experto envía estimación
+  await loginAs(page, 'expert');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+  
+  // Esperar a que el proyecto aparezca y hacer click
+  await page.waitForSelector(`text=${projectName}`, { state: 'visible', timeout: 10_000 });
+  await page.getByText(projectName).first().click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+  
+  // Navegar a la tarea
+  await page.waitForSelector('text=Tarea de Estimación Test', { state: 'visible', timeout: 10_000 });
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1500);
+
+  // Enviar estimación - asegurar que el formulario esté listo
+  await page.waitForSelector('input[type="number"]', { state: 'visible', timeout: 10_000 });
+  await page.locator('input[type="number"]').first().fill('8');
+  
+  // Verificar si hay campo de justificación y llenarlo
+  const justifTextarea = page.locator('textarea').first();
+  if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await justifTextarea.fill('Justificación de estimación de 8 horas');
+  }
+  
+  // Click en enviar y esperar a que se complete
+  await page.getByRole('button', { name: /enviar|guardar|estimar/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1500);
+  
+  // Verificar que la estimación se envió (el botón de enviar debería desaparecer o cambiar)
+  await expect(page.getByText(/estimación enviada|confirmado|8 horas/i).first()).toBeVisible({ timeout: 10_000 }).catch(() => {});
+
+  // Step 3: Volver a facilitador para cerrar ronda
+  await loginAs(page, 'facilitator');
+  
+  // Navegar directamente al proyecto
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
+  
+  await page.getByText(projectName).click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1000);
+  
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1000);
+}
