@@ -22,6 +22,7 @@ import ProjectList from './components/ProjectList';
 import ProjectDetail from './components/ProjectDetail';
 import ReportGenerator from './components/ReportGenerator';
 import Login from './components/Login';
+import RegisterPage from './components/RegisterPage';
 import ProjectForm from './components/ProjectForm';
 import AdminPanel from './components/AdminPanel';
 import NotificationCenter from './components/NotificationCenter';
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -80,7 +82,22 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login onLogin={async (u) => {
+    if (authView === 'register') {
+      return <RegisterPage 
+        onRegister={async (u) => {
+          setCurrentUser(u);
+          setIsInitializing(true);
+          try {
+            const p = await projectService.getProjects();
+            setProjects(p);
+          } finally {
+            setIsInitializing(false);
+          }
+        }} 
+        onGoToLogin={() => setAuthView('login')}
+      />;
+    }
+    return <Login onGoToRegister={() => setAuthView('register')} onLogin={async (u) => {
       setCurrentUser(u);
       setIsInitializing(true);
       try {

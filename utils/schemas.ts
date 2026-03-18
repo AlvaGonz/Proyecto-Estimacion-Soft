@@ -9,9 +9,13 @@ export const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().email('Formato de correo inválido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  confirmPassword: z.string().min(8, 'Confirma tu contraseña'),
   role: z.enum(['admin', 'facilitador', 'experto'], {
     message: 'Rol inválido'
-  }),
+  }).optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
 });
 
 export const projectSchema = z.object({
