@@ -119,10 +119,18 @@ async function globalSetup(_config: FullConfig) {
   const page    = await ctx.newPage();
 
   await page.goto(BASE_URL);
+  console.log('   Navegado a:', page.url());
   await page.waitForLoadState('networkidle');
+  console.log('   Network idle reached. URL:', page.url());
+  
+  // Capturar vista inicial para debug si estamos atrapados en spinner
+  const content = await page.content();
+  console.log('   Contenido inicial (primeros 500 chars):', content.substring(0, 500));
 
-  await page.getByLabel(/correo electrónico/i).fill(FACILITATOR.email);
-  await page.getByLabel(/contraseña/i).fill(FACILITATOR.password);
+  // Esperar a que el spinner desaparezca y el login sea visible
+  await page.locator('#email').waitFor({ state: 'visible', timeout: 30000 });
+  await page.locator('#email').fill(FACILITATOR.email);
+  await page.locator('#password').fill(FACILITATOR.password);
   
   // Verificar que el botón está habilitado antes de hacer click
   const loginBtn = page.getByRole('button', { name: /entrar al sistema|ingresar/i });

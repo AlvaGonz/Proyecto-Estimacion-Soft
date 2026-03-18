@@ -86,10 +86,18 @@ test.describe('ESTIMACIÓN — Registro Individual (RF012, RF013)', () => {
       await page.waitForLoadState('networkidle');
     }
 
-    // Ingresar valor numérico
+    // Ingresar valor numérico y justificación (requerido)
     const numInput = page.locator('input[type="number"]').first();
+    const justifTextarea = page.locator('textarea').first();
+    
     if (await numInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await numInput.fill('8');
+      
+      // La justificación es requerida (mínimo 10 caracteres)
+      if (await justifTextarea.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await justifTextarea.fill('Justificación de prueba para la estimación de 8 horas');
+      }
+      
       await page.getByRole('button', { name: /enviar|guardar|submit/i }).click();
       await page.waitForLoadState('networkidle');
       
@@ -133,21 +141,20 @@ test.describe('ESTIMACIÓN — Registro Individual (RF012, RF013)', () => {
       await page.waitForLoadState('networkidle');
     }
     
-    // Buscar textarea de justificación
+    // Buscar textarea de justificación - existe en DelphiInput, ThreePointInput y PokerCards
     const justifTextarea = page.locator('textarea').first();
-    if (await justifTextarea.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await justifTextarea.fill('Mi justificación es que la tarea requiere 8 horas de análisis');
-      
-      const numInput = page.locator('input[type="number"]').first();
-      await numInput.fill('8');
-      
-      await page.getByRole('button', { name: /enviar|guardar/i }).click();
-      await page.waitForLoadState('networkidle');
-      
-      await expect(page.getByText(/enviada|guardada|registrada/i).first()).toBeVisible({ timeout: 5_000 });
-    } else {
-      test.skip(true, 'Campo de justificación no implementado - DEUDA TÉCNICA RF014');
-    }
+    await expect(justifTextarea).toBeVisible({ timeout: 10_000 });
+    
+    // Llenar justificación (mínimo 10 caracteres requeridos por schema)
+    await justifTextarea.fill('Mi justificación es que la tarea requiere 8 horas de análisis detallado');
+    
+    const numInput = page.locator('input[type="number"]').first();
+    await numInput.fill('8');
+    
+    await page.getByRole('button', { name: /enviar|guardar/i }).click();
+    await page.waitForLoadState('networkidle');
+    
+    await expect(page.getByText(/enviada|guardada|registrada/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
 });
@@ -168,10 +175,15 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
       await page.waitForLoadState('networkidle');
     }
     
-    // Enviar estimación
+    // Enviar estimación con justificación
     const numInput = page.locator('input[type="number"]').first();
+    const justifTextarea = page.locator('textarea').first();
+    
     if (await numInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await numInput.fill('8');
+      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await justifTextarea.fill('Justificación para métricas');
+      }
       await page.getByRole('button', { name: /enviar|guardar/i }).click();
       await page.waitForLoadState('networkidle');
     }
@@ -239,8 +251,13 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     
     // Enviar estimación
     const numInput = page.locator('input[type="number"]').first();
+    const justifTextarea = page.locator('textarea').first();
+    
     if (await numInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await numInput.fill('5');
+      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await justifTextarea.fill('Justificación para visibilidad');
+      }
       await page.getByRole('button', { name: /enviar|guardar/i }).click();
       await page.waitForLoadState('networkidle');
     }
@@ -299,15 +316,16 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
     }
 
     // Deben verse cartas Fibonacci: 1, 2, 3, 5, 8, 13, ?, café
+    // PokerCards.tsx muestra botones con los valores de FIBONACCI_SEQUENCE
     await expect(
-      page.getByText('5', { exact: true }).or(page.getByText('8', { exact: true }))
+      page.getByRole('button', { name: '1' }).first()
+        .or(page.getByText('5', { exact: true }).first())
+        .or(page.getByText('8', { exact: true }).first())
     ).toBeVisible({ timeout: 5_000 });
     
-    // No debe verse campo numérico libre (o debe estar oculto)
-    const hasFreeInput = await page.locator('input[type="number"]').first().isVisible({ timeout: 2_000 }).catch(() => false);
-    if (hasFreeInput) {
-      test.skip(true, 'Planning Poker también muestra input numérico - revisar implementación');
-    }
+    // Verificar que hay múltiples cartas (grid de botones)
+    const cardButtons = await page.locator('button', { hasText: /^(1|2|3|5|8|13|\?)$/ }).count();
+    expect(cardButtons).toBeGreaterThanOrEqual(3);
   });
 
   test('T051 — Three-Point muestra campos O, M, P (RS32c, RF032)', async ({ page }) => {
@@ -325,15 +343,14 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
     }
 
     // Deben verse los tres campos o etiquetas: Optimista, Más Probable, Pesimista
-    const labels = ['optimista', 'probable', 'pesimista'];
-    let foundCount = 0;
-    for (const label of labels) {
-      const found = await page.getByText(new RegExp(label, 'i')).first().isVisible({ timeout: 2_000 }).catch(() => false);
-      if (found) foundCount++;
-    }
+    // ThreePointInput.tsx tiene labels: O (Optimista), M (Más Probable), P (Pesimista)
+    await expect(page.getByText(/optimista/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/probable/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/pesimista/i).first()).toBeVisible({ timeout: 5_000 });
     
-    // Debe tener al menos 2 de los 3 campos visibles
-    expect(foundCount).toBeGreaterThanOrEqual(2);
+    // Deben haber 3 inputs numéricos
+    const inputs = await page.locator('input[type="number"]').count();
+    expect(inputs).toBeGreaterThanOrEqual(3);
   });
 
   test('T052 — Método no puede modificarse tras iniciar ronda (RS34, RF034)', async ({ page }) => {
@@ -379,6 +396,15 @@ test.describe('ESTIMACIÓN — Multi-Método (RF031-RF034)', () => {
       await inputs[0].fill('2');  // Optimista
       await inputs[1].fill('5');  // Más Probable
       await inputs[2].fill('8');  // Pesimista
+      
+      // Llenar justificación requerida
+      const justifTextarea = page.locator('textarea').first();
+      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await justifTextarea.fill('Cálculo PERT con O=2, M=5, P=8');
+      }
+      
+      // ThreePointInput.tsx calcula y muestra el valor esperado automáticamente
+      await expect(page.getByText(/5\.0|5,0|valor esperado|expected/i).first()).toBeVisible({ timeout: 5_000 });
       
       await page.getByRole('button', { name: /enviar|guardar/i }).click();
       await page.waitForLoadState('networkidle');
