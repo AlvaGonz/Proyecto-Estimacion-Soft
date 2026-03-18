@@ -10,29 +10,36 @@ test.describe('AUTH — Login y Seguridad', () => {
     await expect(page.getByRole('button', { name: /proyectos/i })).toBeVisible({ timeout: 15_000 });
   });
 
-  test('T002 — Login con credenciales inválidas muestra error', async ({ page }) => {
-    await page.goto('/');
-    await page.getByLabel(/correo institucional/i).fill('wrong@uce.edu.do');
-    await page.getByLabel(/contraseña/i).fill('wrongpassword');
-    await page.getByRole('button', { name: /ingresar al sistema/i }).click();
-    // Error message debe aparecer — NO redirigir al dashboard
-    await expect(
-      page.locator('[role="alert"], .text-red-500, .text-red-400').first()
-    ).toBeVisible({ timeout: 8_000 });
-    // Verificar que seguimos en la página de login
-    await expect(page.getByRole('button', { name: /ingresar al sistema/i }))
-      .toBeVisible({ timeout: 3_000 });
-  });
+  // Tests T002/T003 necesitan sesión limpia (sin storageState) porque prueban
+  // el flujo de login con credenciales inválidas. El storageState global del
+  // config hereda la sesión autenticada, causando redirect al dashboard.
+  test.describe('Auth Negativa — Sesión Limpia', () => {
+    test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('T003 — Login con contraseña vacía muestra validación', async ({ page }) => {
-    await page.goto('/');
-    await page.getByLabel(/correo institucional/i).fill(USERS.facilitator.email);
-    // Dejar contraseña vacía e intentar submit
-    await page.getByRole('button', { name: /ingresar al sistema/i }).click();
-    // El form no debe navegar — debe mostrar validación
-    await expect(page.getByLabel(/contraseña/i)).toBeVisible();
-    // Verificar que NO llegamos al dashboard (no hay botón de Proyectos)
-    await expect(page.getByRole('button', { name: /proyectos/i })).not.toBeVisible();
+    test('T002 — Login con credenciales inválidas muestra error', async ({ page }) => {
+      await page.goto('/');
+      await page.getByLabel(/correo institucional/i).fill('wrong@uce.edu.do');
+      await page.getByLabel(/contraseña/i).fill('wrongpassword');
+      await page.getByRole('button', { name: /ingresar al sistema/i }).click();
+      // Error message debe aparecer — NO redirigir al dashboard
+      await expect(
+        page.locator('[role="alert"], .text-red-500, .text-red-400').first()
+      ).toBeVisible({ timeout: 8_000 });
+      // Verificar que seguimos en la página de login
+      await expect(page.getByRole('button', { name: /ingresar al sistema/i }))
+        .toBeVisible({ timeout: 3_000 });
+    });
+
+    test('T003 — Login con contraseña vacía muestra validación', async ({ page }) => {
+      await page.goto('/');
+      await page.getByLabel(/correo institucional/i).fill(USERS.facilitator.email);
+      // Dejar contraseña vacía e intentar submit
+      await page.getByRole('button', { name: /ingresar al sistema/i }).click();
+      // El form no debe navegar — debe mostrar validación
+      await expect(page.getByLabel(/contraseña/i)).toBeVisible();
+      // Verificar que NO llegamos al dashboard (no hay botón de Proyectos)
+      await expect(page.getByRole('button', { name: /proyectos/i })).not.toBeVisible();
+    });
   });
 
   test('T004 — El rol del usuario se muestra correctamente en el sidebar', async ({ page }) => {
