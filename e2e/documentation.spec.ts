@@ -37,28 +37,42 @@ test.describe('DOCUMENTACIÓN — RF010-RF011', () => {
   });
 
   test('T075 — Experto NO ve botón de subir/eliminar docs (RS29, RF011)', async ({ page }) => {
-    await loginAs(page, 'expert');
-    
-    // Navegar a proyectos
+    // Step 1: Facilitador crea proyecto y asigna experto
+    await loginAs(page, 'facilitator');
     await page.getByRole('button', { name: /proyectos/i }).click();
     await page.waitForLoadState('networkidle');
     
-    // El experto puede no tener proyectos asignados
-    const firstProject = page.locator('[class*="card"], [class*="Card"]').first();
-    if (await firstProject.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await firstProject.click();
-      await page.waitForLoadState('networkidle');
-      
-      await page.getByRole('tab', { name: /docs|documentación/i }).click();
-      await page.waitForTimeout(500);
-      
-      // Experto NO debe ver botón de subir o eliminar
-      const uploadBtn = page.getByRole('button', { name: /subir|agregar doc|upload|eliminar doc|delete.*doc/i });
-      const count = await uploadBtn.count();
-      expect(count).toBe(0);
-    } else {
-      test.skip(true, 'Experto no tiene proyectos asignados - verificar setup');
-    }
+    const projectName = `ExpertDoc RF011 ${Date.now()}`;
+    await createProjectViaWizard(page, { name: projectName });
+    
+    // Step 2: Experto inicia sesión
+    await loginAs(page, 'expert');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.waitForLoadState('networkidle');
+    
+    // Step 3: Experto abre el proyecto
+    await page.getByText(projectName).click();
+    await page.waitForLoadState('networkidle');
+    
+    // Step 4: Navegar a pestaña Docs
+    await page.getByRole('tab', { name: /docs|documentación/i }).click();
+    await page.waitForTimeout(500);
+    
+    // Step 5: Verificar que el experto NO ve botón de subir
+    const uploadBtn = page.getByRole('button', { name: /subir|agregar doc|upload|añadir archivo/i });
+    await expect(uploadBtn).not.toBeVisible({ timeout: 5_000 });
+    
+    // Step 6: Verificar que el experto NO ve botón de eliminar
+    // El botón de eliminar usa aria-label con "Eliminar"
+    const deleteBtn = page.getByRole('button', { name: /eliminar/i });
+    await expect(deleteBtn).not.toBeVisible({ timeout: 5_000 });
+    
+    // Step 7: Verificar que el experto SÍ puede ver documentos (verificación positiva)
+    await expect(page.getByText('Repositorio de Documentación')).toBeVisible();
+    
+    // Step 8: Verificar que el experto SÍ puede ver botón de descargar
+    const downloadBtn = page.getByRole('button', { name: /descargar/i }).first();
+    await expect(downloadBtn).toBeVisible();
   });
 
 });

@@ -548,7 +548,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
 
         {activeTab !== 'tasks' && (
           <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
-            {activeTab === 'docs' && <Documentation projectId={projectId} />}
+            {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
             {activeTab === 'discussion' && activeRound ? (
               <DiscussionSpace roundId={activeRound.id} />
             ) : activeTab === 'discussion' ? (

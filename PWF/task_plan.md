@@ -61,6 +61,23 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - Phase 6 IN PROGRESS — Implementando deuda técnica RF001, RF017, RF018, RF025, RF028
 - RF001 Registro: ✅ Implementado (pendiente verificación con backend)
 - Librerías disponibles: jspdf ✅, recharts ✅, xlsx ✅
+- **T075 Fix COMPLETE** — Documentation component role-gating for Expert access (RF011) ✅
+
+### T075 Root-Cause Investigation
+- [x] Identified: Documentation.tsx lacks role awareness
+- [x] Root cause: Upload/delete buttons always rendered regardless of role
+- [x] T075 implementation/fix — Documentation role-gating implemented
+- [x] T075 regression verification — All 3 documentation tests passing
+
+### T075 Changes Summary
+| File | Change |
+|------|--------|
+| components/Documentation.tsx | Added role prop, conditional render for upload/delete |
+| components/ProjectDetail.tsx | Pass role prop to Documentation |
+| e2e/helpers/auth.helper.ts | Fixed expert email/pwd to match E2E setup |
+| e2e/documentation.spec.ts | Rewrote T075 with proper project setup |
+
+**Patrón 13 documented**: Component RBAC pattern for read-only expert access
 
 ## Test Coverage Summary
 
