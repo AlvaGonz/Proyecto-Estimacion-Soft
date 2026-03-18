@@ -116,6 +116,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const canSubmit = (): boolean => {
+    // RF012: Solo expertos pueden registrar estimaciones
+    if (isFacilitator) return false;
     const v = getSubmitValue();
     if (v === null || v <= 0) return false;
     if (justification.length < 10) return false;
@@ -199,6 +201,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const roundIsOpen = activeRound?.status === 'open';
+  const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
 
   const renderEstimationInput = () => {
     switch (estimationMethod) {
@@ -209,7 +212,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             justification={justification}
             unit={unit}
             onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
       case 'planning-poker':
@@ -218,7 +221,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             selectedCard={pokerCard}
             justification={justification}
             onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
       case 'three-point':
@@ -228,7 +231,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             justification={justification}
             unit={unit}
             onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
     }
@@ -438,7 +441,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
                 <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
                 <div className="space-y-4">
-                  {renderEstimationInput()}
+                  {canEstimate ? renderEstimationInput() : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                    <p className="text-slate-500 text-sm font-medium">
+                      {isFacilitator 
+                        ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos." 
+                        : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
+                    </p>
+                  </div>
+                )}
                   {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
                   {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
                   <button
