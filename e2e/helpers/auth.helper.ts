@@ -32,8 +32,9 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
     }
 
     // Sesión no activa o usuario incorrecto — hacer login completo
-    await page.getByLabel(/correo electrónico/i).fill(creds.email);
-    await page.getByLabel(/contraseña/i).fill(creds.password);
+    await page.locator('#email').waitFor({ state: 'visible', timeout: 10000 });
+    await page.locator('#email').fill(creds.email);
+    await page.locator('#password').fill(creds.password);
     await page.getByRole('button', { name: /entrar al sistema|ingresar|acceder/i }).click();
     await page.waitForLoadState('networkidle');
   }

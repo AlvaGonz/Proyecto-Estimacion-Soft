@@ -14,8 +14,8 @@ const __dirname = path.dirname(__filename);
 
 // Cargar .env local si existe, si no usar las vars de entorno ya inyectadas (Docker)
 // Las variables de process.env inyectadas por Docker tienen prioridad automáticamente
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../.env.docker') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env.docker') });
 
 const seedDatabase = async () => {
     try {
