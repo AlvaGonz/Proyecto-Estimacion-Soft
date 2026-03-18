@@ -26,6 +26,14 @@ Tests que prueban LOGIN FALLIDO requieren sesión limpia (sin cookies).
 playwright.config.ts tiene `storageState` global → todos los tests heredan sesión autenticada.
 Fix: `test.use({ storageState: { cookies: [], origins: [] } })` antes de T002/T003.
 
+## Patrón 6: Task Name Strict Mode (T021/T022)
+getByText('Nombre Tarea') matchea 2 elementos:
+  - h4 en la lista de tareas (task item)
+  - h3 en el panel de detalle (task detail view)
+Fix: usar `.first()` o anclar al contenedor de la lista de tareas.
+Código: `page.getByText('Nombre Tarea').first()` o 
+  `page.locator('[class*="task-list"]').getByText('Nombre Tarea')`
+
 ## T035 — Pattern Analysis [17 Mar 2026]
 
 Bug A: selector getByText('Proyectos') matchea 3 elementos:
@@ -48,3 +56,13 @@ Bug B: DB contaminada con 55 proyectos de runs anteriores.
 - Resultado: `page.goto('/')` redirige a dashboard, el form nunca aparece
 - Fix: test.use({ storageState: { cookies: [], origins: [] } }) en T002/T003
 - ¿Bug de producto? NO — el comportamiento de redirección es correcto
+
+## T021/T022 — Causa raíz [17 Mar 2026]
+
+- Error: strict mode violation — getByText('Nombre Tarea') = 2 elementos
+- Snapshot: el nombre de la tarea aparece en:
+  1. h4 en la lista de tareas (clickable item)
+  2. h3 en el panel de detalle (header)
+- Causa principal: selector global `getByText()` sin anclar al contexto
+- Fix: `.first()` o anclar al contenedor de la lista
+- ¿Bug de producto? NO — el DOM es válido, el test necesita selector más específico

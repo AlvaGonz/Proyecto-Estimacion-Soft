@@ -80,7 +80,8 @@ test.describe('ESTIMATION ROUNDS — Flujo Completo Delphi', () => {
     await page.getByRole('button', { name: /crear tarea/i }).click();
 
     // La tarea debe aparecer en la lista
-    await expect(page.getByText('Implementar Login JWT')).toBeVisible({ timeout: 10_000 });
+    // Nota: .first() porque el nombre aparece también en el panel de detalle (h3)
+    await expect(page.getByText('Implementar Login JWT').first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('T022 — Seleccionar tarea muestra panel de estimación', async ({ page }) => {
@@ -90,10 +91,11 @@ test.describe('ESTIMATION ROUNDS — Flujo Completo Delphi', () => {
     await createProjectWithTask(page, projectName, taskName);
 
     // La tarea debe estar visible y seleccionable
-    await expect(page.getByText(taskName)).toBeVisible({ timeout: 10_000 });
+    // Nota: .first() porque el nombre aparece también en el panel de detalle (h3)
+    await expect(page.getByText(taskName).first()).toBeVisible({ timeout: 10_000 });
     
     // Click en la tarea
-    await page.getByText(taskName).click();
+    await page.getByText(taskName).first().click();
     await page.waitForTimeout(500);
 
     // Debe mostrar el panel de estimación (o mensaje de selección)
