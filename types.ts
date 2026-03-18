@@ -54,6 +54,7 @@ export interface Round {
   startTime: number;
   endTime?: number;
   stats?: RoundStats;
+  estimations: Estimation[];
 }
 
 export interface RoundStats {

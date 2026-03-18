@@ -45,17 +45,21 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
   useEffect(() => {
+    console.log("App: Initializing auth check...");
     const checkAuth = async () => {
       try {
         const user = await authService.getMe();
+        console.log("App: Auth user:", user);
         if (user) {
           setCurrentUser(user);
           const userProjects = await projectService.getProjects();
+          console.log("App: Projects loaded:", userProjects.length);
           setProjects(userProjects);
         }
       } catch (err) {
-        console.error("Auth initialization failed:", err);
+        console.error("App: Auth initialization failed:", err);
       } finally {
+        console.log("App: Auth initialization complete, setting isInitializing to false");
         setIsInitializing(false);
       }
     };
@@ -408,7 +412,7 @@ const App: React.FC = () => {
 
             {view === 'reports' && (
               <div className="max-w-6xl mx-auto">
-                <ReportGenerator />
+                <ReportGenerator projects={projects} userRole={currentUser.role} />
               </div>
             )}
 

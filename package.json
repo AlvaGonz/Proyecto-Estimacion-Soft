@@ -14,15 +14,16 @@
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
     "e2e:check": "tsx e2e/check-servers.ts",
-    "e2e:safe":  "tsx e2e/check-servers.ts && playwright test",
+    "e2e:safe": "tsx e2e/check-servers.ts && playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:debug":  "playwright test --debug",
+    "e2e:debug": "playwright test --debug",
     "e2e:reset-auth": "node -e \"require('fs').rmSync('e2e/.auth', { recursive: true, force: true }); console.log('Auth state cleared.')\"",
     "e2e:fresh": "npm run e2e:reset-auth && npm run e2e"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
     "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
