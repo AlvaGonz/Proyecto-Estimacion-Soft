@@ -75,8 +75,8 @@ test.describe('NOTIFICACIONES — Centro de Notificaciones (RF025)', () => {
     await loginAs(page, 'facilitator');
     
     // Verificar que el botón de notificaciones (campana) es visible
-    const notificationBell = page.getByRole('button', { name: /notificaciones/i })
-      .or(page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: '' }).first());
+    // Usar aria-label exacto para evitar strict mode violation
+    const notificationBell = page.getByRole('button', { name: 'Ver notificaciones' });
     
     await expect(notificationBell).toBeVisible({ timeout: 10_000 });
   });
@@ -85,18 +85,19 @@ test.describe('NOTIFICACIONES — Centro de Notificaciones (RF025)', () => {
     await loginAs(page, 'facilitator');
     
     // Click en la campana de notificaciones
-    const notificationBell = page.getByRole('button', { name: /notificaciones/i });
+    const notificationBell = page.getByRole('button', { name: 'Ver notificaciones' });
     await notificationBell.click();
     
-    // Verificar que se abre el panel de notificaciones
+    // Verificar que se abre el panel de notificaciones (heading específico)
     await expect(
-      page.getByText(/notificaciones/i).first()
-        .or(page.getByText(/sin notificaciones/i).first())
+      page.getByRole('heading', { name: 'Notificaciones' })
     ).toBeVisible({ timeout: 5_000 });
     
     // Cerrar notificaciones
-    await page.getByRole('button', { name: /cerrar notificaciones/i }).click();
-    await expect(page.getByText(/notificaciones/i).first()).not.toBeVisible();
+    await page.getByRole('button', { name: 'Cerrar notificaciones' }).click();
+    
+    // Verificar que el panel se cerró (heading ya no visible)
+    await expect(page.getByRole('heading', { name: 'Notificaciones' })).not.toBeVisible();
   });
 
   test('T081 — RF025: Marcar notificación como leída', async ({ page }) => {
