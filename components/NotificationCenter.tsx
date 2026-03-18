@@ -1,60 +1,136 @@
 
-import React from 'react';
-import { Bell, Clock, Target, Users, Zap, X, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Clock, Target, Users, Zap, X, Check, Trash2 } from 'lucide-react';
+import { notificationService, Notification } from '../services/notificationService';
 
 interface NotificationCenterProps {
-   onClose: () => void;
+  onClose: () => void;
 }
 
-const MOCK_NOTIFICATIONS = [
-   { id: 'n1', type: 'invite', msg: 'Has sido invitado como Experto al proyecto "Seguridad API 2024"', time: 'Hace 5 min', unread: true },
-   { id: 'n2', type: 'round', msg: 'La Ronda 2 de "Microservicios" ha sido cerrada por el Facilitador.', time: 'Hace 1 hora', unread: true },
-   { id: 'n3', type: 'consensus', msg: '¡Convergencia alcanzada! Tarea "Auth Mod" lista para cierre.', time: 'Ayer', unread: false },
-   { id: 'n4', type: 'system', msg: 'Recordatorio: Tienes 3 tareas pendientes de estimar.', time: 'Hace 2 días', unread: false },
-];
-
 const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
-   return (
-      <div className="absolute top-20 right-10 w-96 max-h-[500px] bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 z-[60] overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300">
-         <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-            <div className="flex items-center gap-3">
-               <Bell className="w-5 h-5 text-delphi-keppel" />
-               <h4 className="font-black text-slate-900 tracking-tight">Notificaciones</h4>
-            </div>
-            <button onClick={onClose} aria-label="Cerrar notificaciones" className="p-1 text-slate-300 hover:text-delphi-giants transition-colors"><X className="w-5 h-5" /></button>
-         </div>
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-         <div className="flex-1 overflow-y-auto no-scrollbar p-2">
-            {MOCK_NOTIFICATIONS.map(n => (
-               <div key={n.id} className={`p-4 rounded-3xl flex gap-4 transition-all hover:bg-slate-50 relative group ${n.unread ? 'bg-delphi-keppel/5' : ''}`}>
-                  <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${n.type === 'invite' ? 'bg-delphi-keppel/10 text-delphi-keppel' :
-                        n.type === 'round' ? 'bg-delphi-orange/10 text-delphi-orange' :
-                           n.type === 'consensus' ? 'bg-delphi-celadon/10 text-delphi-keppel' : 'bg-slate-100 text-slate-400'
-                     }`}>
-                     {n.type === 'invite' && <Users className="w-6 h-6" />}
-                     {n.type === 'round' && <Clock className="w-6 h-6" />}
-                     {n.type === 'consensus' && <Zap className="w-6 h-6" />}
-                     {n.type === 'system' && <Target className="w-6 h-6" />}
-                  </div>
-                  <div className="flex-1">
-                     <p className={`text-xs font-bold leading-relaxed mb-1 ${n.unread ? 'text-slate-900' : 'text-slate-500'}`}>{n.msg}</p>
-                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{n.time}</span>
-                  </div>
-                  {n.unread && (
-                     <div className="w-2 h-2 rounded-full bg-delphi-keppel mt-2 shrink-0" />
-                  )}
-                  <button aria-label="Marcar como leída" className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-400 hover:text-delphi-keppel">
-                     <Check className="w-3.5 h-3.5" />
-                  </button>
-               </div>
-            ))}
-         </div>
+  useEffect(() => {
+    const fetchNotifications = () => {
+      setNotifications(notificationService.getNotifications());
+    };
 
-         <div className="p-4 border-t border-slate-50 bg-slate-50/20 text-center">
-            <button className="text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel hover:underline">Marcar todas como leídas</button>
-         </div>
+    fetchNotifications();
+
+    // Listen for updates from the same window
+    window.addEventListener('notifications_updated', fetchNotifications);
+
+    return () => {
+      window.removeEventListener('notifications_updated', fetchNotifications);
+    };
+  }, []);
+
+  const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    notificationService.markAsRead(id);
+  };
+
+  const handleMarkAllAsRead = () => {
+    notificationService.markAllAsRead();
+  };
+
+  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    notificationService.deleteNotification(id);
+  };
+
+  const getTimeLabel = (timestamp: number) => {
+    const diff = (Date.now() - timestamp) / 1000;
+    if (diff < 60) return 'Ahora';
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} horas`;
+    return `Hace ${Math.floor(diff / 86400)} días`;
+  };
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'project_invite': return <Users className="w-6 h-6" />;
+      case 'round_opened':
+      case 'round_closed': return <Clock className="w-6 h-6" />;
+      case 'consensus_reached': return <Zap className="w-6 h-6" />;
+      default: return <Target className="w-6 h-6" />;
+    }
+  };
+
+  const getIconColorClass = (type: string) => {
+    switch (type) {
+      case 'project_invite': return 'bg-delphi-keppel/10 text-delphi-keppel';
+      case 'round_opened': return 'bg-delphi-orange/10 text-delphi-orange';
+      case 'round_closed': return 'bg-delphi-orange/10 text-delphi-orange';
+      case 'consensus_reached': return 'bg-delphi-celadon/10 text-delphi-keppel';
+      default: return 'bg-slate-100 text-slate-400';
+    }
+  };
+
+  return (
+    <div className="absolute top-20 right-10 w-full sm:w-96 max-h-[500px] bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 z-[60] overflow-hidden flex flex-col animate-in slide-in-from-top-4 duration-300">
+      <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+        <div className="flex items-center gap-3">
+          <Bell className="w-5 h-5 text-delphi-keppel" />
+          <h4 className="font-black text-slate-900 tracking-tight">Notificaciones</h4>
+        </div>
+        <button onClick={onClose} aria-label="Cerrar notificaciones" className="p-1 text-slate-300 hover:text-delphi-giants transition-colors"><X className="w-5 h-5" /></button>
       </div>
-   );
+
+      <div className="flex-1 overflow-y-auto no-scrollbar p-2 min-h-[100px]">
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6">
+            <div className="bg-slate-50 p-4 rounded-3xl mb-4">
+              <Bell className="w-8 h-8 text-slate-300" />
+            </div>
+            <p className="text-sm font-bold text-slate-400">Sin notificaciones</p>
+          </div>
+        ) : (
+          notifications.map(n => (
+            <div key={n.id} className={`p-4 rounded-3xl flex gap-4 transition-all hover:bg-slate-50 relative group ${!n.read ? 'bg-delphi-keppel/5' : ''}`}>
+              <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${getIconColorClass(n.type)}`}>
+                {getIcon(n.type)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-xs font-bold leading-relaxed mb-1 ${!n.read ? 'text-slate-900' : 'text-slate-500 line-clamp-2'}`}>{n.message}</p>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{getTimeLabel(n.createdAt)}</span>
+              </div>
+              {!n.read && (
+                <div className="w-2 h-2 rounded-full bg-delphi-keppel mt-2 shrink-0" />
+              )}
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                <button 
+                  onClick={(e) => handleMarkAsRead(n.id, e)}
+                  aria-label="Marcar como leída" 
+                  className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-400 hover:text-delphi-keppel"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={(e) => handleDeleteNotification(n.id, e)}
+                  aria-label="Eliminar" 
+                  className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-400 hover:text-delphi-giants"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {notifications.length > 0 && (
+        <div className="p-4 border-t border-slate-50 bg-slate-50/20 text-center">
+          <button 
+            onClick={handleMarkAllAsRead} 
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel hover:underline"
+          >
+            Marcar todas como leídas
+          </button>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default NotificationCenter;

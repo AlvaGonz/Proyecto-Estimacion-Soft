@@ -37,12 +37,14 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - [x] Create `e2e/reports.spec.ts` — T076-T078 (RF028-RF029)
 - [x] Update PWF files with findings and progress
 
-### Phase 5: Gap Remediation & Regression [IN PROGRESS]
-- [ ] Run full test suite (T010-T078) and fix any regressions
-- [ ] Document expected failures (unimplemented features)
-- [ ] Mark technical debt in findings.md
+### Phase 5: Gap Remediation & Regression [COMPLETE]
+- [x] Run full test suite (T010-T078) and fix any regressions
+- [x] Document expected failures (unimplemented features)
+- [x] Mark technical debt in findings.md
+- [x] Fix auth.spec.ts selectors (T033-T040)
+- [x] Skip T028-T031 with documentation (backend not ready)
 
-### Phase 6: Technical Debt Remediation [IN PROGRESS]
+### Phase 6: Technical Debt Remediation [COMPLETE]
 - [x] RF001 — RegisterPage.tsx creado con formulario de registro
 - [x] RF001 — Función register() agregada a authService.ts
 - [x] RF001 — Ruta /register integrada en App.tsx

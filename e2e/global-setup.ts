@@ -121,11 +121,11 @@ async function globalSetup(_config: FullConfig) {
   await page.goto(BASE_URL);
   await page.waitForLoadState('networkidle');
 
-  await page.getByLabel(/correo institucional/i).fill(FACILITATOR.email);
+  await page.getByLabel(/correo electrónico/i).fill(FACILITATOR.email);
   await page.getByLabel(/contraseña/i).fill(FACILITATOR.password);
   
   // Verificar que el botón está habilitado antes de hacer click
-  const loginBtn = page.getByRole('button', { name: /ingresar al sistema/i });
+  const loginBtn = page.getByRole('button', { name: /entrar al sistema|ingresar/i });
   const isEnabled = await loginBtn.isEnabled();
   console.log('   Botón login habilitado:', isEnabled);
   

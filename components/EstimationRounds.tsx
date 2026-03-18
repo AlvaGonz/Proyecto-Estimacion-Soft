@@ -428,7 +428,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                   disabled={currentRoundEstimations.length < 2}
                   className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-delphi-giants transition-all disabled:opacity-50"
                 >
-                  Analizar Ronda
+                  Cerrar y Analizar Ronda
                 </button>
                 {errors.submit && <p role="alert" className="text-red-500 text-xs font-bold text-center">{errors.submit}</p>}
               </div>

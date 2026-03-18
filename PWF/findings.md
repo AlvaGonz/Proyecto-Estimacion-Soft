@@ -80,6 +80,30 @@ Esto permite:
 2. Facilitar la activación cuando se implemente
 3. Mantener el coverage intencional visible
 
+## Patrón 15: Strict Mode Violation en Locators OR
+Problema: Playwright lanza "strict mode violation" cuando `.first().or()` resuelve múltiples elementos.
+Ejemplo problemático:
+```typescript
+await expect(
+  page.getByRole('button', { name: /ingresar/i }).first()
+    .or(page.locator('#email').first())
+    .or(page.locator('#password').first())
+).toBeVisible();
+// Error: resolved to 3 elements
+```
+Fix: Verificar elementos individualmente en secuencia:
+```typescript
+await expect(page.locator('#email')).toBeVisible();
+await expect(page.locator('#password')).toBeVisible();
+```
+Aplica a: T035, T040 — cualquier test que verifique múltiples elementos alternativos.
+
+## Patrón 16: Selector IDs vs Name Attributes
+Los inputs modernos usan `id` en lugar de `name` para labels y testing.
+Ejemplo: Login.tsx usa `id="email"` y `name="email"`, pero el test buscaba `[name="correo"]`.
+Fix: Preferir selectores por ID (#email) que son más estables y únicos.
+Cambio aplicado en T033-T034: `[name="correo"]` → `#email`
+
 ## T035 — Pattern Analysis [17 Mar 2026]
 
 Bug A: selector getByText('Proyectos') matchea 3 elementos:

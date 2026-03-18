@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BrainCircuit, Shield, Send, Lock, User as UserIcon } from 'lucide-react';
+import { BrainCircuit, Shield, Send, Lock, User as UserIcon, Mail } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { loginSchema } from '../utils/schemas';
 import { z } from 'zod';
@@ -62,39 +62,46 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-8">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Correo Institucional</label>
-                <div className="relative group">
-                  <UserIcon className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delphi-keppel transition-colors" />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    aria-describedby="email-error"
-                    className={`w-full bg-white/5 border ${errors.email ? 'border-red-500' : 'border-white/10'} rounded-2xl pl-14 pr-6 py-4 text-white font-bold placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel/30 transition-all`}
-                    placeholder="usuario@uce.edu.do"
-                  />
-                </div>
+            <div className={`space-y-4 transition-all duration-300 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="space-y-1.5 group">
+                <label 
+                  htmlFor="email" 
+                  className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1.5 flex items-center gap-2 group-focus-within:text-delphi-keppel transition-colors"
+                >
+                  <Mail className="w-3 h-3" />
+                  Correo Electrónico
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-delphi-keppel/10 focus:border-delphi-keppel transition-all outline-none placeholder:text-slate-300"
+                  placeholder="nombre@empresa.com"
+                  required
+                />
                 {errors.email && <p id="email-error" role="alert" className="text-red-400 text-xs mt-1 ml-2">{errors.email}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Contraseña</label>
-                <div className="relative group">
-                  <Lock className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-delphi-keppel transition-colors" />
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    aria-describedby="password-error"
-                    className={`w-full bg-white/5 border ${errors.password ? 'border-red-500' : 'border-white/10'} rounded-2xl pl-14 pr-6 py-4 text-white font-bold placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel/30 transition-all`}
-                  />
-                </div>
+              <div className="space-y-1.5 group">
+                <label 
+                  htmlFor="password" 
+                  className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1.5 flex items-center gap-2 group-focus-within:text-delphi-keppel transition-colors"
+                >
+                  <Lock className="w-3 h-3" />
+                  Contraseña
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-4 focus:ring-delphi-keppel/10 focus:border-delphi-keppel transition-all outline-none placeholder:text-slate-300"
+                  placeholder="••••••••"
+                  required
+                />
                 {errors.password && <p id="password-error" role="alert" className="text-red-400 text-xs mt-1 ml-2">{errors.password}</p>}
               </div>
             </div>

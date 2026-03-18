@@ -44,17 +44,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
 
     try {
       // Validación con Zod
+      // Validar con Zod
       registerSchema.parse({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword
       });
-
-      // Verificar que las contraseñas coincidan
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error('Las contraseñas no coinciden');
-      }
 
       // Llamada al servicio de registro
       const user = await authService.register({
