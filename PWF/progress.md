@@ -35,4 +35,25 @@
 
 ---
 
-[Resto del archivo progress.md sin cambios...]
+## Sesión Implementación Reportes y Notificaciones — 18 Mar 2026 10:55
+
+### RFs Implementados en esta sesión:
+| RF | Descripción | Estado |
+|----|-------------|--------|
+| RF028 | Exportar reporte en PDF | ✅ Implementado (`reportService.ts` + `jspdf`) |
+| RF029 | Exportar reporte en EXCEL | ✅ Implementado (`reportService.ts` + `xlsx`) |
+| RF030 | Historial de reportes generados | ✅ Implementado (UI de historial con `localStorage`) |
+| RF025 | Notificaciones persistentes | ✅ Implementado (UI y service con `notifications_updated` events) |
+
+### Fixes de Deuda Técnica:
+1. **reportService.ts**: Creado de cero para soportar exportación binaria (PDF/Excel) con datos reales del proyecto y tareas.
+2. **ReportGenerator.tsx**: 
+   - Rediseño completo con pestañas "Nuevo Reporte" e "Historial".
+   - Integración con `taskService` y `roundService` para obtener data real.
+   - Guardado de historial local en `localStorage` (limitado a los últimos 10 reportes).
+3. **App.tsx**: Actualizado para pasar la lista de proyectos al componente de reportes.
+4. **types.ts**: Actualizado para incluir `estimations` en la interfaz `Round`.
+
+### Verificación E2E:
+- [ ] Ejecutar `e2e/reports.spec.ts` para validar el flujo.
+- [ ] Ejecutar `e2e/panels.spec.ts` para validar notificaciones (T079-T081).
