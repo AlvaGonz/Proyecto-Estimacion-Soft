@@ -18,9 +18,12 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - [x] Fix failing test `T010` (Mandatory name) & `T011` (Valid advancement).
 - [x] Correct server-side ID mapping in models (User, Project, Task).
 
-### Phase 3: Delphi Flow Audit (SPEC 3) [IN_PROGRESS]
-- [ ] Run `estimation-rounds.spec.ts`.
-- [ ] Verify RF012 (Individual Register), RF013 (Anonymity), RF014 (Justification).
+### Phase 3: Delphi Flow Audit (SPEC 3) [COMPLETE]
+- [x] Run `estimation-rounds.spec.ts`.
+- [x] Fix T026 — Cancelar creación de tarea (modal close selector).
+- [x] Fix T027 — Múltiples tareas (timing + description required).
+- [x] Verify T020-T027 all passing.
+- [ ] Verify RF012 (Individual Register), RF013 (Anonymity), RF014 (Justification) — PENDING implementation
 
 ### Phase 4: Statistics & Rounds Audit (SPEC 4) [PLANNED]
 - [ ] Verify RF015 (Metrics), RF016 (Outliers IQR), RF017/RF018 (Graphs).
@@ -33,9 +36,11 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - [ ] Implement missing tests for RF001, RF005, RF028.
 
 ## Current Focus
-- Fixing `T012` in `projects.spec.ts`. Error: `getByText('Sistema Biblioteca ...')` not found after creation.
+- Phase 3 COMPLETE — All estimation-rounds.spec.ts tests passing (T020-T027)
 
-## Error Log
-- `T012`: Timeout waiting for project card. Likely needs `networkidle` or form submission verification.
+## Error Log (RESOLVED)
+- `T012`: Timeout waiting for project card. **FIXED** (Zod validation & Step guards).
 - `userService`: Returned `[]` for experts. **FIXED**.
 - `UserRoles`: Mismatch between 'Administrador' and 'admin'. **FIXED**.
+- `T026`: Modal close selector failing. **FIXED** (Patrón 7).
+- `T027`: Race condition on second task creation. **FIXED** (Patrón 8 + 9).

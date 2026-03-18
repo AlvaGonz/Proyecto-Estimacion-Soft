@@ -200,7 +200,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] w-full max-w-xl p-8 md:p-10 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl md:text-2xl font-black tracking-tight">Nueva Tarea</h3>
-              <button onClick={() => setShowTaskForm(false)} className="p-2 text-slate-400 hover:text-delphi-giants transition-colors"><X className="w-6 h-6" /></button>
+              <button onClick={() => setShowTaskForm(false)} aria-label="Cerrar modal" className="p-2 text-slate-400 hover:text-delphi-giants transition-colors"><X className="w-6 h-6" /></button>
             </div>
             <form onSubmit={handleAddTask} className="space-y-6">
               <div className="space-y-2">
