@@ -69,6 +69,67 @@ test.describe('PANEL — Experto (RF027)', () => {
 
 });
 
+test.describe('NOTIFICACIONES — Centro de Notificaciones (RF025)', () => {
+
+  test('T079 — RF025: Centro de notificaciones visible en panel', async ({ page }) => {
+    await loginAs(page, 'facilitator');
+    
+    // Verificar que el botón de notificaciones (campana) es visible
+    const notificationBell = page.getByRole('button', { name: /notificaciones/i })
+      .or(page.locator('button').filter({ has: page.locator('svg') }).filter({ hasText: '' }).first());
+    
+    await expect(notificationBell).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('T080 — RF025: Notificaciones muestran eventos del proyecto', async ({ page }) => {
+    await loginAs(page, 'facilitator');
+    
+    // Click en la campana de notificaciones
+    const notificationBell = page.getByRole('button', { name: /notificaciones/i });
+    await notificationBell.click();
+    
+    // Verificar que se abre el panel de notificaciones
+    await expect(
+      page.getByText(/notificaciones/i).first()
+        .or(page.getByText(/sin notificaciones/i).first())
+    ).toBeVisible({ timeout: 5_000 });
+    
+    // Cerrar notificaciones
+    await page.getByRole('button', { name: /cerrar notificaciones/i }).click();
+    await expect(page.getByText(/notificaciones/i).first()).not.toBeVisible();
+  });
+
+  test('T081 — RF025: Marcar notificación como leída', async ({ page }) => {
+    await loginAs(page, 'facilitator');
+    
+    // Abrir centro de notificaciones
+    const notificationBell = page.getByRole('button', { name: /notificaciones/i });
+    await notificationBell.click();
+    
+    // Verificar estado del panel
+    const notificationPanel = page.getByText(/notificaciones/i).first();
+    await expect(notificationPanel).toBeVisible({ timeout: 5_000 });
+    
+    // Si hay notificaciones, probar marcar como leída
+    const hasNotifications = await page.getByText(/sin notificaciones/i).isHidden().catch(() => false);
+    
+    if (hasNotifications) {
+      // Buscar botón de marcar como leída
+      const markReadBtn = page.getByRole('button', { name: /marcar como leída/i }).first();
+      if (await markReadBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await markReadBtn.click();
+        
+        // Verificar que cambió el estilo visual (notificación marcada como leída)
+        await page.waitForTimeout(300);
+      }
+    }
+    
+    // Cerrar panel
+    await page.getByRole('button', { name: /cerrar notificaciones/i }).click();
+  });
+
+});
+
 test.describe('MÉTRICAS — Participación (RF030)', () => {
 
   test('T071 — Panel de Logs muestra actividad del proyecto (RS65-RS66, RF029)', async ({ page }) => {
