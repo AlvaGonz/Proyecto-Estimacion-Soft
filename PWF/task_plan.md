@@ -79,6 +79,21 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 
 **Patrón 13 documented**: Component RBAC pattern for read-only expert access
 
+### T042-T045 Fix COMPLETE ✅
+- [x] T042 root-cause investigation — Tests run as facilitator but estimation form is expert-only
+- [x] T045 root-cause investigation — Same issue, justification textarea not visible to facilitator
+- [x] Implementation — Created `setupProjectForEstimation` helper with facilitator setup + expert login
+- [x] Regression verification — T042 and T045 passing
+
+### T042-T045 Changes Summary
+| File | Change |
+|------|--------|
+| e2e/helpers/estimation.helper.ts | Added `setupProjectForEstimation` helper for multi-role flow |
+| e2e/estimation-submit.spec.ts | T042: Use new helper, verify form visible to expert |
+| e2e/estimation-submit.spec.ts | T045: Use new helper, fill justification, verify submission |
+
+**Patrón 14 documented**: Test Helper for Multi-Role Flows
+
 ## Test Coverage Summary
 
 | Spec File | Test IDs | RF Covered | Status |

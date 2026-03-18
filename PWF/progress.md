@@ -224,3 +224,131 @@ T075 now passes. The fix implements proper RBAC for the Documentation component:
 - Experts cannot upload new documents
 - Experts cannot delete existing documents
 - Facilitators/Admins retain full CRUD access
+
+---
+
+## Sesión T042-T045 Debug — 18 Mar 2026
+
+### Goal:
+Make T042 and T045 pass without skips
+
+### Scope:
+estimation-submit flow (RF012, RF014)
+
+### Context files read:
+- PWF/task_plan.md
+- PWF/findings.md
+- PWF/progress.md
+- e2e/estimation-submit.spec.ts
+- e2e/helpers/estimation.helper.ts
+- e2e/helpers/round.helper.ts
+- components/EstimationRounds.tsx
+
+### Initial observations:
+- T042 fails: can't find estimation form elements (input[type="number"], poker cards, or three-point inputs)
+- T045 fails: can't find textarea for justification
+- Both tests use `setupProjectWithTask` which logs in as facilitator
+
+### Initial hypothesis:
+The tests are running as facilitator, but EstimationRounds has logic that prevents facilitators from seeing the estimation form. Looking at line 204 in EstimationRounds.tsx:
+```tsx
+const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
+```
+The tests need to either:
+1. Login as expert instead of facilitator, OR
+2. The test assertions need to verify that the form is NOT visible for facilitators
+
+But the tests T042 and T045 are testing that the form IS visible when there's an open round. This suggests the tests should be running as an expert user, not a facilitator.
+
+### T042 Root Cause Investigation:
+
+**Test steps:**
+1. Login as facilitator (setupProjectWithTask)
+2. Create project with task
+3. Try to find estimation form
+4. Assertion fails: no form found
+
+**Current behavior:**
+- EstimationRounds.tsx line 204: `canEstimate = roundIsOpen && !isFacilitator`
+- Line 444-452: If `!canEstimate`, shows message instead of form
+- The estimation form is ONLY shown to experts, not facilitators
+
+**Expected behavior per test:**
+- Test expects to see estimation form when round is open
+- But test runs as facilitator, who can't estimate
+
+**Key finding:**
+The test is incorrectly using facilitator when it should use expert. RF012 states that estimations are registered by experts, not facilitators.
+
+### T045 Root Cause Investigation:
+
+**Test steps:**
+1. Login as facilitator (setupProjectWithTask)
+2. Create project with task
+3. Open round
+4. Try to find textarea for justification
+5. Assertion fails: textarea not found
+
+**Current behavior:**
+- Same as T042 - facilitator can't see estimation form
+- Therefore can't see justification textarea either
+
+### Pattern Analysis:
+
+**Working analog:**
+- T041 uses same setup and passes - it only checks that round component renders
+- T043, T046, T048 use facilitator but also use `!isFacilitator` checks
+
+**Broken pattern:**
+- T042 and T045 expect to interact with estimation form as facilitator
+- But the product correctly restricts estimation to experts only (RF012)
+
+**Key differences:**
+- Tests should login as expert, not facilitator
+- Or tests should verify facilitator CANNOT see form (negative test)
+- Looking at test intent: "Formulario de estimación visible cuando hay ronda abierta" - this should test as expert
+
+### Implementation:
+
+**Created new helper `setupProjectForEstimation` in e2e/helpers/estimation.helper.ts:**
+1. Logs in as facilitator
+2. Creates project via wizard
+3. Adds task
+4. Clicks on task to view estimation panel
+5. Clicks the "+" button to start a round (line 305-311 in EstimationRounds.tsx)
+6. Logs in as expert
+7. Navigates to project and task
+
+**Updated T042:**
+- Uses `setupProjectForEstimation` instead of `setupProjectWithTask`
+- Verifies estimation form is visible to expert when round is open
+
+**Updated T045:**
+- Uses `setupProjectForEstimation` instead of `setupProjectWithTask`
+- Fills justification and estimation value
+- Submits estimation
+- Verifies submission by checking form reset or estimation in list
+
+### Files Modified:
+
+| File | Change |
+|------|--------|
+| e2e/helpers/estimation.helper.ts | Added `setupProjectForEstimation` helper with facilitator setup + expert login flow |
+| e2e/estimation-submit.spec.ts | T042: Use new helper, verify form visible to expert |
+| e2e/estimation-submit.spec.ts | T045: Use new helper, fill justification, verify submission |
+
+### Verification:
+- Ran: `npx playwright test e2e/estimation-submit.spec.ts --grep "T042" --reporter=list`
+- Result: ✅ PASSED
+- Ran: `npx playwright test e2e/estimation-submit.spec.ts --grep "T045" --reporter=list`
+- Result: ✅ PASSED
+- Ran: `npx playwright test e2e/estimation-submit.spec.ts --reporter=list`
+- Result: 7 passed (T041-T045, T048, T052), 5 failed (other issues), 1 skipped
+
+### Summary:
+T042 and T045 now pass. The fix required:
+1. Understanding that RF012 restricts estimation to experts only
+2. Creating a helper that sets up project as facilitator then switches to expert
+3. Updating tests to use the new helper
+
+**Note:** Other tests in estimation-submit.spec.ts (T046, T047, T049-T051) have separate issues not related to T042/T045 fix.

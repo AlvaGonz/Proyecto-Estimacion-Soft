@@ -93,6 +93,34 @@ Fix:
 Patrón aplicar: Todos los componentes con acciones CRUD deben recibir `role` y
 aplicar condicionales para mantener separación de privilegios.
 
+## Patrón 14: Test Helper para Flujos Multi-Rol (T042-T045)
+Problema: Tests de estimación fallaban porque ejecutaban como facilitador, pero
+la funcionalidad de estimar está restringida a expertos (RF012).
+
+Fix:
+1. Crear helper `setupProjectForEstimation` que:
+   - Login como facilitador → crea proyecto → añade tarea → abre ronda
+   - Luego login como experto → navega a proyecto
+2. El experto puede ver el formulario de estimación y enviar estimaciones
+3. Los tests verifican el comportamiento correcto del rol experto
+
+Código del helper:
+```typescript
+export async function setupProjectForEstimation(page, projectName, method) {
+  // Facilitador crea proyecto y abre ronda
+  await loginAs(page, 'facilitator');
+  await createProjectViaWizard(page, { name: projectName, method });
+  // ... añadir tarea, abrir ronda ...
+  
+  // Experto inicia sesión para estimar
+  await loginAs(page, 'expert');
+  await page.getByText(projectName).click();
+}
+```
+
+Patrón aplicar: Cuando un flujo requiere acciones de múltiples roles, crear
+un helper que maneje el cambio de sesión automáticamente.
+
 ## Patrón 15: Strict Mode Violation en Locators OR
 Problema: Playwright lanza "strict mode violation" cuando `.first().or()` resuelve múltiples elementos.
 Ejemplo problemático:

@@ -3,6 +3,8 @@
 // Soporta los tres métodos: Wideband Delphi, Planning Poker, Three-Point
 
 import { Page } from '@playwright/test';
+import { loginAs } from './auth.helper';
+import { createProjectViaWizard } from './project.helper';
 
 export interface EstimationInput {
   taskName: string;
@@ -13,6 +15,81 @@ export interface EstimationInput {
   cardValue?: string;      // Planning Poker - carta Fibonacci (e.g., '5', '8', '?', '☕')
   justification?: string;  // RF014 - justificación textual
 }
+
+/**
+ * Setup completo para tests de estimación:
+ * 1. Crea proyecto como facilitador
+ * 2. Añade tarea
+ * 3. Abre ronda (esperando a que aparezca el botón)
+ * 4. Login como experto para poder estimar
+ * 
+ * RF012: Solo expertos pueden estimar, no facilitadores.
+ */
+export async function setupProjectForEstimation(
+  page: Page,
+  projectName: string,
+  method = 'Wideband Delphi'
+): Promise<void> {
+  // Step 1: Facilitador crea proyecto
+  await loginAs(page, 'facilitator');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  
+  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  await page.getByText(projectName).click();
+  await page.waitForLoadState('networkidle');
+
+  // Step 2: Añadir tarea
+  await page.getByRole('button', { name: /añadir tarea/i }).click();
+  await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
+  await page.locator('#newTaskTitle').fill('Tarea de Estimación Test');
+  await page.locator('#newTaskDesc').fill('Descripción para test de estimación');
+  await page.getByRole('button', { name: /crear tarea/i }).click();
+  await page.waitForSelector('#newTaskTitle', { state: 'hidden', timeout: 8_000 });
+
+  // Step 3: Seleccionar tarea y abrir ronda (como facilitador)
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1500);
+  
+  // El botón de nueva ronda es un icono "+" sin texto (EstimationRounds.tsx línea 305-311)
+  // Buscamos el botón con borde dashed que contiene el icono Plus
+  const newRoundBtn = page.locator('button').filter({ has: page.locator('svg') })
+    .filter({ hasText: /^$/ }) // Botón sin texto
+    .filter({ has: page.locator('svg[class*="lucide-plus"], svg[class*="Plus"]') })
+    .or(page.locator('button[class*="border-dashed"], button[class*="dashed"]'));
+  
+  // Intentar encontrar y clickear el botón de nueva ronda
+  const btn = newRoundBtn.first();
+  if (await btn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await btn.click();
+    await page.waitForTimeout(1500);
+    await page.waitForLoadState('networkidle');
+  } else {
+    // Alternativa: buscar por aria-label o cualquier botón nuevo
+    const plusBtn = page.locator('button').filter({ has: page.locator('svg') }).last();
+    if (await plusBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await plusBtn.click();
+      await page.waitForTimeout(1500);
+      await page.waitForLoadState('networkidle');
+    }
+  }
+
+  // Step 4: Cambiar a experto (solo expertos pueden estimar)
+  await loginAs(page, 'expert');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  
+  // El experto debe ver el proyecto asignado
+  await page.getByText(projectName).click();
+  await page.waitForLoadState('networkidle');
+  
+  // Click en la tarea para ver el panel de estimación
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1000);
+}
+
+// Import expect at top level for the helper
+import { expect } from '@playwright/test';
 
 /**
  * Registra una estimación para una tarea.
@@ -52,9 +129,7 @@ export async function submitEstimation(page: Page, input: EstimationInput): Prom
 
   // Justificación (RF014) - si está presente
   if (input.justification) {
-    const justifTextarea = page.locator('textarea').filter({ has: page.locator('') })
-      .or(page.locator('textarea[placeholder*="justif"], textarea[name*="justif"], textarea[id*="justif"]'))
-      .first();
+    const justifTextarea = page.locator('textarea').first();
     
     if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await justifTextarea.fill(input.justification);
