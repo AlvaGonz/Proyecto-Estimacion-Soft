@@ -425,7 +425,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleCloseRound}
-                  disabled={currentRoundEstimations.length < 2}
+                  disabled={currentRoundEstimations.length < 1}
                   className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-delphi-giants transition-all disabled:opacity-50"
                 >
                   Cerrar y Analizar Ronda

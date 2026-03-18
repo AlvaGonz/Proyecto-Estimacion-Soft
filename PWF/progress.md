@@ -352,3 +352,108 @@ T042 and T045 now pass. The fix required:
 3. Updating tests to use the new helper
 
 **Note:** Other tests in estimation-submit.spec.ts (T046, T047, T049-T051) have separate issues not related to T042/T045 fix.
+
+---
+
+## Sesión T046-T048 Debug — 18 Mar 2026
+
+### Goal:
+Make T046 and T048 pass without skips
+
+### Continuing from:
+T042-T045 session findings
+
+### Scope:
+Round-close flow, hidden estimates visibility, statistics calculation
+
+### Context files read:
+- PWF/task_plan.md
+- PWF/findings.md
+- PWF/progress.md
+- e2e/estimation-submit.spec.ts
+- components/EstimationRounds.tsx
+
+### New observations vs T042/T045 session:
+
+**T046 Status:** FAILING
+- Test creates project as facilitator, opens round, tries to submit estimation as facilitator
+- Facilitator CANNOT submit estimations (canEstimate = roundIsOpen && !isFacilitator)
+- After "submitting", tries to close round and check for metrics
+- Metrics not visible after close
+
+**T048 Status:** PASSING  
+- Similar flow to T046 but passes
+- Looking at differences: T048 doesn't require metrics calculation, just visibility of estimations
+
+### T046 Root Cause Investigation:
+
+**Test T046 steps:**
+1. Setup project as facilitator
+2. Open round
+3. Submit estimation (as facilitator - this fails silently)
+4. Close round
+5. Verify metrics are visible (media, mediana, desviación, etc.)
+
+**Current behavior:**
+- Line 176-183 in test: Tries to fill estimation as facilitator
+- EstimationRounds.tsx line 444-452: Facilitator sees message instead of form
+- Estimation is never actually submitted
+- Line 186-194: Close button click
+- Line 428 in EstimationRounds.tsx: Close button requires `currentRoundEstimations.length >= 2`
+- Since no estimations were submitted, round cannot be closed properly
+- No metrics calculated/shown
+
+**Key finding:**
+The test needs to:
+1. Submit estimation as EXPERT (not facilitator)
+2. Have at least 2 estimations to enable close button
+3. Then close round as facilitator
+4. Then verify metrics
+
+### T048 Root Cause Investigation:
+
+**Test T048 steps:**
+1. Setup project as facilitator
+2. Open round  
+3. Submit estimation (as facilitator - this fails silently)
+4. Close round
+5. Verify estimations are visible
+
+**Current behavior:**
+- Test passes even though estimation wasn't submitted
+- Looking at line 267-269: Test checks for "estimaciones|resultados|5|media"
+- The test might be passing because it finds text like "Esperando participaciones" or "0 Expertos"
+- Need to verify test is actually checking correct behavior
+
+**T048 Status:** ✅ Already passing (but may need verification)
+
+### Hypothesis T046:
+**Hypothesis:**
+T046 fails because:
+1. Facilitator cannot submit estimations (product correctly blocks this)
+2. No estimations in round means close button is disabled (requires >= 2)
+3. Round never actually closes, so metrics are never calculated/shown
+
+**Evidence:**
+1. EstimationRounds.tsx line 204: `canEstimate = roundIsOpen && !isFacilitator`
+2. EstimationRounds.tsx line 428: `disabled={currentRoundEstimations.length < 2}`
+3. Screenshot shows login page (session was lost during test)
+
+**Minimal fix:**
+Update T046 to:
+1. Setup project as facilitator
+2. Open round
+3. Submit estimation(s) as EXPERT (need at least 2 for close button)
+4. Close round as facilitator
+5. Verify metrics are visible
+
+### Hypothesis T048:
+**Hypothesis:**
+T048 passes but may not be testing the intended behavior. The test expects estimations to be visible after round close, but if no estimations were submitted, it's checking for empty state text.
+
+**Evidence:**
+- Test passes in current run
+- Similar setup to T046 but with different assertion
+
+**Minimal fix:**
+Verify T048 is testing correct behavior or update to match T046 pattern with proper expert estimation submission.

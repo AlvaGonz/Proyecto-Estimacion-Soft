@@ -94,6 +94,12 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 
 **Patrón 14 documented**: Test Helper for Multi-Role Flows
 
+### T046-T048 Fix IN PROGRESS
+- [x] T046 root-cause investigation — Facilitator can't estimate, need expert submissions before close
+- [x] T048 root-cause investigation — Test passes but may need verification
+- [ ] Implementation — Create helper for facilitator-close flow with expert estimations
+- [ ] Regression verification — Run T046, T048, and full estimation-submit suite
+
 ## Test Coverage Summary
 
 | Spec File | Test IDs | RF Covered | Status |
