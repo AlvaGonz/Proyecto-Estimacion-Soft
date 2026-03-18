@@ -65,11 +65,12 @@ test.describe('ESTIMACIÓN — Registro Individual (RF012, RF013)', () => {
       }
     }
     
-    // Ahora debe haber formulario
-    await expect(
-      page.locator('input[type="number"]').first()
-        .or(page.getByText(/1|2|3|5|8|13/i)) // Planning Poker cards
-    ).toBeVisible({ timeout: 10_000 });
+    // Ahora debe haber formulario - buscar inputs o cartas de poker específicas
+    const hasNumberInput = await page.locator('input[type="number"]').first().isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasPokerCard = await page.locator('button').filter({ hasText: /^[12358?]$/ }).first().isVisible({ timeout: 3_000 }).catch(() => false);
+    const hasThreePoint = await page.getByText(/optimista/i).first().isVisible({ timeout: 3_000 }).catch(() => false);
+    
+    expect(hasNumberInput || hasPokerCard || hasThreePoint).toBeTruthy();
   });
 
   test('T043 — Estimación se guarda correctamente (RS31)', async ({ page }) => {

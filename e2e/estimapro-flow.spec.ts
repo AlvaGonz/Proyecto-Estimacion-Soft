@@ -18,8 +18,9 @@ test.describe('AUTH — Login y Seguridad', () => {
 
     test('T002 — Login con credenciales inválidas muestra error', async ({ page }) => {
       await page.goto('/');
-      await page.getByLabel(/correo institucional/i).fill('wrong@uce.edu.do');
-      await page.getByLabel(/contraseña/i).fill('wrongpassword');
+      await page.waitForLoadState('networkidle');
+      await page.locator('#email').fill('wrong@uce.edu.do');
+      await page.locator('#password').fill('wrongpassword');
       await page.getByRole('button', { name: /ingresar al sistema/i }).click();
       // Error message debe aparecer — NO redirigir al dashboard
       await expect(
@@ -32,7 +33,8 @@ test.describe('AUTH — Login y Seguridad', () => {
 
     test('T003 — Login con contraseña vacía muestra validación', async ({ page }) => {
       await page.goto('/');
-      await page.getByLabel(/correo institucional/i).fill(USERS.facilitator.email);
+      await page.waitForLoadState('networkidle');
+      await page.locator('#email').fill(USERS.facilitator.email);
       // Dejar contraseña vacía e intentar submit
       await page.getByRole('button', { name: /ingresar al sistema/i }).click();
       // El form no debe navegar — debe mostrar validación

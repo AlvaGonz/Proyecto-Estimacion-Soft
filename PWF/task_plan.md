@@ -46,14 +46,16 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 
 ### Phase 6: Technical Debt Remediation [COMPLETE]
 - [x] RF001 — RegisterPage.tsx creado con formulario de registro
-- [x] RF001 — Función register() agregada a authService.ts
-- [x] RF001 — Ruta /register integrada en App.tsx
-- [x] RF001 — Enlace "Registrarse" agregado a Login.tsx
-- [x] RF001 — Schema registerSchema actualizado con confirmPassword
-- [ ] RF017/RF018 — EstimationCharts.tsx (histograma, evolución)
-- [ ] RF025 — Tests T079-T081 para notificaciones
-- [ ] RF028 — Función generatePDF con jspdf
-- [ ] Backend Fix — Validación description en ProjectDetail.tsx
+- [x] RF001 — Backend endpoint POST /auth/register implementado
+- [x] RF001 — Tests T028-T031 habilitados (E2E de registro)
+- [x] RF001 — Rate limiter bypass para tests implementado
+- [x] RF002 — Tests T002-T003 fix de selectores
+- [x] RF017/RF018 — EstimationCharts.tsx (histograma, evolución) - ya existe
+- [x] RF019 — Vista comparativa anónima - ya existe
+- [x] RF025 — Tests T079-T081 agregados para notificaciones
+- [x] RF028 — Función generatePDF con jspdf - ya existe en reportService.ts
+- [x] RF032 — Adaptive UI (Delphi/Poker/ThreePoint) - ya implementado
+- [x] Backend Fix — Rate limiter configurable para E2E
 
 ## Current Focus
 - Phase 6 IN PROGRESS — Implementando deuda técnica RF001, RF017, RF018, RF025, RF028
@@ -109,30 +111,30 @@ None — all RF have at least partial coverage
 - ✅ `components/Login.tsx` — Prop `onGoToRegister` y botón "Registrarse"
 
 **Pendiente:**
-- 🔄 Verificar que backend tenga endpoint POST /auth/register
-- 🔄 Probar flujo completo E2E
+- ✅ Verificar que backend tenga endpoint POST /auth/register
+- ✅ Backend endpoint confirmado y funcional
+- ✅ Tests T028-T031 habilitados (requieren reinicio servidor para rate limiter)
 
-### RF017/RF018 — Gráficos [PENDIENTE]
-**Librería disponible:** recharts (v3.7.0) ✅
-**Tareas:**
-- Crear `components/EstimationCharts.tsx` con:
-  - DistributionChart: Histograma con Recharts BarChart
-  - EvolutionChart: Líneas de evolución con Recharts LineChart
-  - Outlier highlighting en rojo
-- Integrar en vista de ronda cerrada
+### RF017/RF018/RF019 — Gráficos [✅ COMPLETE]
+**Estado:** Ya implementado en `components/EstimationCharts.tsx`
+**Componentes:**
+- ✅ DistributionChart: Histograma con Recharts BarChart
+- ✅ EvolutionChart: Líneas de evolución con Recharts LineChart  
+- ✅ AnonymousComparisonView: Vista anónima (Experto A, B, C...)
+- ✅ Outlier highlighting en rojo
+**Integración:** Usado en EstimationRounds.tsx cuando showBoxPlot/showEvolution = true
 
-### RF025 — Notificaciones [PENDIENTE]
-**Componente existe:** NotificationCenter.tsx (con MOCK_NOTIFICATIONS)
-**Tareas:**
-- Agregar tests T079-T081 en `e2e/panels.spec.ts`
-- Verificar que el componente esté integrado en App.tsx
+### RF025 — Notificaciones [✅ COMPLETE]
+**Componente:** NotificationCenter.tsx integrado en App.tsx
+**Service:** notificationService.ts con localStorage persistence
+**Tests:** T079-T081 agregados en `e2e/panels.spec.ts`
 
-### RF028 — Exportar PDF [PENDIENTE]
-**Librería disponible:** jspdf (v4.2.0) ✅
-**Tareas:**
-- Crear función `generateProjectReport()` en servicio de reportes
-- Incluir: datos del proyecto, tareas, métricas, historial de rondas
-- Trigger desde botón de exportar en ReportGenerator o ProjectDetail
+### RF028 — Exportar PDF/Excel [✅ COMPLETE]
+**Service:** `services/reportService.ts` implementado
+**Funciones:**
+- ✅ generatePDF(): Exporta a PDF con jspdf-autotable
+- ✅ generateExcel(): Exporta a Excel con xlsx
+**UI:** ReportGenerator.tsx con pestañas "Nuevo Reporte" e "Historial"
 
 ### Backend Fix — Description Required [PENDIENTE]
 **Tarea:**

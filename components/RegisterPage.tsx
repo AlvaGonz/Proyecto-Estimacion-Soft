@@ -127,7 +127,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
                     placeholder="Juan Pérez"
                   />
                 </div>
-                {errors.name && <p id="name-error" role="alert" className="text-red-400 text-xs mt-1 ml-2">{errors.name}</p>}
+                {errors.name && <p id="name-error" role="alert" className="text-red-400 text-xs mt-1 ml-2">{errors.name || 'El nombre es requerido'}</p>}
               </div>
 
               {/* Email Field */}
