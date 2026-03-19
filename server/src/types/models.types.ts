@@ -70,6 +70,7 @@ export interface IRoundStats {
     range: [number, number]; // [min, max]
     iqr: number;
     outliers: Types.ObjectId[];
+    metricaResultados?: Record<string, any>;
 }
 
 export interface IRound extends Document {
@@ -90,6 +91,7 @@ export interface IEstimation extends Document {
     expertId: Types.ObjectId;
     value: number;
     justification: string;
+    metodoData?: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
 }

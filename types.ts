@@ -43,6 +43,7 @@ export interface Estimation {
   expertId: string;
   value: number;
   justification: string;
+  metodoData?: any; // RF031 Extended data for specific methods
   timestamp: number;
 }
 
@@ -65,7 +66,8 @@ export interface RoundStats {
   coefficientOfVariation: number;
   range: [number, number];
   iqr: number;
-  outliers: string[]; // IDs of outlier estimations
+  outlierEstimationIds: string[]; // IDs of outlier estimations
+  metricaResultados?: Record<string, any>;
 }
 
 export interface ConvergenceAnalysis {
@@ -110,3 +112,9 @@ export interface ThreePointEstimation {
 
 export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '?'] as const;
 export type FibonacciCard = typeof FIBONACCI_SEQUENCE[number];
+
+export const METHOD_LABELS: Record<string, string> = {
+  'wideband-delphi': 'Wideband Delphi (Tradicional)',
+  'planning-poker': 'Planning Poker (Agile)',
+  'three-point': 'Estimación de Tres Puntos (PERT)'
+};

@@ -138,6 +138,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     }
   }, [project, showConfigModal]);
   
+  // RF021: El método es inmutable si ya hay tareas estimándose o consensuadas
+  const isMethodImmutable = tasks.some(t => t.status !== 'Pendiente');
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!configForm.name.trim()) {
@@ -364,7 +366,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   id="configMethod"
                   value={configForm.estimationMethod}
                   onChange={(e) => setConfigForm({...configForm, estimationMethod: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-delphi-keppel/30"
+                  disabled={isMethodImmutable}
+                  className={`w-full p-4 rounded-2xl border-2 transition-all outline-none font-black text-xs ${isMethodImmutable ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed' : 'border-slate-100 focus:border-delphi-keppel focus:ring-4 focus:ring-delphi-keppel/10'}`}
                 >
                   <option value="wideband-delphi">Wideband Delphi</option>
                   <option value="planning-poker">Planning Poker</option>

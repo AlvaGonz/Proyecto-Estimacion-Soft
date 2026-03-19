@@ -6,17 +6,17 @@ export const estimationService = {
         return fetchApi<Estimation[]>(`/rounds/${roundId}/estimations`);
     },
 
-    async submitEstimation(roundId: string, value: number, justification: string): Promise<Estimation> {
+    async submitEstimation(roundId: string, value: number, justification: string, metodoData?: any): Promise<Estimation> {
         return fetchApi<Estimation>(`/rounds/${roundId}/estimations`, {
             method: 'POST',
-            body: { value, justification }
+            body: { value, justification, metodoData }
         });
     },
 
-    async updateEstimation(estimationId: string, value: number, justification: string): Promise<Estimation> {
+    async updateEstimation(estimationId: string, value: number, justification: string, metodoData?: any): Promise<Estimation> {
         return fetchApi<Estimation>(`/estimations/${estimationId}`, {
             method: 'PATCH',
-            body: { value, justification }
+            body: { value, justification, metodoData }
         });
     }
 };

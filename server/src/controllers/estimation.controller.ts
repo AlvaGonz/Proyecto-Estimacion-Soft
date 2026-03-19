@@ -5,10 +5,10 @@ import { Role } from '../config/constants.js';
 
 export const submitEstimation = asyncHandler(async (req: Request, res: Response) => {
     const { id: roundId } = req.params;
-    const { value, justification } = req.body;
+    const { value, justification, metodoData } = req.body;
     const expertId = req.user?.id as string;
 
-    const estimation = await estimationService.submit(roundId, expertId, value, justification);
+    const estimation = await estimationService.submit(roundId, expertId, value, justification, metodoData);
 
     res.status(201).json({
         success: true,

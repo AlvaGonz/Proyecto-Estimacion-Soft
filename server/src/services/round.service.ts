@@ -8,6 +8,10 @@ import { ROUND_STATUS, TASK_STATUS, PROJECT_STATUS } from '../config/constants.j
 import { statisticsService, MetricInput } from './statistics.service.js';
 import { convergenceService, ConvergenceResult } from './convergence.service.js';
 import { auditService } from './audit.service.js';
+import { DelphiMethod } from '../strategies/DelphiMethod.js';
+import { PlanningPokerMethod } from '../strategies/PlanningPokerMethod.js';
+import { ThreePointMethod } from '../strategies/ThreePointMethod.js';
+import { IBaseEstimationMethod } from '../strategies/IBaseEstimationMethod.js';
 import mongoose from 'mongoose';
 
 export const roundService = {
@@ -71,20 +75,28 @@ export const roundService = {
         // Get all estimations for this round
         const estimations = await Estimation.find({ roundId });
 
-        // Calculate statistics
-        const metricInputs: MetricInput[] = estimations.map(e => ({
-            id: String(e._id),
-            value: e.value
-        }));
+        // Calculate statistics based on project method
+        let strategy: IBaseEstimationMethod;
+        switch (project.estimationMethod) {
+            case 'planning-poker':
+                strategy = new PlanningPokerMethod();
+                break;
+            case 'three-point':
+                strategy = new ThreePointMethod();
+                break;
+            default:
+                strategy = new DelphiMethod();
+                break;
+        }
 
-        const stats = statisticsService.calculateMetrics(metricInputs);
+        const statsResult = strategy.calculate(estimations);
         const config = project.convergenceConfig as IConvergenceConfig;
 
         // Evaluate convergence
         const convergence = convergenceService.evaluateConsensus(
-            stats.coefficientOfVariation,
+            statsResult.cv,
             estimations.length,
-            stats.outliers.length,
+            statsResult.outlierEstimationIds.length,
             config
         );
 
@@ -92,9 +104,33 @@ export const roundService = {
         // Note: setting status, endTime, and stats AT ONCE to respect immutability hook behavior
         round.status = ROUND_STATUS.CLOSED;
         round.endTime = new Date();
-        round.stats = stats as unknown as IRoundStats;
+        round.stats = {
+            mean: statsResult.mean,
+            median: statsResult.median,
+            stdDev: statsResult.stdDev,
+            variance: statsResult.variance,
+            cv: statsResult.cv,
+            range: statsResult.range,
+            iqr: statsResult.iqr,
+            outlierEstimationIds: statsResult.outlierEstimationIds as any,
+            metricaResultados: statsResult.metricaResultados
+        } as unknown as IRoundStats;
 
         await round.save();
+
+        const result = {
+            round: round.toJSON(),
+            convergence: {
+                ...convergence,
+                recommendation: convergence.recommendation,
+                // Ensure all stats from statisticsService are passed back to the frontend
+                stats: {
+                    ...stats,
+                    cv: stats.coefficientOfVariation,
+                    metricaResultados: stats
+                }
+            }
+        };
 
         await auditService.log({
             userId: requesterId,
@@ -103,12 +139,12 @@ export const roundService = {
             resourceId: roundId,
             details: {
                 taskId: String(task._id),
-                stats,
+                stats: round.stats,
                 converged: convergence.converged
             }
         });
 
-        return { round, convergence };
+        return result;
     },
 
     async findByTask(taskId: string): Promise<IRound[]> {
