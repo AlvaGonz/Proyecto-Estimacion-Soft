@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-inter: 'Inter', sans-serif;
+  
+  --color-delphi-keppel: #2BBAA5;
+  --color-delphi-celadon: #93D3AE;
+  --color-delphi-vanilla: #FAECB6;
+  --color-delphi-orange: #F9A822;
+  --color-delphi-giants: #F96635;
+}
+
+body {
+  font-family: var(--font-family-inter);
+}
+
+.bg-gradient-delphi {
+  background: linear-gradient(135deg, #2BBAA5 0%, #93D3AE 100%);
+}

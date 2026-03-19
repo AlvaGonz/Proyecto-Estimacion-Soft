@@ -7,6 +7,7 @@ export interface IUser extends Document {
     password: string;
     role: 'admin' | 'facilitador' | 'experto';
     isActive: boolean;
+    expertiseArea?: string | null;
     refreshToken?: string | null;
     lastLogin?: Date;
     createdAt: Date;
@@ -42,7 +43,9 @@ export interface IProject extends Document {
     unit: 'hours' | 'storyPoints' | 'personDays';
     facilitatorId: Types.ObjectId;
     expertIds: Types.ObjectId[];
-    status: 'active' | 'finished' | 'archived';
+    status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+    isDeleted?: boolean;
+    estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
     createdAt: Date;
     updatedAt: Date;
@@ -65,10 +68,11 @@ export interface IRoundStats {
     median: number;
     stdDev: number;
     variance: number;
-    cv: number;              // Coefficient of Variation
+    coefficientOfVariation: number;
     range: [number, number]; // [min, max]
     iqr: number;
-    outlierEstimationIds: Types.ObjectId[];
+    outliers: Types.ObjectId[];
+    metricaResultados?: Record<string, any>;
 }
 
 export interface IRound extends Document {
@@ -89,6 +93,7 @@ export interface IEstimation extends Document {
     expertId: Types.ObjectId;
     value: number;
     justification: string;
+    metodoData?: Record<string, any>;
     createdAt: Date;
     updatedAt: Date;
 }

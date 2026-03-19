@@ -34,7 +34,16 @@ const taskSchema = new Schema<ITask>(
         }
     },
     {
-        timestamps: true
+        timestamps: true,
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret: any) => {
+                ret.id = ret._id?.toString() || ret.id;
+                delete ret._id;
+                delete ret.__v;
+                return ret;
+            }
+        }
     }
 );
 

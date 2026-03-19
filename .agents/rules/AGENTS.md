@@ -12,6 +12,13 @@ trigger: always_on
 ## MISSION
 Web platform for software estimation via **Wideband Delphi method**: iterative, anonymous, consensus-based estimation with full traceability.
 
+## ARSENAL (Installed Skills)
+- **Architecture**: `architecture-blueprint-generator`, `folder-structure-blueprint-generator`, `typescript-mcp-server-generator`.
+- **Planning**: `create-specification`, `create-implementation-plan`, `breakdown-epic-arch`, `refactor-plan`.
+- **Quality**: `javascript-typescript-jest`, `review-and-refactor`, `refactor-method-complexity-reduce`, `playwright-*`.
+- **DevOps**: `multi-stage-dockerfile`, `devops-rollout-plan`, `gh-cli`.
+- **Database**: `cosmosdb-datamodeling` (MongoDB), `sql-code-review`, `sql-optimization`.
+
 ---
 
 ## STACK

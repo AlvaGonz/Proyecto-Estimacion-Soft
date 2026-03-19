@@ -6,8 +6,8 @@ import { ROLES } from '../config/constants.js';
 
 const router = Router();
 
-// GET /api/users — Get all users (admin only)
-router.get('/', authenticate, requireRole(ROLES.ADMIN), getAllUsers);
+// GET /api/users — Get all users (admin and facilitator)
+router.get('/', authenticate, requireRole(ROLES.ADMIN, ROLES.FACILITADOR), getAllUsers);
 
 // PATCH /api/users/:id — Update user (admin only)
 router.patch('/:id', authenticate, requireRole(ROLES.ADMIN), updateUser);

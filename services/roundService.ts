@@ -14,8 +14,16 @@ export const roundService = {
     },
 
     async closeRound(roundId: string): Promise<{ round: Round, analysis: ConvergenceAnalysis }> {
-        return fetchApi<{ round: Round, analysis: ConvergenceAnalysis }>(`/rounds/${roundId}/close`, {
+        const response = await fetchApi<{ round: Round, convergence: { converged: boolean, recommendation: string } }>(`/rounds/${roundId}/close`, {
             method: 'POST'
         });
+        
+        return {
+            round: response.round,
+            analysis: {
+                level: response.convergence.converged ? 'Alta' : 'Baja',
+                recommendation: response.convergence.recommendation
+            }
+        };
     }
 };

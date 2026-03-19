@@ -7,12 +7,12 @@ export interface User {
     email: string;
     role: UserRole;
     status: string;
+    expertiseArea?: string;
 }
 
 export const userService = {
     async getAllUsers(): Promise<User[]> {
-        const response = await fetchApi<{ users: User[] }>('/users');
-        return response.users || [];
+        return await fetchApi<User[]>('/users');
     },
 
     async getUserById(id: string): Promise<User> {

@@ -34,6 +34,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 } as const;
 
 export const PROJECT_STATUS = {
+    PREPARATION: 'preparation',
+    KICKOFF: 'kickoff',
     ACTIVE: 'active',
     FINISHED: 'finished',
     ARCHIVED: 'archived',

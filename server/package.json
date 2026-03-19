@@ -1,5 +1,5 @@
 {
-    "name": "estimacion-backend",
+    "name": "estimapro-backend",
     "version": "0.1.0",
     "type": "module",
     "main": "dist/server.js",
@@ -11,7 +11,8 @@
         "format": "prettier --write \"src/**/*.ts\"",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "seed": "tsx src/seed.ts"
     },
     "dependencies": {
         "express": "^4.19.0",

@@ -1,4 +1,6 @@
 import { Project } from '../models/Project.model.js';
+import { Round } from '../models/Round.model.js';
+import { Task } from '../models/Task.model.js';
 import { IProject } from '../types/models.types.js';
 import { ApiError } from '../utils/ApiError.js';
 import { PROJECT_STATUS, ROLES, Role } from '../config/constants.js';
@@ -18,7 +20,7 @@ export const projectService = {
     },
 
     async findAll(userId: string, role: Role): Promise<IProject[]> {
-        const query: any = {};
+        const query: any = { isDeleted: { $ne: true } };
 
         // Data isolation based on role
         if (role === ROLES.FACILITADOR) {
@@ -39,7 +41,7 @@ export const projectService = {
             throw ApiError.badRequest('ID de proyecto inválido');
         }
 
-        const project = await Project.findById(id)
+        const project = await Project.findOne({ _id: id, isDeleted: { $ne: true } })
             .populate('facilitatorId', 'name email')
             .populate('expertIds', 'name email')
             .populate('taskCount'); // Virtual field
@@ -48,15 +50,30 @@ export const projectService = {
             throw ApiError.notFound('Proyecto no encontrado');
         }
 
-        return project;
+        // Calculate hasStartedRounds manually for the UI
+        const taskIds = await Task.find({ projectId: id }).distinct('_id');
+        const count = await Round.countDocuments({ taskId: { $in: taskIds } });
+        
+        const projectObj = project.toObject() as IProject;
+        (projectObj as any).hasStartedRounds = count > 0;
+
+        return projectObj;
     },
 
     async update(id: string, data: Partial<IProject>, requesterId: string): Promise<IProject> {
-        const project = await this.findById(id); // Ensures it exists first
+        const project = await this.findById(id);
 
-        // Cannot update archived projects
         if (project.status === PROJECT_STATUS.ARCHIVED) {
             throw ApiError.forbidden('No se puede modificar un proyecto archivado');
+        }
+
+        // RF034: Bloqueo de cambio de método tras inicio de rondas
+        if (data.estimationMethod && data.estimationMethod !== (project.estimationMethod as any)) {
+            const taskIds = await Task.find({ projectId: id }).distinct('_id');
+            const roundsStarted = await Round.countDocuments({ taskId: { $in: taskIds } });
+            if (roundsStarted > 0) {
+                throw ApiError.badRequest('No se puede cambiar el método de estimación una vez iniciadas las rondas');
+            }
         }
 
         const updatedProject = await Project.findByIdAndUpdate(
@@ -98,5 +115,49 @@ export const projectService = {
 
         await auditService.log({ userId: requesterId, action: `project:experts_${action}`, resource: 'Project', resourceId: id, details: { expertIds } });
         return updatedProject as IProject;
+    },
+
+    async softDelete(id: string, requesterId: string): Promise<void> {
+        const project = await Project.findById(id);
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        project.isDeleted = true;
+        await project.save();
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:delete',
+            resource: 'Project',
+            resourceId: id,
+            details: { name: project.name }
+        });
+    },
+
+    async findAllAdmin(): Promise<IProject[]> {
+        return await Project.find({})
+            .populate('facilitatorId', 'name email')
+            .populate('expertIds', 'name email')
+            .sort({ createdAt: -1 });
+    },
+
+    async restore(id: string, requesterId: string): Promise<IProject> {
+        const project = await Project.findByIdAndUpdate(
+            id,
+            { $set: { isDeleted: false } },
+            { new: true }
+        );
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:restore',
+            resource: 'Project',
+            resourceId: id
+        });
+        return project as IProject;
     }
 };

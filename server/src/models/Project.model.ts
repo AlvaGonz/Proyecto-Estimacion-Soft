@@ -52,6 +52,15 @@ const projectSchema = new Schema<IProject>(
             enum: Object.values(PROJECT_STATUS),
             default: PROJECT_STATUS.ACTIVE
         },
+        isDeleted: {
+            type: Boolean,
+            default: false
+        },
+        estimationMethod: {
+            type: String,
+            enum: ['wideband-delphi', 'planning-poker', 'three-point'],
+            default: 'wideband-delphi'
+        },
         convergenceConfig: {
             type: convergenceConfigSchema,
             default: () => ({ cvThreshold: 0.25, maxOutlierPercent: 0.30 })
@@ -59,7 +68,15 @@ const projectSchema = new Schema<IProject>(
     },
     {
         timestamps: true,
-        toJSON: { virtuals: true },
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret: any) => {
+                ret.id = ret._id?.toString() || ret.id;
+                delete ret._id;
+                delete ret.__v;
+                return ret;
+            }
+        },
         toObject: { virtuals: true }
     }
 );

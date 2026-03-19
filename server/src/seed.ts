@@ -7,13 +7,20 @@ import { Estimation } from './models/Estimation.model.js';
 import { Comment } from './models/Comment.model.js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config({ path: '.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cargar .env local si existe, si no usar las vars de entorno ya inyectadas (Docker)
+// Las variables de process.env inyectadas por Docker tienen prioridad automáticamente
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env.docker') });
 
 const seedDatabase = async () => {
     try {
         const mongoUri = process.env.MONGODB_URI;
-        if (!mongoUri) throw new Error('MONGODB_URI not found in .env');
+        if (!mongoUri) throw new Error('MONGODB_URI not found in environment');
 
         await mongoose.connect(mongoUri);
         console.log('🌱 Connected to MongoDB for seeding...');
@@ -31,19 +38,23 @@ const seedDatabase = async () => {
         // 1. Create Users
         const adminData = { name: 'Administrador UCE', email: 'admin@uce.edu.do', password: 'password123', role: 'admin', isActive: true };
         const facilitatorData = { name: 'Adrian Alvarez', email: 'aalvarez@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
-        const expert1Data = { name: 'Experto 1', email: 'expert1@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
-        const expert2Data = { name: 'Experto 2', email: 'expert2@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
-        const expert3Data = { name: 'Experto 3', email: 'expert3@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
-        const expert4Data = { name: 'Experto 4', email: 'expert4@uce.edu.do', password: 'password123', role: 'experto', isActive: true };
+        const facilitator2Data = { name: 'Facilitador 2', email: 'facilitador2@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
+        const expert1Data = { name: 'Experto 1', email: 'expert1@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Backend' };
+        const expert2Data = { name: 'Experto 2', email: 'expert2@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Frontend' };
+        const expert3Data = { name: 'Experto 3', email: 'expert3@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'DevOps' };
+        const expert4Data = { name: 'Experto 4', email: 'expert4@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'QA' };
+        const expert5Data = { name: 'Experto 5', email: 'expert5@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Base de Datos' };
 
         const admin = await User.create(adminData);
         const facilitator = await User.create(facilitatorData);
+        await User.create(facilitator2Data);
         const expert1 = await User.create(expert1Data);
         const expert2 = await User.create(expert2Data);
         const expert3 = await User.create(expert3Data);
         const expert4 = await User.create(expert4Data);
+        const expert5 = await User.create(expert5Data);
 
-        console.log(`✅ Created users (Admin, Facilitator, 4 Experts)`);
+        console.log(`✅ Created users (Admin, 2 Facilitators, 5 Experts)`);
 
         // 2. Create Project
         const project = await Project.create({
@@ -52,7 +63,7 @@ const seedDatabase = async () => {
             unit: 'storyPoints',
             status: 'active',
             facilitatorId: facilitator._id,
-            expertIds: [expert1._id, expert2._id, expert3._id, expert4._id],
+            expertIds: [expert1._id, expert2._id, expert3._id, expert4._id, expert5._id],
             convergenceConfig: {
                 cvThreshold: 0.25,
                 maxOutlierPercent: 0.30
@@ -115,6 +126,9 @@ const seedDatabase = async () => {
 
         console.log(`✅ Created 3 estimations. (Ready to be closed when expert 4 finishes, or force-closed)`);
 
+        // Cerrar conexión explícitamente para que el contenedor termine
+        await mongoose.connection.close();
+        console.log('🔌 MongoDB connection closed.');
         console.log('🚀 Seeding complete! 🎉');
         process.exit(0);
     } catch (err: any) {

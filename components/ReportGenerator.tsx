@@ -1,267 +1,422 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-   FileText,
-   Download,
-   BarChart3,
-   Calendar,
-   ChevronRight,
-   ShieldCheck,
-   Search,
-   Filter,
-   Zap,
-   Award
+  FileText,
+  Download,
+  ChevronRight,
+  ShieldCheck,
+  Zap,
+  History,
+  LayoutDashboard,
+  Table2,
+  PieChart,
+  Share2,
+  Trash2,
+  Clock,
+  XCircle,
+  Search
 } from 'lucide-react';
 import { PermissionGate } from './ui/PermissionGate';
 import { LoadingSpinner } from './ui/LoadingSpinner';
-import { reportService } from '../services/reportService';
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
+import { Project, Task, Round, UserRole } from '../types';
+import { reportService } from '../services/reportService';
+import { taskService } from '../services/taskService';
+import { roundService } from '../services/roundService';
 
-// Tipado para las opciones del reporte
-interface ReportOption {
-   label: string;
-   on: boolean;
+interface ReportGeneratorProps {
+  projects: Project[];
+  userRole: UserRole;
 }
 
-// const MOCK_REPORTS = [
-//    { id: 'r1', name: 'Migración_Core_Final_V1.pdf', type: 'PDF', size: '4.2 MB', date: 'Hoy', status: 'Generado' },
-//    { id: 'r2', name: 'App_Movil_Ronda3_Analisis.xlsx', type: 'Excel', size: '1.8 MB', date: 'Ayer', status: 'Generado' },
-//    { id: 'r3', name: 'Historial_Audit_Enero_2024.pdf', type: 'PDF', size: '12.5 MB', date: 'Hace 3 días', status: 'Generado' },
-// ];
+interface ReportHistoryItem {
+  id: string;
+  projectId: string;
+  projectName: string;
+  format: 'PDF' | 'EXCEL';
+  timestamp: number;
+  options: {
+    includeStats: boolean;
+    includeHistory: boolean;
+    includeJustifications: boolean;
+    includeCharts: boolean;
+    includeAudit: boolean;
+  };
+}
 
-const ReportGenerator: React.FC = () => {
-   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
-   const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
-   const [projectName, setProjectName] = useState('Migración a Microservicios Core');
-   const [isGenerating, setIsGenerating] = useState(false);
+const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole }) => {
+  const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reportHistory, setReportHistory] = useState<ReportHistoryItem[]>([]);
+  const [options, setOptions] = useState({
+    includeStats: true,
+    includeHistory: true,
+    includeJustifications: true,
+    includeCharts: true,
+    includeAudit: false
+  });
 
-   // Estado para las opciones seleccionables
-   const [reportOptions, setReportOptions] = useState<ReportOption[]>([
-      { label: 'Stats Generales', on: true },
-      { label: 'Historial Rondas', on: true },
-      { label: 'Justificaciones', on: true },
-      { label: 'Métricas Equipo', on: false },
-      { label: 'Gráficos Evol.', on: true },
-      { label: 'AI Insights', on: true },
-      { label: 'Logs Auditoría', on: false },
-      { label: 'Anexos Técnicos', on: false },
-   ]);
-
-   const toggleOption = (index: number) => {
-      const newOptions = [...reportOptions];
-      newOptions[index].on = !newOptions[index].on;
-      setReportOptions(newOptions);
-   };
-
-   const handleGenerateReport = async () => {
-      setIsGenerating(true);
-
-      // Simulación de delay para UX
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
+  // Load history from localStorage
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('delphi_report_history');
+    if (savedHistory) {
       try {
-         const activeProjectId = projectName.toLowerCase().replace(/\s+/g, '-');
-
-         if (format === 'PDF') {
-            await reportService.generatePDF(activeProjectId, projectName);
-         } else {
-            await reportService.generateExcel(activeProjectId, projectName);
-         }
-         // Aquí podrías añadir una notificación de éxito
-      } catch (error) {
-         console.error('Error generando el reporte:', error);
-      } finally {
-         setIsGenerating(false);
+        setReportHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('Error parsing report history:', e);
       }
-   };
+    }
+  }, []);
 
-   return (
-      <AppErrorBoundary>
-         <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
-            {/* HEADER */}
-            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
+  // Set default project
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProjectId) {
+      setSelectedProjectId(projects[0].id);
+    }
+  }, [projects, selectedProjectId]);
+
+  const addToHistory = (report: Omit<ReportHistoryItem, 'id'>) => {
+    const newItem: ReportHistoryItem = {
+      ...report,
+      id: `report-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+    const newHistory = [newItem, ...reportHistory].slice(0, 10);
+    setReportHistory(newHistory);
+    localStorage.setItem('delphi_report_history', JSON.stringify(newHistory));
+  };
+
+  const handleGenerateReport = async () => {
+    if (!selectedProjectId) return;
+    
+    setIsGenerating(true);
+    const project = projects.find(p => p.id === selectedProjectId);
+    if (!project) {
+        setIsGenerating(false);
+        return;
+    }
+
+    try {
+      const tasks = await taskService.getTasks(project.id);
+      
+      const tasksWithRounds = await Promise.all(tasks.map(async (task) => {
+        const rounds = await roundService.getRoundsByTask(project.id, task.id);
+        
+        // Fetch estimations for each round
+        const roundsWithEstimations = await Promise.all(rounds.map(async (r) => {
+          const estimations = await (window as any).estimationService.getEstimationsByRound(r.id);
+          return { ...r, estimations };
+        }));
+
+        return { ...task, rounds: roundsWithEstimations };
+      }));
+
+      if (format === 'PDF') {
+        await reportService.generatePDF(project, tasksWithRounds as any, options);
+      } else {
+        reportService.generateExcel(project, tasksWithRounds as any);
+      }
+
+      addToHistory({
+        projectId: project.id,
+        projectName: project.name,
+        format,
+        timestamp: Date.now(),
+        options: { ...options }
+      });
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Error al generar el reporte.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const deleteHistoryItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newHistory = reportHistory.filter(item => item.id !== id);
+    setReportHistory(newHistory);
+    localStorage.setItem('delphi_report_history', JSON.stringify(newHistory));
+  };
+
+  const toggleOption = (key: keyof typeof options) => {
+    setOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  return (
+    <AppErrorBoundary>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+        {/* Banner / Header */}
+        <div className="bg-white p-8 md:p-12 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+          <div>
+            <div className="flex items-center gap-4 mb-2">
+              <div className="p-3 bg-delphi-keppel/10 rounded-2xl">
+                <FileText className="w-8 h-8 text-delphi-keppel" />
+              </div>
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight">Reportes</h2>
+            </div>
+            <p className="text-slate-400 font-bold ml-16 text-lg">Trazabilidad completa y exportación UCE.</p>
+          </div>
+
+          <div className="flex bg-slate-100 p-2 rounded-[2rem] border border-slate-200 w-full md:w-auto">
+            <button
+              onClick={() => setActiveTab('create')}
+              className={`flex-1 md:flex-none px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'create' ? 'bg-white text-delphi-keppel shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Nuevo Informe
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 md:flex-none px-8 py-3 rounded-[1.5rem] text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-white text-delphi-keppel shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              Historial
+            </button>
+          </div>
+        </div>
+
+        {activeTab === 'create' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Configuration */}
+            <div className="lg:col-span-8 space-y-8">
+              <div className="bg-white rounded-[3rem] border border-slate-100 p-8 md:p-12 shadow-sm">
+                <h3 className="text-2xl font-black mb-10 tracking-tight flex items-center gap-4">
+                  <div className="w-2 h-8 bg-delphi-keppel rounded-full" />
+                  Configuración del Informe
+                </h3>
+
+                <div className="space-y-10">
+                  {/* Select Project */}
+                  <div className="space-y-4">
+                    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1 flex items-center gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      Seleccionar Proyecto
+                    </label>
+                    <div className="relative group">
+                      <Search className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-delphi-keppel transition-colors" />
+                      <select 
+                        id="project-selector"
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[1.5rem] pl-14 pr-10 py-5 text-sm font-bold focus:ring-4 focus:ring-delphi-keppel/10 focus:border-delphi-keppel/30 outline-none appearance-none transition-all"
+                      >
+                        {projects.length === 0 ? (
+                          <option value="">No hay proyectos disponibles</option>
+                        ) : (
+                          projects.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.status})</option>
+                          ))
+                        )}
+                      </select>
+                      <ChevronRight className="w-5 h-5 absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 rotate-90 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Format & Options */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1 flex items-center gap-2">
+                        <Download className="w-4 h-4" />
+                        Formato
+                      </label>
+                      <div className="flex gap-4 p-2 bg-slate-50 rounded-[2rem] border border-slate-100">
+                        <button
+                          onClick={() => setFormat('PDF')}
+                          className={`flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest transition-all ${format === 'PDF' ? 'bg-white text-delphi-giants shadow-lg border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                          <FileText className="w-4 h-4" />
+                          PDF
+                        </button>
+                        <button
+                          onClick={() => setFormat('EXCEL')}
+                          className={`flex-1 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest transition-all ${format === 'EXCEL' ? 'bg-white text-delphi-keppel shadow-lg border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                          <Table2 className="w-4 h-4" />
+                          EXCEL
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 ml-1 flex items-center gap-2">
+                        <PieChart className="w-4 h-4" />
+                        Nivel de Detalle
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {Object.entries(options).map(([key, value]) => (
+                           key !== 'includeAudit' && (
+                            <button
+                              key={key}
+                              onClick={() => toggleOption(key as any)}
+                              className={`py-3 px-4 rounded-2xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${value ? 'border-delphi-keppel/50 bg-delphi-keppel/5 text-delphi-keppel' : 'border-slate-50 text-slate-300'}`}
+                            >
+                              {key.replace('include', '')}
+                            </button>
+                           )
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Advanced Toggle */}
+                  <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100 flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-xl transition-colors ${options.includeAudit ? 'bg-delphi-keppel/10 text-delphi-keppel' : 'bg-slate-200 text-slate-400'}`}>
+                           <ShieldCheck className="w-6 h-6" />
+                        </div>
+                        <div>
+                           <p className="font-black text-slate-800 text-sm">Registro de Auditoría</p>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incluir firma digital y logs de sistema</p>
+                        </div>
+                     </div>
+                     <button
+                        onClick={() => toggleOption('includeAudit')}
+                        className={`w-14 h-8 rounded-full relative transition-colors ${options.includeAudit ? 'bg-delphi-keppel' : 'bg-slate-300'}`}
+                     >
+                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all ${options.includeAudit ? 'left-7' : 'left-1'}`} />
+                     </button>
+                  </div>
+
+                  {/* Generate Button */}
+                  <div className="pt-6">
+                    <PermissionGate userRole={userRole} permission="generate:report">
+                      <button
+                        onClick={handleGenerateReport}
+                        disabled={isGenerating || projects.length === 0}
+                        className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-delphi-keppel/0 via-white/5 to-delphi-keppel/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        {isGenerating ? (
+                          <LoadingSpinner size="sm" label="Consolidando información..." />
+                        ) : (
+                          <>
+                            <Zap className="w-6 h-6 text-delphi-celadon" />
+                            Generar Reporte Profesional
+                          </>
+                        )}
+                      </button>
+                    </PermissionGate>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Info */}
+            <div className="lg:col-span-4 space-y-8">
+              <div className="bg-gradient-to-br from-delphi-orange to-orange-600 p-10 rounded-[3rem] text-white relative overflow-hidden shadow-xl shadow-delphi-orange/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <ShieldCheck className="w-12 h-12 mb-6" />
+                <h4 className="text-2xl font-black mb-3">Certificación UCE</h4>
+                <p className="text-sm font-bold text-white/80 leading-relaxed mb-8">
+                  Los reportes generados cumplen con los estándares de validación académica para proyectos de titulación y auditoría de software.
+                </p>
+                <div className="flex gap-2">
+                   <span className="bg-white/20 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider">ISO/IEC 25010</span>
+                   <span className="bg-white/20 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider">Normas UCE</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+                <h4 className="font-black text-slate-800 mb-6 flex items-center gap-3">
+                  <Share2 className="w-6 h-6 text-delphi-keppel" />
+                  Formatos Admitidos
+                </h4>
+                <div className="space-y-4">
+                   <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 group hover:bg-slate-100 transition-colors">
+                      <div className="p-2 bg-red-50 rounded-lg text-red-500"><FileText className="w-5 h-5" /></div>
+                      <div>
+                         <p className="font-black text-xs text-slate-800">Portable PDF</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Listo para impresión y firma</p>
+                      </div>
+                   </div>
+                   <div className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 group hover:bg-slate-100 transition-colors">
+                      <div className="p-2 bg-green-50 rounded-lg text-green-600"><Table2 className="w-5 h-5" /></div>
+                      <div>
+                         <p className="font-black text-xs text-slate-800">Excel Spreadsheet</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Para análisis estadístico avanzado</p>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-12 shadow-sm min-h-[500px] flex flex-col">
+            <div className="flex items-center justify-between mb-12">
                <div>
-                  <div className="flex items-center gap-3">
-                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">Reportes</h2>
-                     <span className="bg-delphi-keppel text-white px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest">RF028</span>
-                  </div>
-                  <p className="text-slate-400 font-bold mt-2 md:mt-3 text-base md:text-lg">Trazabilidad completa UCE.</p>
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Historial Local</h3>
+                  <p className="text-slate-400 font-bold">Últimos 10 informes generados en este dispositivo.</p>
                </div>
+               <button 
+                  onClick={() => {
+                     localStorage.removeItem('delphi_report_history');
+                     setReportHistory([]);
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-delphi-giants hover:bg-red-50 transition-all"
+               >
+                  <XCircle className="w-4 h-4" />
+                  Limpiar Todo
+               </button>
+            </div>
 
-               <div className="flex bg-slate-100 p-1.5 md:p-2 rounded-2xl border border-slate-200 w-full lg:w-auto">
-                  <button
-                     type="button"
-                     onClick={() => setActiveTab('create')}
-                     className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'create' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
-                  >
-                     Generar Nuevo
-                  </button>
-                  <button
-                     type="button"
-                     onClick={() => setActiveTab('history')}
-                     className={`flex-1 lg:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-white text-delphi-keppel shadow-sm' : 'text-slate-400'}`}
-                  >
-                     Historial
-                  </button>
-               </div>
-            </header>
-
-            {activeTab === 'create' ? (
-               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
-                  {/* CONFIGURACIÓN */}
-                  <div className="lg:col-span-8 space-y-8">
-                     <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
-                        <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 tracking-tight">Configuración del Informe</h3>
-
-                        <div className="space-y-8 md:space-y-10">
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                              <div className="space-y-3">
-                                 <label htmlFor="projectSelect" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Proyecto</label>
-                                 <div className="relative">
-                                    <FileText className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-delphi-keppel" />
-                                    <select
-                                       id="projectSelect"
-                                       value={projectName}
-                                       onChange={(e) => setProjectName(e.target.value)}
-                                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-6 py-4 text-sm font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none appearance-none"
-                                    >
-                                       <option>Migración a Microservicios Core</option>
-                                       <option>Rediseño App Móvil V2</option>
-                                    </select>
-                                 </div>
-                              </div>
-
-                              <div className="space-y-3">
-                                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Formato</label>
-                                 <div className="flex gap-4">
-                                    <button
-                                       type="button"
-                                       onClick={() => setFormat('PDF')}
-                                       className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'PDF' ? 'bg-delphi-giants text-white border-delphi-giants' : 'bg-delphi-giants/5 border-delphi-giants/20 text-delphi-giants hover:bg-delphi-giants hover:text-white'}`}
-                                    >
-                                       PDF
-                                    </button>
-                                    <button
-                                       type="button"
-                                       onClick={() => setFormat('EXCEL')}
-                                       className={`flex-1 py-4 border-2 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest transition-all ${format === 'EXCEL' ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-delphi-keppel/5 border-delphi-keppel/20 text-delphi-keppel hover:bg-delphi-keppel hover:text-white'}`}
-                                    >
-                                       EXCEL
-                                    </button>
-                                 </div>
-                              </div>
-                           </div>
-
-                           <div className="space-y-4">
-                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Incluir en el reporte</label>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-                                 {reportOptions.map((item, i) => (
-                                    <button
-                                       key={i}
-                                       type="button"
-                                       onClick={() => toggleOption(i)}
-                                       className={`p-3 md:p-4 rounded-2xl border-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center transition-all ${item.on ? 'bg-delphi-keppel text-white border-delphi-keppel shadow-lg shadow-delphi-keppel/20' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'}`}
-                                    >
-                                       {item.label}
-                                    </button>
-                                 ))}
-                              </div>
-                           </div>
-
-                           <div className="pt-6 border-t border-slate-100">
-                              <PermissionGate permission="generate:report">
-                                 <button
-                                    type="button"
-                                    onClick={handleGenerateReport}
-                                    disabled={isGenerating}
-                                    className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-slate-300 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-70 disabled:hover:scale-100"
-                                 >
-                                    {isGenerating ? (
-                                       <LoadingSpinner size="sm" label="Generando..." />
-                                    ) : (
-                                       <>
-                                          <Zap className="w-6 h-6 text-delphi-keppel" />
-                                          Generar Informe Auditable
-                                       </>
-                                    )}
-                                 </button>
-                              </PermissionGate>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  {/* SIDEBAR INFO */}
-                  <div className="lg:col-span-4 space-y-8">
-                     <div className="bg-delphi-vanilla p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-delphi-orange/20 relative overflow-hidden group">
-                        <ShieldCheck className="w-10 h-10 md:w-12 md:h-12 text-delphi-orange mb-6" />
-                        <h4 className="text-xl font-black text-slate-900 mb-2 leading-none">Integridad</h4>
-                        <p className="text-xs md:text-sm text-slate-600 font-medium leading-relaxed mb-6">
-                           Hash SHA-256 para validación de datos inmutables.
-                        </p>
-                        <div className="bg-white/50 p-4 rounded-2xl border border-delphi-orange/10 font-mono text-[8px] md:text-[10px] text-delphi-orange break-all">
-                           SHA256: 7e33557457a759...
-                        </div>
-                     </div>
-
-                     <div className="bg-white p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
-                        <h4 className="font-black text-slate-900 mb-6 flex items-center gap-3">
-                           <Award className="w-6 h-6 text-delphi-keppel" />
-                           Certificación
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-6">
-                           Cumple estándares de Ingeniería de Software UCE.
-                        </p>
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">UCE</div>
-                           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 font-black text-[10px]">ISO</div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
+            {reportHistory.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-20">
+                <div className="w-32 h-32 bg-slate-50 rounded-[3rem] flex items-center justify-center mb-10 group animate-pulse">
+                  <History className="w-16 h-16 text-slate-200 group-hover:rotate-12 transition-transform" />
+                </div>
+                <h4 className="text-xl font-black text-slate-500">Historial de Reportes Vacío</h4>
+                <p className="text-slate-400 font-bold mt-2">Los informes generados aparecerán aquí para acceso rápido.</p>
+              </div>
             ) : (
-               /* HISTORIAL */
-               <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-10 shadow-sm">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 md:mb-12">
-                     <h3 className="text-xl md:text-2xl font-black tracking-tight leading-none">Historial</h3>
-                     <div className="flex gap-2 sm:gap-4 w-full md:w-auto">
-                        <div className="relative flex-1">
-                           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                           <input type="text" placeholder="Filtrar..." className="w-full pl-11 pr-6 py-2.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-delphi-keppel/30 outline-none" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {reportHistory.map((report) => (
+                  <div key={report.id} className="p-8 rounded-[2.5rem] border border-slate-100 bg-white hover:border-delphi-keppel/30 hover:shadow-xl hover:shadow-delphi-keppel/5 transition-all flex flex-col gap-6 group">
+                     <div className="flex justify-between items-start">
+                        <div className={`p-4 rounded-2xl ${report.format === 'PDF' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-600'}`}>
+                           {report.format === 'PDF' ? <FileText className="w-8 h-8" /> : <Table2 className="w-8 h-8" />}
                         </div>
-                        <button type="button" className="p-2.5 bg-slate-100 text-slate-400 rounded-xl hover:text-delphi-keppel transition-colors">
-                           <Filter className="w-5 h-5" />
+                        <button 
+                           onClick={(e) => deleteHistoryItem(report.id, e)}
+                           className="p-3 text-slate-200 hover:text-delphi-giants hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        >
+                           <Trash2 className="w-5 h-5" />
+                        </button>
+                     </div>
+                     <div>
+                        <h4 className="text-lg font-black text-slate-800 line-clamp-1">{report.projectName}</h4>
+                        <div className="flex items-center gap-3 mt-2">
+                           <Clock className="w-4 h-4 text-slate-300" />
+                           <span className="text-xs font-bold text-slate-400">
+                             {new Date(report.timestamp).toLocaleDateString()} • {new Date(report.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           </span>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-2 pt-4 border-t border-slate-50">
+                        <div className="flex-1 flex gap-2">
+                           {report.options.includeStats && <span className="bg-slate-100 p-1.5 rounded-lg border border-slate-200" title="Estadísticas"><PieChart className="w-3 h-3 text-slate-400" /></span>}
+                           {report.options.includeHistory && <span className="bg-slate-100 p-1.5 rounded-lg border border-slate-200" title="Historial"><History className="w-3 h-3 text-slate-400" /></span>}
+                           {report.options.includeCharts && <span className="bg-slate-100 p-1.5 rounded-lg border border-slate-200" title="Gráficos"><Zap className="w-3 h-3 text-slate-400" /></span>}
+                        </div>
+                        <button 
+                           onClick={() => {
+                              setSelectedProjectId(report.projectId);
+                              setFormat(report.format);
+                              setOptions(report.options);
+                              handleGenerateReport();
+                           }}
+                           className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-delphi-keppel transition-all"
+                        >
+                           Redescargar
                         </button>
                      </div>
                   </div>
-
-                  <div className="space-y-4 md:space-y-6">
-                     {MOCK_REPORTS.map(rep => (
-                        <div key={rep.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-50 bg-slate-50/30 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer">
-                           <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${rep.type === 'PDF' ? 'bg-delphi-giants/10 text-delphi-giants' : 'bg-delphi-keppel/10 text-delphi-keppel'}`}>
-                              <FileText className="w-6 h-6 md:w-8 md:h-8" />
-                           </div>
-                           <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-1">
-                                 <h4 className="font-black text-slate-900 text-base md:text-lg truncate max-w-[200px] sm:max-w-none">{rep.name}</h4>
-                                 <span className="bg-delphi-celadon text-delphi-keppel text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">{rep.status}</span>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-4 md:gap-6 mt-1 md:mt-2">
-                                 <span className="text-[10px] md:text-xs font-bold text-slate-400 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {rep.date}</span>
-                                 <span className="text-[10px] md:text-xs font-bold text-slate-400">{rep.size}</span>
-                              </div>
-                           </div>
-                           <button type="button" className="w-full sm:w-auto bg-slate-900 text-white p-3 md:p-4 rounded-2xl shadow-xl shadow-slate-200 group-hover:bg-delphi-keppel transition-all flex items-center justify-center gap-3">
-                              <Download className="w-5 h-5 md:w-6 md:h-6" />
-                              <span className="sm:hidden text-xs font-black uppercase">Descargar</span>
-                           </button>
-                        </div>
-                     ))}
-                  </div>
-               </div>
+                ))}
+              </div>
             )}
-         </div>
-      </AppErrorBoundary>
-   );
+          </div>
+        )}
+      </div>
+    </AppErrorBoundary>
+  );
 };
 
 export default ReportGenerator;

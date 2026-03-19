@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
-    createTask, getTasksByProject, updateTask
+    createTask, getTasksByProject, updateTask, deleteProject
 } from '../controllers/project.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
@@ -42,11 +42,18 @@ router.patch(
     updateProject
 );
 
-// POST /api/projects/:id/archive - Soft delete
+// POST /api/projects/:id/archive - Soft delete (archive status)
 router.post(
     '/:id/archive',
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     archiveProject
+);
+
+// DELETE /api/projects/:id - Permanent soft delete (isDeleted flag)
+router.delete(
+    '/:id',
+    requireRole(ROLES.ADMIN),
+    deleteProject
 );
 
 // PATCH /api/projects/:id/experts

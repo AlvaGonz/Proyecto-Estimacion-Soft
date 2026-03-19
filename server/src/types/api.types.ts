@@ -29,6 +29,7 @@ export const createProjectSchema = z.object({
         unit: z.enum(['hours', 'storyPoints', 'personDays'], {
             errorMap: () => ({ message: 'Unidad debe ser hours, storyPoints o personDays' }),
         }),
+        estimationMethod: z.enum(['wideband-delphi', 'planning-poker', 'three-point']).optional().default('wideband-delphi'),
         expertIds: z.array(z.string()).optional().default([]),
         convergenceConfig: z.object({
             cvThreshold: z.number().min(0.01).max(1).optional().default(0.25),
@@ -100,6 +101,7 @@ export const createEstimationSchema = z.object({
     body: z.object({
         value: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
         justification: z.string().min(5, 'La justificación debe tener al menos 5 caracteres').max(2000),
+        metodoData: z.record(z.any()).optional(),
     }),
     params: z.object({
         id: z.string().min(1), // roundId
@@ -126,3 +128,30 @@ export const createCommentSchema = z.object({
         id: z.string().min(1), // roundId
     }),
 });
+
+// u2500u2500u2500 Admin Schemas u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500u2500
+const _adminSchemasSentinel = true; // placeholder - replaced by schema definitions
+
+// --- Admin Schemas ---
+export const updateUserByAdminSchema = z.object({
+    body: z.object({
+        name: z.string().min(2).max(50).optional(),
+        role: z.enum(['admin', 'facilitador', 'experto']).optional(),
+        isActive: z.boolean().optional(),
+    }),
+    params: z.object({
+        id: z.string().min(1),
+    }),
+});
+
+export const createUserByAdminSchema = z.object({
+    body: z.object({
+        name: z.string().min(2, 'Name must be at least 2 characters').max(50),
+        email: z.string().email('Invalid email format'),
+        password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password requires upper, lower, and digit'),
+        role: z.enum(['admin', 'facilitador', 'experto']),
+    }),
+});
+
+export type UpdateUserByAdminDTO = z.infer<typeof updateUserByAdminSchema>['body'];
+export type CreateUserByAdminDTO = z.infer<typeof createUserByAdminSchema>['body'];

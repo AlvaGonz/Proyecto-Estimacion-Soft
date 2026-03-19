@@ -1,8 +1,8 @@
 
 export enum UserRole {
-  ADMIN = 'Administrador',
-  FACILITATOR = 'Facilitador',
-  EXPERT = 'Experto'
+  ADMIN = 'admin',
+  FACILITATOR = 'facilitador',
+  EXPERT = 'experto'
 }
 
 export interface User {
@@ -11,16 +11,21 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  expertiseArea?: string;
 }
 
 export interface Project {
   id: string;
   name: string;
   description: string;
-  unit: 'Horas' | 'Puntos de Historia' | 'Días Persona';
+  unit: 'hours' | 'storyPoints' | 'personDays';
   facilitatorId: string;
   expertIds: string[];
-  status: 'Preparación' | 'Kickoff' | 'Activo' | 'Finalizado';
+  status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+  estimationMethod?: EstimationMethod;
+  convergenceConfig?: ConvergenceConfig;
+  hasStartedRounds?: boolean;
+  isDeleted?: boolean;
   createdAt: number;
 }
 
@@ -29,7 +34,7 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'Pendiente' | 'Estimando' | 'Consensuada';
+  status: 'pending' | 'estimating' | 'consensus';
   finalEstimate?: number;
 }
 
@@ -40,6 +45,7 @@ export interface Estimation {
   expertId: string;
   value: number;
   justification: string;
+  metodoData?: any; // RF031 Extended data for specific methods
   timestamp: number;
 }
 
@@ -47,10 +53,11 @@ export interface Round {
   id: string;
   taskId: string;
   roundNumber: number;
-  status: 'Abierta' | 'Cerrada';
+  status: 'open' | 'closed';
   startTime: number;
   endTime?: number;
   stats?: RoundStats;
+  estimations: Estimation[];
 }
 
 export interface RoundStats {
@@ -61,7 +68,8 @@ export interface RoundStats {
   coefficientOfVariation: number;
   range: [number, number];
   iqr: number;
-  outliers: string[]; // IDs of estimations
+  outlierEstimationIds: string[]; // IDs of outlier estimations
+  metricaResultados?: Record<string, any>;
 }
 
 export interface ConvergenceAnalysis {
@@ -87,3 +95,28 @@ export interface Comment {
   isAnonymous: boolean;
   timestamp: number;
 }
+
+// ─── RF031/032/034 — Estimation Methods ──────────────────────────
+export type EstimationMethod = 'wideband-delphi' | 'planning-poker' | 'three-point';
+
+export interface ConvergenceConfig {
+  cvThreshold: number;       // default: 0.25
+  maxOutlierPercent: number; // default: 0.30
+}
+
+export interface ThreePointEstimation {
+  optimistic: number;   // O
+  mostLikely: number;   // M
+  pessimistic: number;  // P
+  expected?: number;    // E = (O + 4M + P) / 6  — calculated, not entered
+  stdDev?: number;      // σ = (P - O) / 6       — calculated, not entered
+}
+
+export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '?'] as const;
+export type FibonacciCard = typeof FIBONACCI_SEQUENCE[number];
+
+export const METHOD_LABELS: Record<string, string> = {
+  'wideband-delphi': 'Wideband Delphi (Tradicional)',
+  'planning-poker': 'Planning Poker (Agile)',
+  'three-point': 'Estimación de Tres Puntos (PERT)'
+};

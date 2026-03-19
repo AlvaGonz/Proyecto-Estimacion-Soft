@@ -8,7 +8,7 @@ export interface StatMetrics {
     median: number;
     stdDev: number;
     variance: number;
-    cv: number;
+    coefficientOfVariation: number;
     range: [number, number];
     iqr: number;
     outlierEstimationIds: string[];
@@ -18,8 +18,14 @@ export const statisticsService = {
     calculateMetrics(estimations: MetricInput[]): StatMetrics {
         if (!estimations || estimations.length === 0) {
             return {
-                mean: 0, median: 0, stdDev: 0, variance: 0, cv: 0,
-                range: [0, 0], iqr: 0, outlierEstimationIds: []
+                mean: 0,
+                median: 0,
+                stdDev: 0,
+                variance: 0,
+                coefficientOfVariation: 0,
+                range: [0, 0],
+                iqr: 0,
+                outlierEstimationIds: []
             };
         }
 
@@ -62,7 +68,7 @@ export const statisticsService = {
             median: Number(median.toFixed(2)),
             stdDev: Number(stdDev.toFixed(2)),
             variance: Number(variance.toFixed(2)),
-            cv: Number(cv.toFixed(2)),
+            coefficientOfVariation: Number(cv.toFixed(2)),
             range,
             iqr: Number(iqr.toFixed(2)),
             outlierEstimationIds

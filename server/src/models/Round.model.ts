@@ -11,7 +11,8 @@ const roundStatsSchema = new Schema({
     cv: { type: Number, required: true },
     range: { type: [Number], required: true }, // [min, max]
     iqr: { type: Number, required: true },
-    outlierEstimationIds: [{ type: Schema.Types.ObjectId, ref: 'Estimation' }]
+    outlierEstimationIds: [{ type: Schema.Types.ObjectId, ref: 'Estimation' }],
+    metricaResultados: { type: Schema.Types.Mixed, default: {} }
 }, { _id: false });
 
 const roundSchema = new Schema<IRound>(
@@ -43,7 +44,16 @@ const roundSchema = new Schema<IRound>(
         }
     },
     {
-        timestamps: true
+        timestamps: true,
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret: any) => {
+                ret.id = ret._id?.toString() || ret.id;
+                delete ret._id;
+                delete ret.__v;
+                return ret;
+            }
+        }
     }
 );
 

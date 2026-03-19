@@ -33,6 +33,12 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
     }
 
     const response = await fetch(fullUrl, config);
+
+    if (response.status === 401 && !endpoint.includes('/auth/')) {
+        // window.location.href = '/'; // Commented out to avoid reloading the page
+        throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
+    }
+
     const json: ApiResponse<T> = await response.json();
 
     if (!response.ok || !json.success) {
@@ -42,3 +48,4 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
 
     return json.data as T;
 }
+
