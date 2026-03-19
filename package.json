@@ -1,5 +1,5 @@
 {
-  "name": "delphiestimator-pro",
+  "name": "estimapro",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,11 +12,18 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "e2e:check": "tsx e2e/check-servers.ts",
+    "e2e:safe": "tsx e2e/check-servers.ts && playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug",
+    "e2e:reset-auth": "node -e \"require('fs').rmSync('e2e/.auth', { recursive: true, force: true }); console.log('Auth state cleared.')\"",
+    "e2e:fresh": "npm run e2e:reset-auth && npm run e2e"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
     "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -35,6 +42,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
     "jsdom": "^28.1.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",

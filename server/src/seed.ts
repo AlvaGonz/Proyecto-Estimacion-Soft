@@ -7,13 +7,20 @@ import { Estimation } from './models/Estimation.model.js';
 import { Comment } from './models/Comment.model.js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config({ path: '.env' });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cargar .env local si existe, si no usar las vars de entorno ya inyectadas (Docker)
+// Las variables de process.env inyectadas por Docker tienen prioridad automáticamente
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env.docker') });
 
 const seedDatabase = async () => {
     try {
         const mongoUri = process.env.MONGODB_URI;
-        if (!mongoUri) throw new Error('MONGODB_URI not found in .env');
+        if (!mongoUri) throw new Error('MONGODB_URI not found in environment');
 
         await mongoose.connect(mongoUri);
         console.log('🌱 Connected to MongoDB for seeding...');
@@ -119,6 +126,9 @@ const seedDatabase = async () => {
 
         console.log(`✅ Created 3 estimations. (Ready to be closed when expert 4 finishes, or force-closed)`);
 
+        // Cerrar conexión explícitamente para que el contenedor termine
+        await mongoose.connection.close();
+        console.log('🔌 MongoDB connection closed.');
         console.log('🚀 Seeding complete! 🎉');
         process.exit(0);
     } catch (err: any) {

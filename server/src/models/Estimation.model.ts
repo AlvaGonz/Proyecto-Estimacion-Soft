@@ -31,10 +31,23 @@ const estimationSchema = new Schema<IEstimation>(
             trim: true,
             minlength: 5,
             maxlength: 2000
+        },
+        metodoData: {
+            type: Schema.Types.Mixed,
+            default: {}
         }
     },
     {
-        timestamps: true
+        timestamps: true,
+        toJSON: {
+            virtuals: true,
+            transform: (_doc, ret: any) => {
+                ret.id = ret._id?.toString() || ret.id;
+                delete ret._id;
+                delete ret.__v;
+                return ret;
+            }
+        }
     }
 );
 

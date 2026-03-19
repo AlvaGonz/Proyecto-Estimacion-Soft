@@ -29,6 +29,7 @@ export const createProjectSchema = z.object({
         unit: z.enum(['hours', 'storyPoints', 'personDays'], {
             errorMap: () => ({ message: 'Unidad debe ser hours, storyPoints o personDays' }),
         }),
+        estimationMethod: z.enum(['wideband-delphi', 'planning-poker', 'three-point']).optional().default('wideband-delphi'),
         expertIds: z.array(z.string()).optional().default([]),
         convergenceConfig: z.object({
             cvThreshold: z.number().min(0.01).max(1).optional().default(0.25),
@@ -100,6 +101,7 @@ export const createEstimationSchema = z.object({
     body: z.object({
         value: z.number().min(0, 'El valor debe ser mayor o igual a 0'),
         justification: z.string().min(5, 'La justificación debe tener al menos 5 caracteres').max(2000),
+        metodoData: z.record(z.any()).optional(),
     }),
     params: z.object({
         id: z.string().min(1), // roundId

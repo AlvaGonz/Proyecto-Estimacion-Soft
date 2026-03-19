@@ -12,7 +12,7 @@ export const analyzeConsensus = async (
   
   const prompt = `
     Eres un Facilitador Maestro Senior certificado en el Método Wideband Delphi para Ingeniería de Software.
-    Analiza estadísticamente y cualitativamente la siguiente ronda de estimación realizada en DelphiPro UCE:
+    Analiza estadísticamente y cualitativamente la siguiente ronda de estimación realizada en EstimaPro UCE:
     
     UNIDAD DE MEDIDA: ${unit}
     ESTADÍSTICAS CALCULADAS:

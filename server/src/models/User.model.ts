@@ -46,7 +46,9 @@ userSchema.methods.comparePassword = async function (
 // toJSON transform: strip sensitive fields from API responses
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 userSchema.set('toJSON', {
-    transform: (_doc: any, ret: any) => {
+    transform: (_doc, ret: any) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
         delete ret.password;
         delete ret.refreshToken;
         delete ret.__v;

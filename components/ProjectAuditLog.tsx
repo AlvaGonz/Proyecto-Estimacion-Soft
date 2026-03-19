@@ -55,7 +55,7 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                     </div>
                   </div>
                   <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                    {entry.details}
+                    {typeof entry.details === 'object' ? JSON.stringify(entry.details) : entry.details}
                   </p>
                   <button aria-label={`Ver datos crudos de ${entry.action}`} className="mt-6 flex items-center gap-2 text-delphi-keppel opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 outline-none">
                     <span className="text-[10px] font-black uppercase tracking-widest">Ver datos crudos</span>
@@ -73,7 +73,7 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
           <ShieldCheck className="w-8 h-8" />
         </div>
         <p className="text-sm font-bold text-slate-600 leading-relaxed">
-          <strong>Integridad Garantizada:</strong> Este registro histórico es inmutable. Cada entrada está vinculada criptográficamente a la anterior para asegurar la validez de la auditoría en la plataforma DelphiPro.
+          <strong>Integridad Garantizada:</strong> Este registro histórico es inmutable. Cada entrada está vinculada criptográficamente a la anterior para asegurar la validez de la auditoría en la plataforma EstimaPro.
         </p>
       </div>
     </div>

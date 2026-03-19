@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search } from 'lucide-react';
+import { UserRole } from '../types';
 
 const MOCK_DOCS = [
   { id: 'd1', name: 'Arquitectura_Referencia.pdf', type: 'PDF', size: '2.4 MB', date: 'Hace 2 días' },
@@ -9,7 +10,14 @@ const MOCK_DOCS = [
   { id: 'd4', name: 'Endpoints_API.json', type: 'JSON', size: '12 KB', date: 'Hoy' },
 ];
 
-const Documentation: React.FC<{ projectId: string }> = ({ projectId }) => {
+interface DocumentationProps {
+  projectId: string;
+  role: UserRole;
+}
+
+const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
+  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
@@ -27,10 +35,12 @@ const Documentation: React.FC<{ projectId: string }> = ({ projectId }) => {
               className="pl-12 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-delphi-keppel/30 transition-all"
             />
           </div>
-          <button className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all">
-            <Plus className="w-5 h-5" />
-            Subir Archivo
-          </button>
+          {isFacilitator && (
+            <button className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all">
+              <Plus className="w-5 h-5" />
+              Subir Archivo
+            </button>
+          )}
         </div>
       </div>
 
@@ -65,22 +75,26 @@ const Documentation: React.FC<{ projectId: string }> = ({ projectId }) => {
               </button>
             </div>
             
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants">
-                 <FileArchive className="w-4 h-4 rotate-45" />
-              </button>
-            </div>
+            {isFacilitator && (
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants">
+                   <FileArchive className="w-4 h-4 rotate-45" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      <div className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center">
-         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4">
-            <Plus className="w-10 h-10 text-delphi-orange" />
-         </div>
-         <p className="font-black text-delphi-orange tracking-tight text-lg">Suelta archivos aquí para subir</p>
-         <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo</p>
-      </div>
+      {isFacilitator && (
+        <div className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center">
+           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4">
+              <Plus className="w-10 h-10 text-delphi-orange" />
+           </div>
+           <p className="font-black text-delphi-orange tracking-tight text-lg">Suelta archivos aquí para subir</p>
+           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo</p>
+        </div>
+      )}
     </div>
   );
 };

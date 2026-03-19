@@ -22,6 +22,7 @@ import ProjectList from './components/ProjectList';
 import ProjectDetail from './components/ProjectDetail';
 import ReportGenerator from './components/ReportGenerator';
 import Login from './components/Login';
+import RegisterPage from './components/RegisterPage';
 import ProjectForm from './components/ProjectForm';
 import AdminPanel from './components/AdminPanel';
 import NotificationCenter from './components/NotificationCenter';
@@ -41,19 +42,24 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
 
   useEffect(() => {
+    console.log("App: Initializing auth check...");
     const checkAuth = async () => {
       try {
         const user = await authService.getMe();
+        console.log("App: Auth user:", user);
         if (user) {
           setCurrentUser(user);
           const userProjects = await projectService.getProjects();
+          console.log("App: Projects loaded:", userProjects.length);
           setProjects(userProjects);
         }
       } catch (err) {
-        console.error("Auth initialization failed:", err);
+        console.error("App: Auth initialization failed:", err);
       } finally {
+        console.log("App: Auth initialization complete, setting isInitializing to false");
         setIsInitializing(false);
       }
     };
@@ -80,7 +86,22 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login onLogin={async (u) => {
+    if (authView === 'register') {
+      return <RegisterPage 
+        onRegister={async (u) => {
+          setCurrentUser(u);
+          setIsInitializing(true);
+          try {
+            const p = await projectService.getProjects();
+            setProjects(p);
+          } finally {
+            setIsInitializing(false);
+          }
+        }} 
+        onGoToLogin={() => setAuthView('login')}
+      />;
+    }
+    return <Login onGoToRegister={() => setAuthView('register')} onLogin={async (u) => {
       setCurrentUser(u);
       setIsInitializing(true);
       try {
@@ -100,15 +121,12 @@ const App: React.FC = () => {
 
   const handleCreateProject = async (newProjectData: Project) => {
     try {
-      setIsInitializing(true);
       const created = await projectService.createProject(newProjectData);
       setProjects([created, ...projects]);
       setView('projects');
     } catch (err) {
       console.error(err);
       alert('Error creating project');
-    } finally {
-      setIsInitializing(false);
     }
   };
 
@@ -165,7 +183,7 @@ const App: React.FC = () => {
               <BrainCircuit className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="font-black text-xl tracking-tight leading-none">DelphiPro</h1>
+              <h1 className="font-black text-xl tracking-tight leading-none">EstimaPro</h1>
               <p className="text-[9px] uppercase tracking-[0.2em] text-delphi-celadon font-black mt-1">UCE Engineering</p>
             </div>
           </div>
@@ -394,7 +412,7 @@ const App: React.FC = () => {
 
             {view === 'reports' && (
               <div className="max-w-6xl mx-auto">
-                <ReportGenerator />
+                <ReportGenerator projects={projects} userRole={currentUser.role} />
               </div>
             )}
 

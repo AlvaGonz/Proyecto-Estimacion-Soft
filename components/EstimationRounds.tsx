@@ -22,6 +22,7 @@ import { estimationSchema, threePointSchema } from '../utils/schemas';
 import { z } from 'zod';
 import { roundService } from '../services/roundService';
 import { estimationService } from '../services/estimationService';
+import { convergenceService, type ConvergenceResult, type EstimationWithExpert } from '../services/convergence.service';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
@@ -62,6 +63,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [justification, setJustification] = useState('');
   const [analysis, setAnalysis] = useState<ConvergenceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [convergenceResult, setConvergenceResult] = useState<ConvergenceResult | null>(null);
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,7 +83,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
           if (taskRounds.length > 0) {
             const allEsts = await Promise.all(
-              taskRounds.map(r => estimationService.getEstimationsByRound(r.id))
+              taskRounds.map(r => estimationService.getEstimationsByRound(r.id || (r as any)._id))
             );
             setEstimations(allEsts.flat());
           }
@@ -94,7 +96,52 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     };
 
     loadRounds();
-    return () => { isMounted = false; };
+
+    // RF032/RF033 Data Sync: Polling cada 15s para evitar stale data
+    const pollInterval = setInterval(() => {
+      // Solo poll si hay una ronda abierta y somos facilitadores o estamos esperando estimaciones
+      loadRounds();
+    }, 15000);
+
+    // Refresh al volver a la pestaña
+    const handleFocus = () => loadRounds();
+    window.addEventListener('focus', handleFocus);
+
+    return () => { 
+      isMounted = false; 
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [projectId, taskId]);
+
+  // Refresh data when window regains focus (handles multi-user scenarios)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Re-fetch data when user returns to the page
+        const refreshData = async () => {
+          try {
+            const taskRounds = await roundService.getRoundsByTask(projectId, taskId);
+            setRounds(taskRounds);
+            const active = taskRounds.find(r => r.status === 'open') || null;
+            setActiveRound(active);
+
+            if (taskRounds.length > 0) {
+              const allEsts = await Promise.all(
+                taskRounds.map(r => estimationService.getEstimationsByRound(r.id || (r as any)._id))
+              );
+              setEstimations(allEsts.flat());
+            }
+          } catch (err) {
+            console.error("Failed to refresh data", err);
+          }
+        };
+        refreshData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [projectId, taskId]);
 
   const getSubmitValue = (): number | null => {
@@ -116,6 +163,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const canSubmit = (): boolean => {
+    // RF012: Solo expertos pueden registrar estimaciones
+    if (isFacilitator) return false;
     const v = getSubmitValue();
     if (v === null || v <= 0) return false;
     if (justification.length < 10) return false;
@@ -130,7 +179,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       estimationSchema.parse({ value, justification });
       setErrors({});
       setIsAnalyzing(true);
-      const newEst = await estimationService.submitEstimation(activeRound.id, value, justification);
+      const activeId = activeRound.id || (activeRound as any)._id;
+      
+      const metodoData = estimationMethod === 'three-point' 
+        ? { ...threePoint } 
+        : estimationMethod === 'planning-poker' 
+          ? { card: pokerCard } 
+          : {};
+
+      const newEst = await estimationService.submitEstimation(activeId, value, justification, metodoData);
       setEstimations(prev => [...prev, newEst]);
       setDelphiValue('');
       setPokerCard(null);
@@ -157,11 +214,23 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
     try {
       setIsAnalyzing(true);
-      const { round, analysis } = await roundService.closeRound(activeRound.id);
+      const activeId = activeRound.id || (activeRound as any)._id;
+      const { round, analysis } = await roundService.closeRound(activeId);
 
-      setRounds(prev => prev.map(r => r.id === activeRound.id ? round : r));
+      setRounds(prev => prev.map(r => (r.id || (r as any)._id) === activeId ? round : r));
       setActiveRound(null);
       setAnalysis(analysis);
+
+      // RF020: Calculate convergence for display
+      const roundEsts = await estimationService.getEstimationsByRound(activeId);
+      const cv = convergenceService.calculateCV(roundEsts);
+      const outlierIds = round.stats?.outlierEstimationIds || [];
+      const convResult = convergenceService.evaluateConvergence(
+        cv,
+        roundEsts.length,
+        outlierIds.length
+      );
+      setConvergenceResult(convResult);
 
       // Refresh estimations to get potential unmasked actuals or new outliers depending on server logic
       const updatedEsts = await estimationService.getEstimationsByRound(activeRound.id);
@@ -199,6 +268,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const roundIsOpen = activeRound?.status === 'open';
+  const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
+  const canClose = activeRound && isFacilitator; // Solo el facilitador puede cerrar
 
   const renderEstimationInput = () => {
     switch (estimationMethod) {
@@ -209,7 +280,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             justification={justification}
             unit={unit}
             onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
       case 'planning-poker':
@@ -218,7 +289,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             selectedCard={pokerCard}
             justification={justification}
             onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
       case 'three-point':
@@ -228,16 +299,40 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             justification={justification}
             unit={unit}
             onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
-            disabled={!roundIsOpen}
+            disabled={!canEstimate}
           />
         );
     }
   };
 
   const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
-  const currentRoundEstimations = estimations.filter(e =>
-    e.roundId === (activeRound ? activeRound.id : lastClosedRound?.id)
-  );
+  const currentRoundEstimations = estimations.filter(e => {
+    const activeId = activeRound?.id || (activeRound as any)?._id || '';
+    const closedId = lastClosedRound?.id || (lastClosedRound as any)?._id || '';
+    const targetId = activeRound ? activeId : closedId;
+    return String(e.roundId) === String(targetId);
+  });
+
+  // RF019: Add anonymous expert labels
+  const currentRoundEstimationsWithLabels: EstimationWithExpert[] = 
+    convergenceService.addAnonymousLabels(currentRoundEstimations);
+
+  // RF020: Calculate convergence when viewing a closed round
+  useEffect(() => {
+    if (lastClosedRound?.stats && currentRoundEstimations.length > 0) {
+      const cv = convergenceService.calculateCV(currentRoundEstimations);
+      const convResult = convergenceService.evaluateConvergence(
+        cv,
+        currentRoundEstimations.length,
+        lastClosedRound.stats.outlierEstimationIds?.length || 0
+      );
+      setConvergenceResult(convResult);
+      
+      // Also set analysis for the panel display
+      const analysisResult = convergenceService.getRecommendation(convResult);
+      setAnalysis(analysisResult);
+    }
+  }, [lastClosedRound?.id, currentRoundEstimations.length]);
 
   const distributionData = currentRoundEstimations
     .reduce((acc: any[], curr) => {
@@ -257,7 +352,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return lastClosedRound?.stats?.outliers?.includes(estimationId) || false;
+    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -302,6 +397,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               {!activeRound && (
                 <button
                   onClick={handleStartNextRound}
+                  aria-label="Nueva ronda"
                   className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-delphi-keppel transition-all"
                 >
                   <Plus className="w-5 h-5" />
@@ -312,12 +408,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-2xl shadow-lg w-full sm:w-auto justify-center">
               <button
                 onClick={() => setShowEvolution(!showEvolution)}
+                aria-label="Ver evolución"
                 className={`p-2 rounded-xl transition-all ${showEvolution ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
               >
                 <History className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setShowBoxPlot(!showBoxPlot)}
+                aria-label="Ver distribución"
                 className={`p-2 rounded-xl transition-all ${showBoxPlot ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
               >
                 <BarChart2 className="w-5 h-5" />
@@ -388,7 +486,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             </div>
 
             <div className="flex-1 space-y-3 min-h-[200px]">
-              {currentRoundEstimations.length === 0 ? (
+              {currentRoundEstimationsWithLabels.length === 0 ? (
                 <EmptyState
                   icon={<BarChart2 className="w-8 h-8" />}
                   title="Esperando participaciones"
@@ -396,7 +494,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 />
               ) : (
                 <div className="space-y-3">
-                  {currentRoundEstimations.map(est => {
+                  {currentRoundEstimationsWithLabels.map(est => {
                     const outlier = isOutlier(est.id);
                     return (
                       <div
@@ -405,7 +503,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-slate-400">ID: {est.id.slice(0, 4)}</span>
+                            <span className="text-[10px] font-black text-slate-400">{est.expertLabel}</span>
                             {outlier && <AlertTriangle className="w-3 h-3 text-delphi-giants" />}
                           </div>
                           <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Puntos de Historia' : unit === 'personDays' ? 'Días Persona' : unit}</span>
@@ -418,16 +516,19 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               )}
             </div>
 
-            {activeRound && (
+            {canClose && (
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleCloseRound}
-                  disabled={currentRoundEstimations.length < 2}
+                  disabled={currentRoundEstimations.length < 1}
                   className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-delphi-giants transition-all disabled:opacity-50"
                 >
-                  Analizar Ronda
+                  Cerrar y Analizar Ronda
                 </button>
-                {errors.submit && <p role="alert" className="text-red-500 text-xs font-bold text-center">{errors.submit}</p>}
+                {errors.submit && <p id="close-error" role="alert" className="text-red-500 text-xs font-bold text-center">{errors.submit}</p>}
+                <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest">
+                  Expertos Participantes: {currentRoundEstimations.length}
+                </p>
               </div>
             )}
           </div>
@@ -438,7 +539,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
                 <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
                 <div className="space-y-4">
-                  {renderEstimationInput()}
+                  {canEstimate ? renderEstimationInput() : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                    <p className="text-slate-500 text-sm font-medium">
+                      {isFacilitator 
+                        ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos." 
+                        : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
+                    </p>
+                  </div>
+                )}
                   {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
                   {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
                   <button
@@ -462,20 +571,73 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <h4 className="text-lg font-black text-slate-900 flex items-center gap-2">
                         <BrainCircuit className="w-6 h-6 text-delphi-keppel" />
-                        AI Insights
+                        Análisis de Convergencia
                       </h4>
+                      {/* RF021: Indicador visual de consenso */}
                       <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${analysis.level === 'Alta' ? 'bg-delphi-keppel text-white' :
                         analysis.level === 'Media' ? 'bg-delphi-vanilla text-delphi-orange' : 'bg-delphi-giants text-white'
                         }`}>
-                        {analysis.level}
+                        {analysis.level === 'Alta' ? 'Convergencia Alta' : analysis.level === 'Media' ? 'Convergencia Media' : 'Convergencia Baja'}
                       </span>
                     </div>
+                    {/* RF020: Estadísticas de convergencia */}
+                    {convergenceResult && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-slate-50 p-3 rounded-xl text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Media</p>
+                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.mean?.toFixed(2) || '-'}</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mediana</p>
+                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.median?.toFixed(2) || '-'}</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desviación (CV)</p>
+                          <p className="text-lg font-black text-slate-900">{(convergenceResult.cv * 100).toFixed(1)}%</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl text-center">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Atípicos</p>
+                          <p className="text-lg font-black text-slate-900">{convergenceResult.outlierCount}</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="bg-slate-50 p-5 rounded-2xl border-l-4 border-delphi-keppel">
                       <p className="text-xs font-bold text-slate-900 leading-relaxed">{analysis.recommendation}</p>
                     </div>
                     <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-5 rounded-2xl">
                       {analysis.aiInsights}
                     </p>
+
+                    {/* RF015b/c: Resultados específicos del método */}
+                    {!activeRound && rounds.length > 0 && rounds[rounds.length - 1].stats?.metricaResultados && (
+                      <div className="bg-delphi-keppel/5 p-6 rounded-[2rem] border border-delphi-keppel/10 space-y-4 animate-in slide-in-from-top-4">
+                        <h4 className="text-sm font-black text-slate-900 border-b border-delphi-keppel/10 pb-2">Métricas del Método</h4>
+                        <div className="space-y-3">
+                          {Object.entries(rounds[rounds.length - 1].stats!.metricaResultados!)
+                            .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
+                            .map(([key, val]) => (
+                            <div key={key} className="flex justify-between items-center text-xs">
+                              <span className="text-slate-400 font-bold uppercase tracking-wider">
+                                {key === 'moda' ? 'Moda' : 
+                                 key === 'frecuencia' ? 'Frecuencia' :
+                                 key === 'consensoPct' ? 'Nivel de Consenso' :
+                                 key === 'expectedValue' ? 'Valor Esperado (E)' :
+                                 key === 'standardDeviation' ? 'Desviación (σ)' :
+                                 key === 'optimisticAvg' ? 'Promedio Optimista (O)' :
+                                 key === 'mostLikelyAvg' ? 'Promedio Probable (M)' :
+                                 key === 'mean' ? 'Media' :
+                                 key === 'median' ? 'Mediana' :
+                                 key === 'pessimisticAvg' ? 'Promedio Pesimista (P)' : key}
+                              </span>
+                              <span className="font-black text-slate-900">
+                                {typeof val === 'number' && key === 'consensoPct' ? `${val}%` : String(val)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
                       {isFacilitator && analysis.level === 'Alta' && (
                         <button onClick={handleFinalizeTask} className="flex-1 bg-delphi-keppel text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">
