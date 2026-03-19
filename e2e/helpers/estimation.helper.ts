@@ -28,14 +28,15 @@ export interface EstimationInput {
 export async function setupProjectForEstimation(
   page: Page,
   projectName: string,
-  method = 'Wideband Delphi'
+  method = 'Wideband Delphi',
+  selectAllExperts = true // Default to true for multi-expert tests
 ): Promise<void> {
   // Step 1: Facilitador crea proyecto
   await loginAs(page, 'facilitator');
   await page.getByRole('button', { name: /proyectos/i }).click();
   await page.waitForLoadState('networkidle');
   
-  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas', selectAllExperts });
   await page.getByText(projectName).click();
   await page.waitForLoadState('networkidle');
 
@@ -198,7 +199,7 @@ export async function setupProjectWithRoundClose(
   await page.getByRole('button', { name: /proyectos/i }).click();
   await page.waitForLoadState('networkidle');
   
-  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas', selectAllExperts: true });
   await page.getByText(projectName).click();
   await page.waitForLoadState('networkidle');
 

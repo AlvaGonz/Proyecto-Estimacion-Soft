@@ -8,6 +8,7 @@ export async function createProjectViaWizard(
     description?: string;
     method?: string;
     unit?: string;
+    selectAllExperts?: boolean;
   } = {}
 ): Promise<string> {
   const name        = opts.name        ?? `Proyecto E2E ${Date.now()}`;
@@ -58,19 +59,33 @@ export async function createProjectViaWizard(
     );
   }
 
-  // Intentar click por nombre exacto primero (E2E Experto 1)
-  const byName = page.getByText(/E2E Experto 1/i).first();
-  if (await byName.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await byName.click();
+  if (opts.selectAllExperts) {
+    // Buscar todos los botones que parecen ser expertos (tienen un email con @)
+    const locator = page.locator('button:has-text("@")');
+    await locator.first().waitFor({ state: 'visible', timeout: 5_000 });
+    const count = await locator.count();
+    
+    for (let i = 0; i < count; i++) {
+        const btn = locator.nth(i);
+        const isSelected = (await btn.getAttribute('class'))?.includes('bg-delphi-keppel');
+        if (!isSelected) {
+            await btn.click();
+            await page.waitForTimeout(200);
+        }
+    }
   } else {
-    // Fallback: primer botón que parezca un experto (nombre + email)
-    // No usamos 'ul li' porque el componente usa un grid de 'button'
-    const firstExpert = page.locator('button:has-text("@")').first();
-    await firstExpert.waitFor({ state: 'visible', timeout: 5_000 });
-    await firstExpert.click();
+    // Intentar click por nombre exacto primero (E2E Experto 1)
+    const byName = page.getByText(/E2E Experto 1/i).first();
+    if (await byName.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await byName.click();
+    } else {
+      const firstExpert = page.locator('button:has-text("@")').first();
+      await firstExpert.waitFor({ state: 'visible', timeout: 5_000 });
+      await firstExpert.click();
+    }
   }
 
-  // Esperar que el contador actualice: "Seleccionados: 1"
+  // Esperar que el contador actualice
   await expect(page.getByText(/seleccionados:\s*[1-9]/i)).toBeVisible({ timeout: 5_000 });
 
   // Esperar habilitación del botón Finalizar

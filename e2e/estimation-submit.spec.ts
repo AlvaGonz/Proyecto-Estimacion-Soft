@@ -14,7 +14,7 @@ async function setupProjectWithTask(page: Page, projectName: string, method = 'W
   await page.getByRole('button', { name: /proyectos/i }).click();
   await page.waitForLoadState('networkidle');
   
-  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas', selectAllExperts: true });
   await page.getByText(projectName).click();
   await page.waitForLoadState('networkidle');
 
@@ -157,113 +157,164 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
 
   test('T046 — Al cerrar ronda se calculan métricas estadísticas (RS37-RS38, RF015)', async ({ page }) => {
     // RF015: Al cerrar una ronda con estimaciones, el sistema calcula métricas
-    // Usamos el mismo patrón que T048 que ya funciona
     const projectName = `Metricas RF015 ${Date.now()}`;
     await setupProjectWithTask(page, projectName);
     
     await page.getByText('Tarea de Estimación Test').first().click();
     await page.waitForTimeout(500);
     
-    // Abrir ronda
+    // Step 1: Abrir ronda (Facilitador)
     const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
     if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await startBtn.click();
       await page.waitForLoadState('networkidle');
     }
     
-    // Enviar estimación (como facilitador para simplificar)
-    const numInput = page.locator('input[type="number"]').first();
-    if (await numInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await numInput.fill('8');
-      const justifTextarea = page.locator('textarea').first();
-      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await justifTextarea.fill('Justificación para métricas');
-      }
-      await page.getByRole('button', { name: /enviar|guardar/i }).click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Step 2: Experto 1 envía estimación
+    await loginAs(page, 'expert1');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.getByText(projectName).click();
+    await page.getByText('Tarea de Estimación Test').first().click();
+    await submitEstimation(page, { 
+      taskName: 'Tarea de Estimación Test', 
+      value: 8, 
+      justification: 'Justificación Experto 1 - 8 horas' 
+    });
 
-    // Cerrar ronda - esto debe calcular métricas (RF015)
-    const closeBtn = page.getByRole('button', { name: /cerrar|finalizar ronda/i });
-    if (await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Step 3: Experto 2 envía estimación
+    await loginAs(page, 'expert2');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.getByText(projectName).click();
+    await page.getByText('Tarea de Estimación Test').first().click();
+    await submitEstimation(page, { 
+      taskName: 'Tarea de Estimación Test', 
+      value: 12, 
+      justification: 'Justificación Experto 2 - 12 horas' 
+    });
 
-    // Verificar que aparecen métricas o AI Insights después de cerrar
-    await expect(
-      page.getByText(/estimaciones|resultados|8|media|AI Insights|análisis/i).first()
-    ).toBeVisible({ timeout: 10_000 });
-  });
+    // Step 4: Volver a Facilitador y Cerrar Ronda
+    await loginAs(page, 'facilitator');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.getByText(projectName).click();
+    await page.getByText('Tarea de Estimación Test').first().click();
+    
+    const closeBtn = page.getByRole('button', { name: 'Cerrar y Analizar Ronda' });
+    await expect(closeBtn).toBeEnabled({ timeout: 10_000 });
+    await closeBtn.click();
+    await page.waitForLoadState('networkidle');
+
+    // Step 5: Verificar Estadísticas (RS37-RS38, RF015)
+    // El componente usa toFixed(2) para Media y Mediana
+    await expect(page.getByText('Media', { exact: true })).toBeVisible();
+    await expect(page.getByText('Mediana', { exact: true })).toBeVisible();
+    
+    // Para 8 y 12, la media y mediana son 10.00
+    // Usamos filter para asegurar que el texto es solo 10.00 y no parte de algo más
+    await expect(page.getByText('10.00')).toHaveCount(2); 
+   });
 
   test('T047 — Outliers son identificados y marcados (RS39-RS40, RF016)', async ({ page }) => {
+    test.setTimeout(200_000); // 5 experts + logins
     const projectName = `Outliers RF016 ${Date.now()}`;
     await setupProjectWithTask(page, projectName);
     
     await page.getByText('Tarea de Estimación Test').first().click();
     await page.waitForTimeout(500);
     
-    // Abrir y cerrar ronda
+    // Step 1: Facilitador abre ronda
     const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
     if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await startBtn.click();
       await page.waitForLoadState('networkidle');
     }
     
-    await page.waitForTimeout(1000);
+    // Step 2: Expertos envían estimaciones
+    // [10, 10, 10, 10, 100] -> Sample size 5 makes 100 an outlier with IQR rule
+    const expertValues = [10, 10, 10, 10, 100];
+    const expertRoles: ('expert1' | 'expert2' | 'expert3' | 'expert4' | 'expert5')[] = 
+      ['expert1', 'expert2', 'expert3', 'expert4', 'expert5'];
     
-    const closeBtn = page.getByRole('button', { name: /cerrar|finalizar ronda/i });
-    if (await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await page.waitForLoadState('networkidle');
+    for (let i = 0; i < expertValues.length; i++) {
+        await loginAs(page, expertRoles[i]);
+        await page.getByRole('button', { name: /proyectos/i }).click();
+        await page.getByText(projectName).click();
+        await page.getByText('Tarea de Estimación Test').first().click();
+        await submitEstimation(page, { 
+          taskName: 'Tarea de Estimación Test', 
+          value: expertValues[i], 
+          justification: `Estimación de experto ${i+1}` 
+        });
     }
+
+    // Step 3: Facilitador cierra ronda
+    await loginAs(page, 'facilitator');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.getByText(projectName).click();
+    await page.getByText('Tarea de Estimación Test').first().click();
     
-    // Verificar que existe sección de outliers/valores atípicos (aunque esté vacía)
+    const closeBtn = page.getByRole('button', { name: 'Cerrar y Analizar Ronda' });
+    await expect(closeBtn).toBeEnabled({ timeout: 10_000 });
+    await closeBtn.click();
+    await page.waitForLoadState('networkidle');
+    
+    // Step 4: Verificar Outlier (100)
+    // El sistema debe marcarlo como "atípico" o similar
+    await expect(page.getByText('100')).toBeVisible({ timeout: 5_000 });
     await expect(
-      page.getByText(/atípico|outlier|valor extremo/i).first()
-        .or(page.getByText(/sin valores atípicos|sin outliers/i))
-        .or(page.getByText(/media|mediana/i)) // Si no hay outliers, al menos métricas
+      page.locator('div').filter({ hasText: /^100$/ }).locator('..').getByText(/atípico|outlier|extremo/i)
     ).toBeVisible({ timeout: 10_000 });
   });
 
   test('T048 — Estimaciones visibles después de cerrar ronda (RS34, RF013)', async ({ page }) => {
+    test.setTimeout(120_000);
     const projectName = `Visible RF013 ${Date.now()}`;
     await setupProjectWithTask(page, projectName);
     
     await page.getByText('Tarea de Estimación Test').first().click();
     await page.waitForTimeout(500);
     
-    // Abrir ronda
+    // Step 1: Facilitador abre ronda
     const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
     if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await startBtn.click();
       await page.waitForLoadState('networkidle');
     }
     
-    // Enviar estimación
-    const numInput = page.locator('input[type="number"]').first();
-    const justifTextarea = page.locator('textarea').first();
-    
-    if (await numInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await numInput.fill('5');
-      if (await justifTextarea.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await justifTextarea.fill('Justificación para visibilidad');
-      }
-      await page.getByRole('button', { name: /enviar|guardar/i }).click();
-      await page.waitForLoadState('networkidle');
+    // Step 2: Expertos envían estimaciones
+    const expertValues = [5, 8];
+    const expertRoles: ('expert1' | 'expert2')[] = ['expert1', 'expert2'];
+
+    for (let i = 0; i < expertValues.length; i++) {
+        await loginAs(page, expertRoles[i]);
+        await page.getByRole('button', { name: /proyectos/i }).click();
+        await page.getByText(projectName).click();
+        await page.getByText('Tarea de Estimación Test').first().click();
+        await submitEstimation(page, { 
+          taskName: 'Tarea de Estimación Test', 
+          value: expertValues[i], 
+          justification: `Justificación de visibilidad ${i+1}` 
+        });
     }
 
-    // Cerrar ronda
-    const closeBtn = page.getByRole('button', { name: /cerrar|finalizar ronda/i });
-    if (await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await closeBtn.click();
-      await page.waitForLoadState('networkidle');
-    }
+    // Step 3: Facilitador cierra ronda
+    await loginAs(page, 'facilitator');
+    await page.getByRole('button', { name: /proyectos/i }).click();
+    await page.getByText(projectName).click();
+    await page.getByText('Tarea de Estimación Test').first().click();
+    
+    const closeBtn = page.getByRole('button', { name: 'Cerrar y Analizar Ronda' });
+    await expect(closeBtn).toBeEnabled({ timeout: 10_000 });
+    await closeBtn.click();
+    await page.waitForLoadState('networkidle');
 
     // Ahora las estimaciones DEBEN ser visibles
     await expect(
-      page.getByText(/estimaciones|resultados|5|media/i).first()
+      page.getByText(/estimaciones|resultados|5|8|media/i).first()
     ).toBeVisible({ timeout: 10_000 });
+    
+    // Verificar que ambos valores están presentes
+    await expect(page.getByText('5')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('8')).toBeVisible({ timeout: 5_000 });
   });
 
 });
