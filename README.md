@@ -364,12 +364,8 @@ docker compose up -d --build    # Reconstruir y levantar
 ## Autores
 
 - **Adrian Alexander Alvarez Gonzalez** (2020-2397)
-  - Especialización: Autenticación, Seguridad, Frontend root
-  - Archivos clave: Auth controllers, middleware, Login, AdminPanel
 
 - **Ray Rubén Ventura López** (2021-0508)
-  - Especialización: Motor de estimación, Estadísticas, Convergencia
-  - Archivos clave: Project.model.ts, Round.model.ts, Estimation.model.ts
 
 ## Licencia
 
