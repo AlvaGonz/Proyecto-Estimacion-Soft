@@ -61,6 +61,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
 
       setSuccessMessage('¡Registro exitoso! Redirigiendo...');
       
+      // Set auth flag in localStorage for client-side session validation
+      localStorage.setItem('estimapro_auth', 'true');
+      
       // Pequeña demora para mostrar el mensaje de éxito
       setTimeout(() => {
         onRegister(user);
