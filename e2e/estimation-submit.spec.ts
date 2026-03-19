@@ -259,7 +259,8 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     
     // Step 4: Verificar Outlier (100)
     // El sistema debe marcarlo como "atípico" o similar
-    await expect(page.getByText('100')).toBeVisible({ timeout: 5_000 });
+    // Usar texto más específico para evitar strict mode violation
+    await expect(page.getByText('100 Horas')).toBeVisible({ timeout: 5_000 });
     await expect(
       page.locator('div').filter({ hasText: /^100$/ }).locator('..').getByText(/atípico|outlier|extremo/i)
     ).toBeVisible({ timeout: 10_000 });
@@ -313,8 +314,9 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     ).toBeVisible({ timeout: 10_000 });
     
     // Verificar que ambos valores están presentes
-    await expect(page.getByText('5')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText('8')).toBeVisible({ timeout: 5_000 });
+    // Usar texto más específico para evitar strict mode violation (getByText('8') matchea timestamp del proyecto)
+    await expect(page.getByText('5 Horas')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('8 Horas')).toBeVisible({ timeout: 5_000 });
   });
 
 });

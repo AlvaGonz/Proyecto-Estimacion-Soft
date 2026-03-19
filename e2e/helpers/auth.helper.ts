@@ -57,6 +57,12 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
         .or(page.getByRole('heading', { name: /dashboard|Panel del Experto|Métrica General/i }))
         .first()
     ).toBeVisible({ timeout: 15_000 });
+  } else {
+    // User is already logged in via cookies — set the auth flag in localStorage
+    // This ensures the app's auth check finds the flag on reload
+    await page.evaluate(() => {
+      window.localStorage.setItem('estimapro_auth', 'true');
+    });
   }
 
   // Dismissal via UI is no longer needed since we inject the flag via addInitScript
