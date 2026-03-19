@@ -47,6 +47,8 @@ export interface IProject extends Document {
     isDeleted?: boolean;
     estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
+    maxRounds: number;          // Added: for wideband delphi or other methods
+    sprints: number;            // Added: to organize project in sprints
     createdAt: Date;
     updatedAt: Date;
 }
