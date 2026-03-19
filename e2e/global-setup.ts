@@ -22,6 +22,8 @@ const E2E_EXPERTS = [
   { name: 'E2E Experto 1', email: 'e2e.expert1@uce.edu.do', password: 'TestPass1', role: 'experto' },
   { name: 'E2E Experto 2', email: 'e2e.expert2@uce.edu.do', password: 'TestPass1', role: 'experto' },
   { name: 'E2E Experto 3', email: 'e2e.expert3@uce.edu.do', password: 'TestPass1', role: 'experto' },
+  { name: 'E2E Experto 4', email: 'e2e.expert4@uce.edu.do', password: 'TestPass1', role: 'experto' },
+  { name: 'E2E Experto 5', email: 'e2e.expert5@uce.edu.do', password: 'TestPass1', role: 'experto' },
 ] as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
