@@ -7,6 +7,7 @@ export interface IUser extends Document {
     password: string;
     role: 'admin' | 'facilitador' | 'experto';
     isActive: boolean;
+    expertiseArea?: string | null;
     refreshToken?: string | null;
     lastLogin?: Date;
     createdAt: Date;

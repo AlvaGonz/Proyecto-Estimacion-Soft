@@ -11,6 +11,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  expertiseArea?: string;
 }
 
 export interface Project {

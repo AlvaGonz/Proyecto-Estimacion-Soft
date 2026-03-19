@@ -306,7 +306,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
                 </div>
                 <div className="text-center">
                   <h4 className="font-black text-slate-900 uppercase tracking-widest text-sm">Asignar Panel de Expertos</h4>
-                  <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1">Selecciona quiénes participarán en la estimación</p>
+                  <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1">Selecciona expertos según su área de dominio</p>
                 </div>
 
                 {isLoadingExperts ? (
@@ -325,14 +325,21 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
                             if (isSelected) setExpertIds(expertIds.filter(id => id !== expert.id));
                             else setExpertIds([...expertIds, expert.id]);
                           }}
+                          aria-label={`${expert.name} — ${expert.expertiseArea || 'Sin especialidad'}`}
                           className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 text-left ${isSelected ? 'border-delphi-keppel bg-delphi-keppel/5 text-delphi-keppel' : 'border-slate-50 bg-slate-50/50 text-slate-500 hover:border-slate-200'}`}
                         >
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] ${isSelected ? 'bg-delphi-keppel text-white' : 'bg-slate-200 text-slate-400'}`}>
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] shrink-0 ${isSelected ? 'bg-delphi-keppel text-white' : 'bg-slate-200 text-slate-400'}`}>
                             {isSelected ? <Check className="w-4 h-4" /> : expert.name.charAt(0)}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 space-y-1">
                             <p className="text-[10px] font-black truncate">{expert.name}</p>
                             <p className="text-[8px] text-slate-400 font-bold truncate">{expert.email}</p>
+                            <span
+                              title={expert.expertiseArea || 'Sin especialidad'}
+                              className={`inline-block px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider ${isSelected ? 'bg-delphi-keppel/15 text-delphi-keppel' : 'bg-slate-100 text-slate-400'}`}
+                            >
+                              {expert.expertiseArea || 'Sin especialidad'}
+                            </span>
                           </div>
                         </button>
                       );
