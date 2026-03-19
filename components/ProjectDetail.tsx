@@ -198,9 +198,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     if (!selectedTaskId) return;
     setTasks(prev => prev.map(t =>
       t.id === selectedTaskId
-        ? { ...t, status: 'consensus', finalEstimate: finalValue }
+        ? { ...t, status: 'consensus', finalEstimate: finalValue, completionPercentage: 100 }
         : t
     ));
+  };
+
+  const handleTaskFinalize = async (taskId: string) => {
+    try {
+      const updatedTasks = await taskService.getTasks(projectId);
+      setTasks(updatedTasks);
+    } catch (err) {
+      console.error("Error refreshing tasks after finalization", err);
+    }
   };
 
   const handleFinalizeProject = async () => {
@@ -254,7 +263,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
               <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${
                 project.status === 'active' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 
                 project.status === 'finished' ? 'bg-delphi-keppel text-white shadow-delphi-keppel/20' : 
-                'bg-slate-200 text-slate-600'}`}>
+                project.status === 'kickoff' ? 'bg-delphi-celadon text-slate-900 shadow-delphi-celadon/20' :
+                project.status === 'preparation' ? 'bg-slate-200 text-slate-600 shadow-slate-200/20' :
+                'bg-slate-100 text-slate-400'}`}>
                 {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
               </span>
             </div>
@@ -534,25 +545,33 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                     >
                       <div className="flex items-start gap-4">
                         <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status === 'consensus' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                          {task.status === 'consensus' || task.status === 'finalized' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
                             {task.title}
                           </h4>
-                          {task.status === 'consensus' ? (
+                          {task.status === 'consensus' || task.status === 'finalized' ? (
                             <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
                               <Award className="w-3 h-3" />
-                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate}h</span>
+                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
                             </div>
                           ) : (
                             <div className="space-y-1.5 mt-2">
                               <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'estimating' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
+                                <div 
+                                  className="h-full bg-delphi-keppel transition-all duration-1000" 
+                                  style={{ width: `${task.completionPercentage || 0}%` }}
+                                ></div>
                               </div>
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
-                              </span>
+                              <div className="flex justify-between items-center mt-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                  {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
+                                </span>
+                                <span className="text-[8px] font-black text-delphi-keppel uppercase tracking-widest">
+                                  {task.completionPercentage || 0}%
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -585,6 +604,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   unit={project.unit || "Horas"}
                   estimationMethod={project.estimationMethod}
                   onConsensusReached={handleTaskConsensus}
+                  onTaskFinalize={handleTaskFinalize}
                   isFacilitator={isFacilitator}
                   projectId={project.id}
                 />

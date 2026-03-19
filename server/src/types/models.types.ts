@@ -58,8 +58,9 @@ export interface ITask extends Document {
     projectId: Types.ObjectId;
     title: string;
     description: string;
-    status: 'pending' | 'estimating' | 'consensus';
+    status: 'pending' | 'estimating' | 'consensus' | 'finalized';
     finalEstimate?: number;
+    completionPercentage?: number;
     createdAt: Date;
     updatedAt: Date;
 }

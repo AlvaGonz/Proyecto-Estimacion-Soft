@@ -51,6 +51,8 @@ export const projectSchemaV2 = z.object({
   description: z.string().min(10, 'Mínimo 10 caracteres').max(1000),
   unit: z.enum(['hours', 'storyPoints', 'personDays']),
   estimationMethod: estimationMethodSchema,
+  maxRounds: z.number().min(1, 'Mínimo 1 ronda').max(10, 'Máximo 10 rondas').default(3),
+  sprints: z.number().min(1, 'Mínimo 1 sprint').max(50, 'Máximo 50 sprints').default(1),
   convergenceConfig: z.object({
     cvThreshold: z.number().min(0.01).max(1).default(0.25),
     maxOutlierPercent: z.number().min(0.01).max(1).default(0.30),

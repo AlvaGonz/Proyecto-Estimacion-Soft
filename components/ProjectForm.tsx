@@ -19,6 +19,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
   const [estimationMethod, setEstimationMethod] = useState<EstimationMethod>(editingProject?.estimationMethod ?? 'wideband-delphi');
   const [hasStartedRounds] = useState(editingProject?.hasStartedRounds ?? false);
   const [expertIds, setExpertIds] = useState<string[]>(editingProject?.expertIds ?? []);
+  const [maxRounds, setMaxRounds] = useState(editingProject?.maxRounds ?? 3);
+  const [sprints, setSprints] = useState(editingProject?.sprints ?? 1);
   const [allExperts, setAllExperts] = useState<User[]>([]);
   const [isLoadingExperts, setIsLoadingExperts] = useState(false);
   const [step, setStep] = useState(1);
@@ -26,7 +28,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
 
   const handleNextStep = () => {
     try {
-      projectSchemaV2.parse({ name, description, unit, estimationMethod });
+      projectSchemaV2.parse({ name, description, unit, estimationMethod, maxRounds, sprints });
       setErrors({});
       setStep(step + 1);
     } catch (err) {
@@ -74,7 +76,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
     e.preventDefault();
 
     try {
-      projectSchemaV2.parse({ name, description, unit, estimationMethod });
+      projectSchemaV2.parse({ name, description, unit, estimationMethod, maxRounds, sprints });
       setErrors({});
 
       onSubmit({
@@ -87,6 +89,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
         expertIds,
         status: editingProject?.status ?? 'preparation',
         estimationMethod,
+        maxRounds,
+        sprints,
         convergenceConfig: { cvThreshold: 0.25, maxOutlierPercent: 0.30 },
         hasStartedRounds,
         createdAt: editingProject?.createdAt ?? Date.now(),
@@ -255,6 +259,43 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
                   })}
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label htmlFor="maxRounds" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Rondas por Tarea</label>
+                  <div className="relative group">
+                    <Clock className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-delphi-keppel transition-colors" />
+                    <input
+                      id="maxRounds"
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={maxRounds}
+                      onChange={(e) => setMaxRounds(parseInt(e.target.value))}
+                      className={`w-full bg-slate-50 border-2 ${errors.maxRounds ? 'border-red-500' : 'border-slate-100'} rounded-2xl pl-14 pr-6 py-4 text-sm md:text-base font-bold outline-none focus:ring-2 focus:ring-delphi-keppel/30 transition-all`}
+                    />
+                  </div>
+                  {errors.maxRounds && <p className="text-red-500 text-xs mt-1 ml-1">{errors.maxRounds}</p>}
+                </div>
+
+                <div className="space-y-3">
+                  <label htmlFor="sprints" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Número de Sprints</label>
+                  <div className="relative group">
+                    <Layers className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-delphi-keppel transition-colors" />
+                    <input
+                      id="sprints"
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={sprints}
+                      onChange={(e) => setSprints(parseInt(e.target.value))}
+                      className={`w-full bg-slate-50 border-2 ${errors.sprints ? 'border-red-500' : 'border-slate-100'} rounded-2xl pl-14 pr-6 py-4 text-sm md:text-base font-bold outline-none focus:ring-2 focus:ring-delphi-keppel/30 transition-all`}
+                    />
+                  </div>
+                  {errors.sprints && <p className="text-red-500 text-xs mt-1 ml-1">{errors.sprints}</p>}
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 sm:flex-none px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Atrás</button>
                 <button type="button" onClick={handleNextStep} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>

@@ -24,6 +24,8 @@ export interface Project {
   status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
+  maxRounds: number;
+  sprints: number;
   hasStartedRounds?: boolean;
   isDeleted?: boolean;
   createdAt: number;
@@ -34,8 +36,9 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'pending' | 'estimating' | 'consensus';
+  status: 'pending' | 'estimating' | 'consensus' | 'finalized';
   finalEstimate?: number;
+  completionPercentage?: number;
 }
 
 export interface Estimation {
@@ -57,6 +60,8 @@ export interface Round {
   startTime: number;
   endTime?: number;
   stats?: RoundStats;
+  maxRounds?: number;
+  sprints?: number;
   estimations: Estimation[];
 }
 
