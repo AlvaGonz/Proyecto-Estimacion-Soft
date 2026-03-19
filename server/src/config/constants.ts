@@ -50,4 +50,5 @@ export const TASK_STATUS = {
     PENDING: 'pending',
     ESTIMATING: 'estimating',
     CONSENSUS: 'consensus',
+    FINALIZED: 'finalized',
 } as const;

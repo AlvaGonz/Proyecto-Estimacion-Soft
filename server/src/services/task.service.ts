@@ -1,5 +1,9 @@
 import { Task } from '../models/Task.model.js';
-import { ITask } from '../types/models.types.js';
+import { Round } from '../models/Round.model.js';
+import { Project } from '../models/Project.model.js';
+import { Estimation } from '../models/Estimation.model.js';
+import { ITask, IProject } from '../types/models.types.js';
+import { ROUND_STATUS } from '../config/constants.js';
 import { ApiError } from '../utils/ApiError.js';
 import { PROJECT_STATUS, TASK_STATUS } from '../config/constants.js';
 import { projectService } from './project.service.js';
@@ -34,7 +38,43 @@ export const taskService = {
             throw ApiError.badRequest('ID de proyecto inválido');
         }
 
-        return await Task.find({ projectId }).sort({ createdAt: 1 });
+        const project = await Project.findById(projectId);
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        const tasks = await Task.find({ projectId }).sort({ createdAt: 1 });
+        
+        // Enhance tasks with completion percentage
+        const enhancedTasks = await Promise.all(tasks.map(async (task) => {
+            const completionPercentage = await this.calculateCompletion(task, project);
+            const taskObj = task.toJSON();
+            return { ...taskObj, completionPercentage };
+        }));
+
+        return enhancedTasks as unknown as ITask[];
+    },
+
+    async calculateCompletion(task: ITask, project: IProject): Promise<number> {
+        if (task.status === TASK_STATUS.CONSENSUS || task.status === TASK_STATUS.FINALIZED) {
+            return 100;
+        }
+
+        const closedRoundsCount = await Round.countDocuments({ taskId: task._id, status: ROUND_STATUS.CLOSED });
+        const openRound = await Round.findOne({ taskId: task._id, status: ROUND_STATUS.OPEN });
+
+        let expertParticipationRatio = 1; // If no open round, current round is "done"
+        if (openRound) {
+            const estimationsCount = await Estimation.countDocuments({ roundId: openRound._id });
+            const totalExperts = project.expertIds.length;
+            expertParticipationRatio = totalExperts > 0 ? estimationsCount / totalExperts : 1;
+        }
+
+        const minRounds = Math.max(project.maxRounds || 1, 1);
+        const roundProgressRatio = Math.min(closedRoundsCount / minRounds, 1);
+
+        const completionPercentage = Math.round(((expertParticipationRatio + roundProgressRatio) / 2) * 100);
+        return Math.min(100, completionPercentage);
     },
 
     async findById(taskId: string): Promise<ITask> {
@@ -71,7 +111,7 @@ export const taskService = {
         const task = await this.findById(taskId);
 
         const updateData: any = { status: newStatus };
-        if (finalEstimate !== undefined && newStatus === TASK_STATUS.CONSENSUS) {
+        if (finalEstimate !== undefined && (newStatus === TASK_STATUS.CONSENSUS || newStatus === TASK_STATUS.FINALIZED)) {
             updateData.finalEstimate = finalEstimate;
         }
 
@@ -83,5 +123,31 @@ export const taskService = {
 
         await auditService.log({ userId: requesterId, action: 'task:status_change', resource: 'Task', resourceId: taskId, details: { oldStatus: task.status, newStatus } });
         return updatedTask as ITask;
+    },
+
+    async finalize(taskId: string, requesterId: string): Promise<ITask> {
+        const task = await this.findById(taskId);
+        
+        // Ensure it has at least one round (open or closed)
+        const roundCount = await Round.countDocuments({ taskId });
+        if (roundCount === 0) {
+            throw ApiError.badRequest('No se puede finalizar una tarea sin rondas');
+        }
+
+        if (task.status === TASK_STATUS.FINALIZED) {
+            throw ApiError.conflict('La tarea ya está finalizada');
+        }
+
+        // We could calculate a default final estimate if not provided, 
+        // e.g., the median of the last closed round, or 0 if none.
+        let finalEstimate = task.finalEstimate;
+        if (!finalEstimate) {
+            const lastClosedRound = await Round.findOne({ taskId, status: ROUND_STATUS.CLOSED }).sort({ roundNumber: -1 });
+            if (lastClosedRound?.stats) {
+                finalEstimate = lastClosedRound.stats.median;
+            }
+        }
+
+        return await this.updateStatus(taskId, TASK_STATUS.FINALIZED, requesterId, finalEstimate);
     }
 };

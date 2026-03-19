@@ -10,7 +10,9 @@ import {
   BrainCircuit,
   CheckCircle2,
   Lock,
-  MessageSquare
+  MessageSquare,
+  Users,
+  Target
 } from 'lucide-react';
 import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
 import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
@@ -23,6 +25,8 @@ import { z } from 'zod';
 import { roundService } from '../services/roundService';
 import { estimationService } from '../services/estimationService';
 import { convergenceService, type ConvergenceResult, type EstimationWithExpert } from '../services/convergence.service';
+import { taskService } from '../services/taskService';
+import { projectService } from '../services/projectService';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
@@ -34,6 +38,7 @@ interface EstimationRoundsProps {
   unit: string;
   estimationMethod?: EstimationMethod;
   onConsensusReached?: (value: number) => void;
+  onTaskFinalize?: (taskId: string) => void;
   isFacilitator?: boolean;
 }
 
@@ -50,6 +55,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   unit,
   estimationMethod = 'wideband-delphi',
   onConsensusReached,
+  onTaskFinalize,
   isFacilitator = true
 }) => {
   const [rounds, setRounds] = useState<Round[]>([]);
@@ -68,7 +74,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<{ value?: string; justification?: string }>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -269,10 +275,17 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const handleFinalizeTask = () => {
-    const lastRound = rounds[rounds.length - 1];
-    if (lastRound?.stats && onConsensusReached) {
-      onConsensusReached(lastRound.stats.median);
+  const handleFinalizeTask = async () => {
+    try {
+      setIsAnalyzing(true);
+      await taskService.finalizeTask(projectId, taskId);
+      if (onTaskFinalize) {
+        onTaskFinalize(taskId);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al finalizar la tarea');
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -556,26 +569,62 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           <div className="space-y-6">
             {activeRound ? (
               <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
+                <h4 className="text-xl font-black text-slate-900">
+                  {isFacilitator ? "Progreso de la Ronda" : "Tu Estimación"}
+                </h4>
                 <div className="space-y-4">
                   {canEstimate ? renderEstimationInput() : (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                      <p className="text-slate-500 text-sm font-medium">
-                        {isFacilitator
-                          ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos."
-                          : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
-                      </p>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-4">
+                      {isFacilitator ? (
+                        <>
+                          <div className="flex justify-center mb-2">
+                            <div className="bg-delphi-keppel/10 p-4 rounded-full">
+                              <Users className="w-8 h-8 text-delphi-keppel" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-slate-900 font-black text-sm uppercase tracking-widest">Estado de Participación</p>
+                            <p className="text-slate-500 text-xs font-medium leading-relaxed">
+                              {estimations.filter(e => e.roundId === activeRound.id).length} de {(projectService as any).getProject?.expertIds?.length || '?'} expertos han estimado en esta ronda.
+                            </p>
+                          </div>
+                          <div className="pt-2">
+                             <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-delphi-keppel transition-all duration-500" 
+                                  style={{ width: `${Math.min(100, (estimations.filter(e => e.roundId === activeRound.id).length / (projectService as any).getProject?.expertIds?.length || 0) * 100)}%` }}
+                                ></div>
+                             </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-slate-500 text-sm font-medium">
+                          La ronda está cerrada. Espera a que el facilitador abra una nueva ronda.
+                        </p>
+                      )}
                     </div>
                   )}
-                  {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
-                  {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
-                  <button
-                    onClick={handleSubmitEstimate}
-                    disabled={!canSubmit()}
-                    className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
-                  >
-                    Enviar Estimación
-                  </button>
+                  {!isFacilitator && (
+                    <>
+                      {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
+                      {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
+                      <button
+                        onClick={handleSubmitEstimate}
+                        disabled={!canSubmit()}
+                        className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
+                      >
+                        Enviar Estimación
+                      </button>
+                    </>
+                  )}
+                  {isFacilitator && (
+                    <button
+                      onClick={handleCloseRound}
+                      className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all"
+                    >
+                      Cerrar Ronda Actual
+                    </button>
+                  )}
                 </div>
               </div>
             ) : !showBoxPlot ? (
@@ -658,7 +707,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                     )}
 
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                      {isFacilitator && analysis.level === 'Alta' && (
+                      {isFacilitator && rounds.length > 0 && (
                         <button onClick={handleFinalizeTask} className="flex-1 bg-delphi-keppel text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">
                           Finalizar Tarea
                         </button>
