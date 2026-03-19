@@ -145,7 +145,7 @@ const DistributionChart: React.FC<{ estimations: EstimationData[]; unit: string 
       </div>
       
       {/* Box plot stats */}
-      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest">
+      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-4 text-[10px] font-black uppercase tracking-widest boxplot-stats">
         {median !== undefined && (
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-delphi-keppel" />

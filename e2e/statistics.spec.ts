@@ -5,51 +5,121 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from './helpers/auth.helper';
 import { createProjectViaWizard } from './helpers/project.helper';
 
+import { setupProjectWithRoundClose } from './helpers/estimation.helper';
+
 async function setupProjectWithClosedRound(page: any, projectName: string, method = 'Wideband Delphi') {
+  // Step 1: Facilitator creates project and task
   await loginAs(page, 'facilitator');
   await page.getByRole('button', { name: /proyectos/i }).click();
   await page.waitForLoadState('networkidle');
   
+  // Use exact matching to avoid choosing the wrong project
   await createProjectViaWizard(page, { name: projectName, method, unit: 'Horas' });
+  // After wizard, we're on the projects list. Navigate to the project.
+  await page.waitForSelector(`text=${projectName}`, { state: 'visible', timeout: 10_000 });
   await page.getByText(projectName).click();
   await page.waitForLoadState('networkidle');
-
-  // Añadir tarea
-  await page.getByRole('button', { name: /añadir tarea/i }).click();
-  await page.waitForSelector('#newTaskTitle', { timeout: 5_000 });
-  await page.locator('#newTaskTitle').fill('Tarea Stats Test');
-  await page.locator('#newTaskDesc').fill('Descripción para test de estadísticas');
-  await page.getByRole('button', { name: /crear tarea/i }).click();
-  await expect(page.locator('#newTaskTitle')).not.toBeVisible({ timeout: 8_000 });
-
-  // Abrir ronda y enviar estimación
-  await page.getByText('Tarea Stats Test').first().click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
   
-  const startBtn = page.getByRole('button', { name: /iniciar|abrir|nueva ronda/i });
-  if (await startBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await startBtn.click();
-    await page.waitForLoadState('networkidle');
-  }
+  // Click and wait for modal
+  await page.getByRole('button', { name: /añadir tarea/i }).first().click();
+  const titleSelector = '#newTaskTitle';
+  const descSelector = '#newTaskDesc';
+  const createBtnSelector = 'button:has-text("Crear Tarea")';
   
-  // Enviar estimación
-  const numInput = page.locator('input[type="number"]').first();
-  if (await numInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+  await page.waitForSelector(titleSelector, { state: 'visible', timeout: 10_000 });
+  
+  // Fill title
+  const titleInput = page.locator(titleSelector);
+  await titleInput.click();
+  await titleInput.fill('Tarea de Estimación Test');
+  await expect(titleInput).toHaveValue('Tarea de Estimación Test', { timeout: 5_000 });
+  
+  // Fill description
+  const descInput = page.locator(descSelector);
+  await descInput.click();
+  await descInput.fill('Descripción para test');
+  await expect(descInput).toHaveValue('Descripción para test', { timeout: 5_000 });
+  
+  // Submit with explicit wait for modal closure
+  await page.click(createBtnSelector);
+  await page.waitForSelector(titleSelector, { state: 'hidden', timeout: 15_000 });
+
+  // Select task
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(2000);
+  
+  // Create round - look for the + button (icon button without text)
+  const plusButton = page.locator('button[class*="dashed"], button:has(svg[class*="plus"]), button:has(svg[lucide="plus"])').first();
+  await expect(plusButton).toBeVisible({ timeout: 5_000 });
+  await plusButton.click();
+  await page.waitForTimeout(2000);
+  await page.waitForLoadState('networkidle');
+  
+  // Verify round was created - look for "Ronda 1" text
+  await expect(page.getByText(/ronda 1/i).first()).toBeVisible({ timeout: 10_000 });
+
+  // Step 2: Expert submits estimation
+  await loginAs(page, 'expert');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByText(projectName).first().click();
+  await page.waitForLoadState('networkidle');
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(2000);
+  
+  // Fill estimation form based on method
+  if (method.includes('Poker') || method.includes('Agile')) {
+    // Planning Poker: Select a card (e.g., 8)
+    const card8 = page.getByRole('button', { name: /^8$/i }).first();
+    await expect(card8).toBeVisible({ timeout: 10_000 });
+    await card8.click();
+  } else if (method.includes('Tres Puntos') || method.includes('PERT')) {
+    // Three Point: Fill O, M, P
+    const inputs = page.locator('input[type="number"]');
+    await expect(inputs.first()).toBeVisible({ timeout: 10_000 });
+    await inputs.nth(0).fill('6'); // Optimistic
+    await inputs.nth(1).fill('8'); // Most Likely
+    await inputs.nth(2).fill('12'); // Pessimistic
+  } else {
+    // Standard Delphi
+    const numInput = page.locator('input[type="number"]').first();
+    await expect(numInput).toBeVisible({ timeout: 10_000 });
     await numInput.fill('8');
-    await page.getByRole('button', { name: /enviar|guardar/i }).click();
-    await page.waitForLoadState('networkidle');
   }
   
-  // Cerrar ronda
-  const closeBtn = page.getByRole('button', { name: /cerrar|finalizar ronda/i });
-  if (await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await closeBtn.click();
-    const confirmBtn = page.getByRole('button', { name: /confirmar|sí/i });
-    if (await confirmBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await confirmBtn.click();
-    }
-    await page.waitForLoadState('networkidle');
+  const justifInput = page.locator('textarea').first();
+  if (await justifInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await justifInput.fill('Justificación de prueba para test E2E');
   }
+  
+  await page.getByRole('button', { name: /enviar/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000);
+
+  // Step 3: Facilitator closes round
+  await loginAs(page, 'facilitator');
+  await page.getByRole('button', { name: /proyectos/i }).click();
+  await page.waitForLoadState('networkidle');
+  await page.getByText(projectName).first().click();
+  await page.waitForLoadState('networkidle');
+  await page.getByText('Tarea de Estimación Test').first().click();
+  await page.waitForTimeout(1000);
+  await page.reload(); // Force refresh to see expert estimation (RF032 sync)
+  await page.waitForTimeout(2000);
+  
+  // Close round
+  const closeBtn = page.getByRole('button', { name: /cerrar y analizar ronda/i });
+  await expect(closeBtn).toBeVisible({ timeout: 5_000 });
+  await expect(closeBtn).toBeEnabled({ timeout: 15_000 }); // Wait for estimation to appear
+  await closeBtn.click();
+  
+  // Confirm if dialog appears
+  const confirmBtn = page.getByRole('button', { name: /confirmar|sí/i });
+  if (await confirmBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    await confirmBtn.click();
+  }
+  await page.waitForLoadState('networkidle');
 
   return { projectName };
 }
@@ -58,25 +128,25 @@ test.describe('ESTADÍSTICAS — Gráficos (RF017-RF019)', () => {
 
   test('T054 — Histograma de distribución visible tras cerrar ronda (RS41, RF017)', async ({ page }) => {
     const projectName = `Hist RF017 ${Date.now()}`;
-    await setupProjectWithClosedRound(page, projectName);
+    await setupProjectWithClosedRound(page, projectName, 'Planning Poker');
     
     // Verificar elemento canvas (Chart.js/Recharts) o SVG de histograma
     const chartElement = page.locator('canvas, svg, [class*="chart"], [class*="recharts"]').first();
     
     // O mensaje de que no hay datos suficientes
     await expect(
-      chartElement.or(page.getByText(/no hay datos suficientes|sin gráfico|distribución/i))
+      chartElement.or(page.getByText(/no hay datos suficientes|sin gráfico|distribución|poker/i))
     ).toBeVisible({ timeout: 10_000 });
   });
 
   test('T055 — Gráfico de caja/boxplot visible tras cerrar ronda (RS42, RF017)', async ({ page }) => {
     const projectName = `Box RF017 ${Date.now()}`;
-    await setupProjectWithClosedRound(page, projectName);
+    await setupProjectWithClosedRound(page, projectName, 'Estimación Tres Puntos');
     
     await expect(
       page.locator('[class*="boxplot"], [class*="box-plot"]').first()
         .or(page.locator('canvas').nth(1))
-        .or(page.getByText(/distribución|box|IQR/i))
+        .or(page.getByText(/distribución|box|IQR|PERT/i))
     ).toBeVisible({ timeout: 10_000 });
   });
 

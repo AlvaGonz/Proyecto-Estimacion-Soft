@@ -11,15 +11,21 @@ export interface StatMetrics {
     coefficientOfVariation: number;
     range: [number, number];
     iqr: number;
-    outliers: string[];
+    outlierEstimationIds: string[];
 }
 
 export const statisticsService = {
     calculateMetrics(estimations: MetricInput[]): StatMetrics {
         if (!estimations || estimations.length === 0) {
             return {
-                mean: 0, median: 0, stdDev: 0, variance: 0, coefficientOfVariation: 0,
-                range: [0, 0], iqr: 0, outliers: []
+                mean: 0,
+                median: 0,
+                stdDev: 0,
+                variance: 0,
+                coefficientOfVariation: 0,
+                range: [0, 0],
+                iqr: 0,
+                outlierEstimationIds: []
             };
         }
 
@@ -53,7 +59,7 @@ export const statisticsService = {
         const lowerBound = q1 - 1.5 * iqr;
         const upperBound = q3 + 1.5 * iqr;
 
-        const outliers = estimations
+        const outlierEstimationIds = estimations
             .filter(e => e.value < lowerBound || e.value > upperBound)
             .map(e => e.id);
 
@@ -65,7 +71,7 @@ export const statisticsService = {
             coefficientOfVariation: Number(cv.toFixed(2)),
             range,
             iqr: Number(iqr.toFixed(2)),
-            outliers
+            outlierEstimationIds
         };
     },
 

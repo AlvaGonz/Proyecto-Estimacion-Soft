@@ -58,6 +58,17 @@ Execute a complete audit of the platform using Playwright to ensure compliance w
 - [x] Backend Fix — Rate limiter configurable para E2E
 
 ## Current Focus
+### Phase 7: Multi-Method Statistics & Report (RF015b, RF015c, RF033, RF034) [IN PROGRESS]
+- [ ] Implement `PlanningPokerMethod.calculate()` (RF015b)
+- [ ] Implement `ThreePointMethod.calculate()` (RF015c)
+- [ ] Extend `Round` and `Estimation` models with method-specific metadata
+- [ ] Display method-specific statistics in `RoundResults` (RF015b, RF015c)
+- [ ] Show method name and config in `ProjectReport` (RF033)
+- [ ] Implement backend guard for method immutability (RF034)
+- [ ] Verify with tests T054, T055, T056, T057
+
+## Progress Tracking
+... (rest of the file)
 - Phase 6 IN PROGRESS — Implementando deuda técnica RF001, RF017, RF018, RF025, RF028
 - RF001 Registro: ✅ Implementado (pendiente verificación con backend)
 - Librerías disponibles: jspdf ✅, recharts ✅, xlsx ✅

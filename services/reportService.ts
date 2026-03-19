@@ -37,7 +37,8 @@ export const reportService = {
     doc.setTextColor(15, 23, 42); // slate-900
     doc.text(`Proyecto: ${project.name}`, 20, 45);
     doc.setFontSize(10);
-    doc.text(`Método: ${project.estimationMethod || 'Wideband Delphi'}`, 20, 52);
+    const methodLabel = project.estimationMethod ? (project.estimationMethod === 'planning-poker' ? 'Planning Poker (Agile)' : project.estimationMethod === 'three-point' ? 'Estimación de Tres Puntos (PERT)' : 'Wideband Delphi (Tradicional)') : 'Wideband Delphi';
+    doc.text(`Método: ${methodLabel}`, 20, 52);
     doc.text(`Unidad: ${project.unit}`, 20, 58);
 
     let currentY = 70;
@@ -87,13 +88,41 @@ export const reportService = {
 
           doc.setFontSize(10);
           doc.text(`Ronda ${round.roundNumber} (CV: ${((round.stats?.coefficientOfVariation || 0) * 100).toFixed(1)}%)`, 25, currentY);
+          
+          // Method specific metrics
+          if (round.stats?.metricaResultados) {
+            const m = round.stats.metricaResultados;
+            let mText = '';
+            if (project.estimationMethod === 'planning-poker' && m.moda) {
+              mText = `Moda: ${m.moda} | Coherencia: ${m.consensoPct}%`;
+            } else if (project.estimationMethod === 'three-point' && m.expectedValue) {
+              mText = `Valor PERT (E): ${m.expectedValue} | Desviación (σ): ${m.standardDeviation}`;
+            }
+            if (mText) {
+              currentY += 5;
+              doc.setFontSize(8);
+              doc.setTextColor(51, 65, 85); // slate-700
+              doc.text(mText, 25, currentY);
+              doc.setTextColor(100, 116, 139); // reset
+            }
+          }
           currentY += 5;
 
-          const estimations = round.estimations ? round.estimations.map((est, idx: number) => [
-            `Experto ${String.fromCharCode(65 + idx)}`,
-            est.value.toString(),
-            options.includeJustifications ? (est.justification || '-') : 'Omitido'
-          ]) : [];
+          const estimations = round.estimations ? round.estimations.map((est, idx: number) => {
+            let valText = est.value.toString();
+            if (project.estimationMethod === 'three-point' && est.metodoData) {
+              const d = est.metodoData;
+              valText = `${est.value} (O:${d.optimistic}, M:${d.mostLikely}, P:${d.pessimistic})`;
+            } else if (project.estimationMethod === 'planning-poker' && est.metodoData) {
+              valText = `C:( ${est.metodoData.card} )`;
+            }
+            
+            return [
+              `Experto ${String.fromCharCode(65 + idx)}`,
+              valText,
+              options.includeJustifications ? (est.justification || '-') : 'Omitido'
+            ];
+          }) : [];
 
           autoTable(doc, {
             startY: currentY,
@@ -142,11 +171,18 @@ export const reportService = {
       t.rounds.forEach(r => {
         if (r.estimations) {
            r.estimations.forEach((e, idx: number) => {
+             let valText = e.value.toString();
+             if (project.estimationMethod === 'three-point' && e.metodoData) {
+               valText = `E:${e.value} (O:${e.metodoData.optimistic}, M:${e.metodoData.mostLikely}, P:${e.metodoData.pessimistic})`;
+             } else if (project.estimationMethod === 'planning-poker' && e.metodoData) {
+               valText = `Card: ${e.metodoData.card}`;
+             }
+
              detalleData.push([
                t.title,
                r.roundNumber.toString(),
                `Experto ${String.fromCharCode(65 + idx)}`,
-               e.value.toString(),
+               valText,
                e.justification || ''
              ]);
            });

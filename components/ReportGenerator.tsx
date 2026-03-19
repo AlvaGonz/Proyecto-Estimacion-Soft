@@ -101,7 +101,14 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
       
       const tasksWithRounds = await Promise.all(tasks.map(async (task) => {
         const rounds = await roundService.getRoundsByTask(project.id, task.id);
-        return { ...task, rounds };
+        
+        // Fetch estimations for each round
+        const roundsWithEstimations = await Promise.all(rounds.map(async (r) => {
+          const estimations = await (window as any).estimationService.getEstimationsByRound(r.id);
+          return { ...r, estimations };
+        }));
+
+        return { ...task, rounds: roundsWithEstimations };
       }));
 
       if (format === 'PDF') {
