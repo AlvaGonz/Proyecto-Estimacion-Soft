@@ -11,6 +11,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  expertiseArea?: string;
 }
 
 export interface Project {
@@ -24,6 +25,7 @@ export interface Project {
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
   hasStartedRounds?: boolean;
+  isDeleted?: boolean;
   createdAt: number;
 }
 

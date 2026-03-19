@@ -7,6 +7,7 @@ export interface User {
     email: string;
     role: UserRole;
     status: string;
+    expertiseArea?: string;
 }
 
 export const userService = {

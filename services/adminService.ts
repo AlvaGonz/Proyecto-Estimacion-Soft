@@ -60,4 +60,15 @@ export const adminService = {
             method: 'PATCH',
         });
     },
+
+    async listProjects(): Promise<any[]> {
+        const result = await fetchApi<any>('/admin/projects');
+        return result.data;
+    },
+
+    async restoreProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}/restore`, {
+            method: 'PATCH',
+        });
+    },
 };

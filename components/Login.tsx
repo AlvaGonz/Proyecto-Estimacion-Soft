@@ -27,6 +27,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
       loginSchema.parse({ email, password });
 
       const user = await authService.login({ email, password });
+      // Set auth flag in localStorage for client-side session validation
+      localStorage.setItem('estimapro_auth', 'true');
       onLogin(user);
     } catch (error: any) {
       if (error instanceof z.ZodError) {

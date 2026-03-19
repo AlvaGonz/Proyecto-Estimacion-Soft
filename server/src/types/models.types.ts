@@ -7,6 +7,7 @@ export interface IUser extends Document {
     password: string;
     role: 'admin' | 'facilitador' | 'experto';
     isActive: boolean;
+    expertiseArea?: string | null;
     refreshToken?: string | null;
     lastLogin?: Date;
     createdAt: Date;
@@ -43,6 +44,7 @@ export interface IProject extends Document {
     facilitatorId: Types.ObjectId;
     expertIds: Types.ObjectId[];
     status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+    isDeleted?: boolean;
     estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
     createdAt: Date;
