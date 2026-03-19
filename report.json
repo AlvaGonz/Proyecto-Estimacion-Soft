@@ -1,0 +1,198 @@
+
+══════════════════════════════════════════
+  EstimaPro E2E — Global Setup
+══════════════════════════════════════════
+
+🔍 Verificando servidores...
+   ✅ Backend (Express :4000) activo (200)
+   ✅ Frontend (Vite :3001) activo (200)
+
+👥 Preparando expertos E2E...
+   ✅ Admin autenticado via API
+   📋 Usuarios en BD: 18
+   ⏭  Ya existe: E2E Experto 1
+   ⏭  Ya existe: E2E Experto 2
+   ⏭  Ya existe: E2E Experto 3
+
+🔐 Login UI facilitador → guardando storageState...
+   Navegado a: http://localhost:3001/
+   Network idle reached. URL: http://localhost:3001/
+   Contenido inicial (primeros 500 chars): <!DOCTYPE html><html lang="es"><head>
+ <script type="importmap">
+    {
+      "imports": {
+        "lucide-react": "https://esm.sh/lucide-react@^0.575.0",
+        "recharts": "https://esm.sh/recharts@^3.7.0",
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react": "https://esm.sh/react@^19.2.4",
+        "@google/genai": "https://esm.sh/@google/genai@^1.42.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+      }
+    }
+    </script>
+  <script type="module">import { injectIn
+   Botón login habilitado: true
+   Click realizado, esperando respuesta...
+   Respuesta login: 200 OK
+   Esperando indicador de login exitoso...
+   ✅ Login exitoso, URL: http://localhost:3001/
+
+✅ storageState guardado → C:\Users\Admin\Desktop\Proyecto-Estimacion-Soft\e2e\.auth\facilitator.json
+🚀 Global setup completado — tests listos
+
+{
+  "config": {
+    "configFile": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\playwright.config.ts",
+    "rootDir": "C:/Users/Admin/Desktop/Proyecto-Estimacion-Soft/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Admin/Desktop/Proyecto-Estimacion-Soft/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/Admin/Desktop/Proyecto-Estimacion-Soft/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "statistics.spec.ts",
+      "file": "statistics.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "ESTADÍSTICAS — Gráficos (RF017-RF019)",
+          "file": "statistics.spec.ts",
+          "line": 129,
+          "column": 6,
+          "specs": [
+            {
+              "title": "T054 — Histograma de distribución visible tras cerrar ronda (RS41, RF017)",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 12960,
+                      "error": {
+                        "message": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#email') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#email') to be visible\u001b[22m\n\n    at loginAs (C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\helpers\\auth.helper.ts:40:34)\n    at setupProjectWithClosedRound (C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\statistics.spec.ts:12:3)\n    at C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\statistics.spec.ts:133:5",
+                        "location": {
+                          "file": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\helpers\\auth.helper.ts",
+                          "column": 34,
+                          "line": 40
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers\\auth.helper.ts:40\n\n\u001b[0m \u001b[90m 38 |\u001b[39m\n \u001b[90m 39 |\u001b[39m     \u001b[90m// Sesión no activa o usuario incorrecto — hacer login completo\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 40 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'#email'\u001b[39m)\u001b[33m.\u001b[39mwaitFor({ state\u001b[33m:\u001b[39m \u001b[32m'visible'\u001b[39m\u001b[33m,\u001b[39m timeout\u001b[33m:\u001b[39m \u001b[35m10000\u001b[39m })\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 41 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'#email'\u001b[39m)\u001b[33m.\u001b[39mfill(creds\u001b[33m.\u001b[39memail)\u001b[33m;\u001b[39m\n \u001b[90m 42 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'#password'\u001b[39m)\u001b[33m.\u001b[39mfill(creds\u001b[33m.\u001b[39mpassword)\u001b[33m;\u001b[39m\n \u001b[90m 43 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgetByRole(\u001b[32m'button'\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/entrar al sistema|ingresar|acceder/i\u001b[39m })\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\helpers\\auth.helper.ts",
+                            "column": 34,
+                            "line": 40
+                          },
+                          "message": "TimeoutError: locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#email') to be visible\u001b[22m\n\n\n   at helpers\\auth.helper.ts:40\n\n  38 |\n  39 |     // Sesión no activa o usuario incorrecto — hacer login completo\n> 40 |     await page.locator('#email').waitFor({ state: 'visible', timeout: 10000 });\n     |                                  ^\n  41 |     await page.locator('#email').fill(creds.email);\n  42 |     await page.locator('#password').fill(creds.password);\n  43 |     await page.getByRole('button', { name: /entrar al sistema|ingresar|acceder/i }).click();\n    at loginAs (C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\helpers\\auth.helper.ts:40:34)\n    at setupProjectWithClosedRound (C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\statistics.spec.ts:12:3)\n    at C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\statistics.spec.ts:133:5"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T04:17:36.474Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\test-results\\statistics-ESTADÍSTICAS-—--dd150-as-cerrar-ronda-RS41-RF017--chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\test-results\\statistics-ESTADÍSTICAS-—--dd150-as-cerrar-ronda-RS41-RF017--chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\test-results\\statistics-ESTADÍSTICAS-—--dd150-as-cerrar-ronda-RS41-RF017--chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\Admin\\Desktop\\Proyecto-Estimacion-Soft\\e2e\\helpers\\auth.helper.ts",
+                        "column": 34,
+                        "line": 40
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce6a6ad83d45104d2631-478a06131fc2967f1e3d",
+              "file": "statistics.spec.ts",
+              "line": 131,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-19T04:17:31.982Z",
+    "duration": 17832.507999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

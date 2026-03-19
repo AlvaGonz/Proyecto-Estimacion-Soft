@@ -397,6 +397,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               {!activeRound && (
                 <button
                   onClick={handleStartNextRound}
+                  aria-label="Nueva ronda"
                   className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-delphi-keppel transition-all"
                 >
                   <Plus className="w-5 h-5" />
@@ -407,12 +408,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-2xl shadow-lg w-full sm:w-auto justify-center">
               <button
                 onClick={() => setShowEvolution(!showEvolution)}
+                aria-label="Ver evolución"
                 className={`p-2 rounded-xl transition-all ${showEvolution ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
               >
                 <History className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setShowBoxPlot(!showBoxPlot)}
+                aria-label="Ver distribución"
                 className={`p-2 rounded-xl transition-all ${showBoxPlot ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
               >
                 <BarChart2 className="w-5 h-5" />
