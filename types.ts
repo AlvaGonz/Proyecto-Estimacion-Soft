@@ -24,6 +24,7 @@ export interface Project {
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
   hasStartedRounds?: boolean;
+  isDeleted?: boolean;
   createdAt: number;
 }
 

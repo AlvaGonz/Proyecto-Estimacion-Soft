@@ -54,6 +54,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
   const [isLoading, setIsLoading] = useState(true);
   const [activeRound, setActiveRound] = useState<Round | null>(null);
   const [logs, setLogs] = useState<AuditEntry[]>([]);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Config form state
   const [configForm, setConfigForm] = useState({
@@ -199,6 +203,32 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     ));
   };
 
+  const handleFinalizeProject = async () => {
+    try {
+      setIsFinalizing(true);
+      const updated = await projectService.updateProject(projectId, { status: 'finished' });
+      setProject(updated);
+      setShowFinalizeModal(false);
+    } catch (err: any) {
+      alert(err.message || "Error al finalizar el proyecto");
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    try {
+      setIsDeleting(true);
+      await projectService.deleteProject(projectId);
+      onBack(); // Redirect to list
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el proyecto");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="h-full w-full flex items-center justify-center min-h-[50vh]"><LoadingSpinner /></div>;
   }
@@ -221,7 +251,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
           <div>
             <div className="flex items-center gap-3 md:gap-4 flex-wrap">
               <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight leading-none">{project.name}</h2>
-              <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${project.status === 'active' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 'bg-slate-200 text-slate-600'}`}>
+              <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${
+                project.status === 'active' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 
+                project.status === 'finished' ? 'bg-delphi-keppel text-white shadow-delphi-keppel/20' : 
+                'bg-slate-200 text-slate-600'}`}>
                 {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
               </span>
             </div>
@@ -239,22 +272,38 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
           </div>
         </div>
 
-        {isFacilitator && (
+        {isFacilitator && project.status !== 'finished' && project.status !== 'archived' && (
           <div className="flex flex-col sm:flex-row gap-3">
             <button 
               onClick={() => setShowConfigModal(true)}
-              className="flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:border-delphi-keppel/30 transition-all"
+              className="flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:border-delphi-keppel/30 transition-all font-bold"
             >
               <Settings className="w-4 h-4" />
               Configurar
             </button>
             <button
               onClick={() => setShowTaskForm(true)}
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-delphi-keppel text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] transition-all"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-delphi-keppel text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] transition-all font-bold"
             >
               <Plus className="w-4 h-4" />
               Añadir Tarea
             </button>
+            <button
+              onClick={() => setShowFinalizeModal(true)}
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/10 hover:bg-delphi-giants transition-all font-bold md:ml-auto"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Finalizar Proyecto
+            </button>
+            {role === UserRole.ADMIN && (
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center justify-center gap-3 px-8 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-red-600/20 hover:bg-red-700 transition-all font-bold"
+              >
+                <X className="w-4 h-4" />
+                Eliminar Proyecto
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -565,6 +614,74 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
           </div>
         )}
       </div>
+
+      {showFinalizeModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 bg-delphi-keppel/10 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-delphi-keppel" />
+              </div>
+              <div>
+                <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2">¿Finalizar Proyecto?</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  Esta acción cerrará el proyecto de estimación. Ya no se podrán añadir nuevas tareas ni realizar nuevas estimaciones.
+                </p>
+              </div>
+              <div className="w-full flex flex-col gap-3">
+                <button 
+                  onClick={handleFinalizeProject}
+                  disabled={isFinalizing}
+                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-delphi-giants transition-all disabled:opacity-50"
+                >
+                  {isFinalizing ? 'Finalizando...' : 'Sí, Finalizar Proyecto'}
+                </button>
+                <button 
+                  onClick={() => setShowFinalizeModal(false)}
+                  disabled={isFinalizing}
+                  className="w-full bg-slate-50 text-slate-500 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white border border-slate-100 transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                <ShieldCheck className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2">¿Eliminar Proyecto?</h3>
+                <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                  Esta acción realizará un borrado lógico del proyecto. El proyecto dejará de ser visible en las listas generales, pero sus datos se conservarán en los registros de auditoría para el administrador.
+                </p>
+              </div>
+              <div className="w-full flex flex-col gap-3">
+                <button 
+                  onClick={handleDeleteProject}
+                  disabled={isDeleting}
+                  className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
+                >
+                  {isDeleting ? 'Eliminando...' : 'Sí, Eliminar de los Registros'}
+                </button>
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="w-full bg-slate-50 text-slate-500 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white border border-slate-100 transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
