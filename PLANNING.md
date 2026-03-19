@@ -1,57 +1,36 @@
-# OVERHAUL-E2E-007: Fix cookie cross-port + audit completo
+# PLANNING.md - Fix Round Transition (Wideband Delphi)
 
-## Estado: ✅ COMPLETADO
+El usuario reporta que el cambio entre rondas no funciona en el método Wideband Delphi. Tras el análisis, se identifica que la interfaz muestra las rondas (R1, R2, etc.) como elementos estáticos (`div`) sin interactividad, y la visualización de datos está fija según el estado de la ronda (la abierta o la última cerrada), impidiendo al usuario alternar entre rondas pasadas para ver sus detalles.
 
-## Problema Raíz
-`addCookies({ domain: 'localhost' })` en global-setup no funciona con cross-port:
-- Frontend en :3001, Backend en :4000
-- Cookie SameSite:Lax bloquea requests cross-port
-- Resultado: 401 en API calls → lista de expertos vacía
+## Objetivos
+1. Permitir al usuario navegar entre diferentes rondas (R1, R2, ...) haciendo clic en ellas.
+2. Asegurar que la tabla de estimaciones, gráficos y el análisis de convergencia se actualicen según la ronda seleccionada.
+3. Mantener la reactividad automática al abrir o cerrar una ronda para que el usuario siempre vea el estado más reciente por defecto.
 
-## Solución Aplicada
-Login UI REAL en browser headless:
-1. Navegar a localhost:3001
-2. Llenar formulario de login
-3. Backend setea cookie con Set-Cookie header
-4. Browser guarda cookie para localhost (origen :3001)
-5. storageState captura cookie EXACTAMENTE como el browser la tiene
-6. Tests usan misma cookie → GET /api/users → 200 → expertos cargan ✅
+## Mapa de Archivos Afectados
+- `components/EstimationRounds.tsx`
 
-## Commits Realizados
-1. `cbbf4a4` fix(e2e): use UI login in global-setup — fixes SameSite:Lax cookie cross-port block
-2. `466d414` feat(e2e): add e2e:reset-auth and e2e:fresh npm scripts  
-3. `7bea6ce` fix(e2e): robust Step 4 selectors + screenshot on failure
+## Plan de Acción
 
-## Cambios en Archivos
+### Fase 1: Estado y Navegación
+1. Añadir el estado `selectedRoundId` en `EstimationRounds.tsx`.
+2. Actualizar el `useEffect` de carga inicial para inicializar `selectedRoundId` con el ID de la ronda activa (si existe) o la última cerrada.
+3. Modificar la UI de navegación de rondas (líneas 384-396) para usar elementos `button` con un `onClick` que actualice `selectedRoundId`.
+4. Añadir feedback visual (estilo CSS) para indicar claramente qué ronda está seleccionada actualmente.
 
-### e2e/global-setup.ts
-- Login UI real en lugar de addCookies()
-- Verificación de servidores antes de empezar
-- Helper functions organizadas
+### Fase 2: Filtrado de Datos y Visualización
+1. Refactorizar la lógica de filtrado de estimaciones (`currentRoundEstimations`, línea 310) para usar `selectedRoundId`.
+2. Asegurar que `convergenceResult` y `analysis` (líneas 321-335) se calculen basándose en la ronda seleccionada.
+3. Actualizar los gráficos (`distributionData`, línea 337) para que reflejen los datos de la ronda seleccionada.
 
-### e2e/helpers/project.helper.ts
-- Step 4 con screenshot automático en fallo
-- Selectores más robustos para expertos
-- Mejores mensajes de error
+### Fase 3: Reactividad tras Acciones
+1. En `handleCloseRound`, actualizar `selectedRoundId` al ID de la ronda recién cerrada.
+2. En `handleStartNextRound`, actualizar `selectedRoundId` al ID de la nueva ronda abierta.
 
-### package.json
-- `e2e:reset-auth` — limpiar estado de auth
-- `e2e:fresh` — limpiar y correr tests
+## Casos Límite y Consideraciones
+- **Sin rondas:** La UI debe seguir mostrando el estado vacío correctamente.
+- **Cambio de tarea:** El `selectedRoundId` debe resetearse o actualizarse al cambiar de tarea (el componente ya se remonta o actualiza vía props, el `useEffect` de carga debe manejar esto).
+- **Acceso Permitido:** Aunque se vean rondas pasadas, la entrada de datos (formulario de estimación) solo debe mostrarse si la ronda seleccionada es la ACTIVA (`open`) y el usuario es experto.
 
-## Para probar
-
-```bash
-# Terminal 1: Backend
-cd server && npm run dev
-
-# Terminal 2: Frontend  
-npm run dev
-
-# Terminal 3: Tests (primera vez o si hay problemas)
-npm run e2e:fresh
-
-# O si ya tienes auth guardado
-npm run e2e
-```
-
-## Tests: 43 listados correctamente ✅
+---
+**¿Aprobado para proceder con la implementación?**

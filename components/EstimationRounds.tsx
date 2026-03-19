@@ -64,6 +64,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [analysis, setAnalysis] = useState<ConvergenceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [convergenceResult, setConvergenceResult] = useState<ConvergenceResult | null>(null);
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +81,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           setRounds(taskRounds);
           const active = taskRounds.find(r => r.status === 'open') || null;
           setActiveRound(active);
+
+          // RF012-020: Auto-select latest round on initial load or if no selection
+          if (!selectedRoundId && taskRounds.length > 0) {
+            const latestId = active?.id || (active as any)?._id || (taskRounds[taskRounds.length - 1].id || (taskRounds[taskRounds.length - 1] as any)._id);
+            setSelectedRoundId(latestId);
+          }
 
           if (taskRounds.length > 0) {
             const allEsts = await Promise.all(
@@ -219,6 +226,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
       setRounds(prev => prev.map(r => (r.id || (r as any)._id) === activeId ? round : r));
       setActiveRound(null);
+      setSelectedRoundId(activeId); // Keep selection on this round
       setAnalysis(analysis);
 
       // RF020: Calculate convergence for display
@@ -252,6 +260,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       const nextRound = await roundService.openRound(projectId, taskId);
       setRounds(prev => [...prev, nextRound]);
       setActiveRound(nextRound);
+      setSelectedRoundId(nextRound.id || (nextRound as any)._id);
       setAnalysis(null);
     } catch (err: any) {
       alert(err.message || 'Failed opening round');
@@ -306,11 +315,9 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   };
 
   const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
+  const viewedRound = rounds.find(r => (r.id || (r as any)?._id) === selectedRoundId);
   const currentRoundEstimations = estimations.filter(e => {
-    const activeId = activeRound?.id || (activeRound as any)?._id || '';
-    const closedId = lastClosedRound?.id || (lastClosedRound as any)?._id || '';
-    const targetId = activeRound ? activeId : closedId;
-    return String(e.roundId) === String(targetId);
+    return String(e.roundId) === String(selectedRoundId);
   });
 
   // RF019: Add anonymous expert labels
@@ -319,20 +326,22 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
   // RF020: Calculate convergence when viewing a closed round
   useEffect(() => {
-    if (lastClosedRound?.stats && currentRoundEstimations.length > 0) {
+    if (viewedRound?.status === 'closed' && viewedRound.stats && currentRoundEstimations.length > 0) {
       const cv = convergenceService.calculateCV(currentRoundEstimations);
       const convResult = convergenceService.evaluateConvergence(
         cv,
         currentRoundEstimations.length,
-        lastClosedRound.stats.outlierEstimationIds?.length || 0
+        viewedRound.stats.outlierEstimationIds?.length || 0
       );
       setConvergenceResult(convResult);
 
-      // Also set analysis for the panel display
       const analysisResult = convergenceService.getRecommendation(convResult);
       setAnalysis(analysisResult);
+    } else if (viewedRound?.status === 'open') {
+      setConvergenceResult(null);
+      setAnalysis(null);
     }
-  }, [lastClosedRound?.id, currentRoundEstimations.length]);
+  }, [selectedRoundId, currentRoundEstimations.length, viewedRound]);
 
   const distributionData = currentRoundEstimations
     .reduce((acc: any[], curr) => {
@@ -352,7 +361,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
+    return viewedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -381,19 +390,24 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar w-full sm:w-auto">
-              {rounds.map(r => (
-                <div
-                  key={r.id}
-                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'open'
-                    ? 'bg-delphi-keppel text-white border-delphi-keppel'
-                    : activeRound === null && r.id === lastClosedRound?.id
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white border-slate-200 text-slate-400'
-                    }`}
-                >
-                  R{r.roundNumber}
-                </div>
-              ))}
+              {rounds.map(r => {
+                const rId = r.id || (r as any)._id;
+                const isSelected = rId === selectedRoundId;
+                const isOpen = r.status === 'open';
+
+                return (
+                  <button
+                    key={rId}
+                    onClick={() => setSelectedRoundId(rId)}
+                    className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${isSelected
+                      ? (isOpen ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-slate-900 text-white border-slate-900 shadow-lg')
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-delphi-keppel hover:text-delphi-keppel'
+                      }`}
+                  >
+                    R{r.roundNumber}
+                  </button>
+                );
+              })}
               {!activeRound && (
                 <button
                   onClick={handleStartNextRound}
@@ -478,7 +492,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-black text-slate-900">
-                {activeRound ? `Ronda ${activeRound.roundNumber}` : `Resultados`}
+                {viewedRound ? `Ronda ${viewedRound.roundNumber}` : `Resultados`}
               </h4>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 {currentRoundEstimations.length} Expertos
@@ -521,7 +535,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               )}
             </div>
 
-            {canClose && (
+            {canClose && viewedRound?.id === (activeRound?.id || (activeRound as any)?._id) && (
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleCloseRound}
@@ -590,11 +604,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Media</p>
-                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.mean?.toFixed(2) || '-'}</p>
+                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.mean?.toFixed(2) || '-'}</p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mediana</p>
-                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.median?.toFixed(2) || '-'}</p>
+                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.median?.toFixed(2) || '-'}</p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desviación (CV)</p>
@@ -614,11 +628,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                     </p>
 
                     {/* RF015b/c: Resultados específicos del método */}
-                    {!activeRound && rounds.length > 0 && rounds[rounds.length - 1].stats?.metricaResultados && (
+                    {!activeRound && viewedRound?.stats?.metricaResultados && (
                       <div className="bg-delphi-keppel/5 p-6 rounded-[2rem] border border-delphi-keppel/10 space-y-4 animate-in slide-in-from-top-4">
                         <h4 className="text-sm font-black text-slate-900 border-b border-delphi-keppel/10 pb-2">Métricas del Método</h4>
                         <div className="space-y-3">
-                          {Object.entries(rounds[rounds.length - 1].stats!.metricaResultados!)
+                          {Object.entries(viewedRound.stats.metricaResultados)
                             .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
                             .map(([key, val]) => (
                               <div key={key} className="flex justify-between items-center text-xs">

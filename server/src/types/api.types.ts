@@ -35,6 +35,8 @@ export const createProjectSchema = z.object({
             cvThreshold: z.number().min(0.01).max(1).optional().default(0.25),
             maxOutlierPercent: z.number().min(0.01).max(1).optional().default(0.30),
         }).optional(),
+        maxRounds: z.number().min(1).max(10).optional().default(3),
+        sprints: z.number().min(1).max(50).optional().default(1),
     }),
 });
 
@@ -48,6 +50,8 @@ export const updateProjectSchema = z.object({
             cvThreshold: z.number().min(0.01).max(1).optional(),
             maxOutlierPercent: z.number().min(0.01).max(1).optional(),
         }).optional(),
+        maxRounds: z.number().min(1).max(10).optional(),
+        sprints: z.number().min(1).max(50).optional(),
     }),
     params: z.object({
         id: z.string().min(1),

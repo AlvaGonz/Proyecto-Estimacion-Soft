@@ -64,6 +64,18 @@ const projectSchema = new Schema<IProject>(
         convergenceConfig: {
             type: convergenceConfigSchema,
             default: () => ({ cvThreshold: 0.25, maxOutlierPercent: 0.30 })
+        },
+        maxRounds: {
+            type: Number,
+            default: 3,
+            min: 1,
+            max: 10
+        },
+        sprints: {
+            type: Number,
+            default: 1,
+            min: 1,
+            max: 50
         }
     },
     {
