@@ -86,6 +86,13 @@ const App: React.FC = () => {
       }
     };
     checkAuth();
+
+    const handleUnauthorized = async () => {
+      await authService.logout().catch(() => {});
+      setCurrentUser(null);
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
   }, []);
 
   const handleLogout = async () => {
