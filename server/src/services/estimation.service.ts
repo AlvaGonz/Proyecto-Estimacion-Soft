@@ -6,7 +6,7 @@ import { ROUND_STATUS, ROLES, Role } from '../config/constants.js';
 import { auditService } from './audit.service.js';
 
 export const estimationService = {
-    async submit(roundId: string, expertId: string, value: number, justification: string): Promise<IEstimation> {
+    async submit(roundId: string, expertId: string, value: number, justification: string, metodoData?: any): Promise<IEstimation> {
         const round = await Round.findById(roundId);
         if (!round) throw ApiError.notFound('Ronda no encontrada');
 
@@ -25,7 +25,8 @@ export const estimationService = {
             taskId: round.taskId,
             expertId,
             value,
-            justification
+            justification,
+            metodoData: metodoData || {}
         });
 
         await auditService.log({ userId: expertId, action: 'estimation:submit', resource: 'Estimation', resourceId: estimation.id, details: { roundId, value } });

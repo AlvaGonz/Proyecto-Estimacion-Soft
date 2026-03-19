@@ -24,6 +24,22 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const handleNextStep = () => {
+    try {
+      projectSchemaV2.parse({ name, description, unit, estimationMethod });
+      setErrors({});
+      setStep(step + 1);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        err.issues.forEach(issue => {
+          newErrors[issue.path[0] as string] = issue.message;
+        });
+        setErrors(newErrors);
+      }
+    }
+  };
+
   React.useEffect(() => {
     if (step === 4) {
       const fetchExperts = async () => {
@@ -134,7 +150,6 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
                   <Target className="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-delphi-keppel transition-colors" />
                   <input
                     id="projectName"
-                    required
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -142,24 +157,29 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
                     aria-describedby="name-error"
                     className={`w-full bg-slate-50 border-2 ${errors.name ? 'border-red-500' : 'border-slate-100'} rounded-2xl pl-14 pr-6 py-4 text-sm md:text-base font-bold focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel/30 transition-all outline-none`}
                   />
+                  </div>
+                  {errors.name && <p id="name-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.name}</p>}
                 </div>
-                {errors.name && <p id="name-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.name}</p>}
+                <div className="space-y-3">
+                  <label htmlFor="projectDesc" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Descripción del Objetivo</label>
+                  <textarea
+                    id="projectDesc"
+                    rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe el alcance técnico..."
+                    aria-describedby="description-error"
+                    className={`w-full bg-slate-50 border-2 ${errors.description ? 'border-red-500' : 'border-slate-100'} rounded-[2rem] px-6 py-4 text-sm font-medium focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel/30 transition-all outline-none`}
+                  />
+                  {errors.description && <p id="description-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.description}</p>}
               </div>
-              <div className="space-y-3">
-                <label htmlFor="projectDesc" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Descripción del Objetivo</label>
-                <textarea
-                  id="projectDesc"
-                  required
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe el alcance técnico..."
-                  aria-describedby="description-error"
-                  className={`w-full bg-slate-50 border-2 ${errors.description ? 'border-red-500' : 'border-slate-100'} rounded-[2rem] px-6 py-4 text-sm font-medium focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel/30 transition-all outline-none`}
-                />
-                {errors.description && <p id="description-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.description}</p>}
-              </div>
-              <button type="button" onClick={() => setStep(2)} className="w-full sm:w-auto bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
+              <button 
+                type="button" 
+                onClick={handleNextStep}
+                className="w-full sm:w-auto bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all"
+              >
+                Siguiente
+              </button>
             </div>
           )}
 
@@ -237,7 +257,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 sm:flex-none px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Atrás</button>
-                <button type="button" onClick={() => setStep(3)} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
+                <button type="button" onClick={handleNextStep} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
               </div>
             </div>
           )}
@@ -273,7 +293,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setStep(2)} className="flex-1 sm:flex-none px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Atrás</button>
-                <button type="button" onClick={() => setStep(4)} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
+                <button type="button" onClick={handleNextStep} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
               </div>
             </div>
           )}

@@ -1,14 +1,17 @@
-## Hallazgos de Implementación (FIX-UI-010)
+# Findings — T046 & T048
 
-### ProjectForm.tsx
-- [x] El estado de la unidad (`unit`) ahora usa iconos descriptivos (`Clock`, `BarChart3`, `Users`).
-- [x] Se añadió la carga real de expertos desde `userService.getAllUsers()` cuando se llega al paso 4.
-- [x] Se implementó el estado `expertIds` y el filtro para mostrar solo usuarios con el rol `EXPERT`.
-- [x] Se agregó un bloqueador visual (disabled) en el botón "Finalizar" si no hay expertos seleccionados.
-- [x] La UI del paso 4 ahora es una cuadrícula scrollable con checkboxes visuales (Check icon).
+## Page Snapshot Evidence
+- Button "Cerrar y Analizar Ronda" is `[disabled]` at line 189
+- Paragraph: "Expertos Participantes: 0"
+- Nav bar has "Cerrar sesión" button — ambiguous with /cerrar/i regex
 
-### userService.ts
-- [x] `getAllUsers()` funciona perfectamente como fuente de verdad para el panel de expertos.
+## Business Rule (from project spec)
+- RF013: Estimations stay hidden until facilitator formally closes round
+- RS37: Stats calculated WHEN facilitator closes a round
+- Facilitator role CANNOT submit estimations (confirmed in UI: "Como facilitador, no puedes registrar estimaciones")
+- Therefore: test MUST inject at least 1 expert estimation via API before attempting to close
 
-### App.tsx
-- [x] `handleCreateProject` ya está preparado para recibir el objeto `Project` con los `expertIds` actualizados.
+## Files Involved
+- `e2e/estimation-submit.spec.ts` — line 189 (locator fix)
+- API route for submitting estimation (find in backend routes — likely POST /api/estimaciones or /api/rounds/:id/estimate)
+- Auth helper / fixture for expert-role user (check `e2e/fixtures/` or `e2e/helpers/`)
