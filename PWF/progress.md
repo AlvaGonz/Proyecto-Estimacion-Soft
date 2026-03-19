@@ -38,3 +38,50 @@ httpOnly cookies (`accessToken`, `refreshToken`) cannot be cleared by JavaScript
 
 ### Fix
 Introduced a client-side `estimapro_auth` localStorage flag that acts as a session indicator. On app mount, if this flag is missing, the app calls `authService.logout()` to clear httpOnly cookies via the server, then renders the Login component. This ensures the T040 test's `localStorage.clear()` + `page.reload()` correctly triggers a redirect to the login form.
+
+---
+
+## Expert Selection Expertise Area Feature — 2026-03-19
+- Status: COMPLETE
+- Build verification: Frontend and backend errors are all pre-existing (not caused by this feature)
+  - Frontend pre-existing: AdminPanel.tsx missing icon imports, geminiService.ts/statistics.ts outliers property mismatch
+  - Backend pre-existing: round.service.ts Mongoose FlattenMaps type incompatibility
+- Feature: Show expertise area on expert cards in project wizard Step 4
+
+### Problem
+In "Asignar Panel de Expertos" step, expert cards showed only name/email. Facilitators could not see each expert's specialty when selecting the panel.
+
+### Solution — End-to-End Implementation
+Since no expertise field existed anywhere, implemented from scratch:
+
+#### Files Modified
+1. **`server/src/types/models.types.ts`** — Added `expertiseArea?: string | null` to `IUser` interface
+2. **`server/src/models/User.model.ts`** — Added `expertiseArea` field to Mongoose schema (default: null, trim: true)
+3. **`types.ts`** — Added `expertiseArea?: string` to frontend `User` interface
+4. **`services/userService.ts`** — Added `expertiseArea?: string` to `User` interface
+5. **`server/src/seed.ts`** — Assigned expertise areas to 5 demo experts:
+   - Experto 1: Backend
+   - Experto 2: Frontend
+   - Experto 3: DevOps
+   - Experto 4: QA
+   - Experto 5: Base de Datos
+6. **`components/ProjectForm.tsx`** — Updated expert cards in step 4:
+   - Added expertise area badge (pill) below email
+   - Added `aria-label` with name + expertise for accessibility
+   - Added `title` attribute on badge for full text on hover
+   - Added `shrink-0` to avatar to prevent squishing
+   - Fallback: "Sin especialidad" when no area set
+   - Updated helper text: "Selecciona expertos según su área de dominio"
+
+### Data Decision
+- New field `expertiseArea` added (not reusing existing field, since none existed)
+- Shape: `string` (single area per expert — simple, sufficient for MVP)
+- Optional field with null default — backward compatible
+
+### UI Behavior
+- Each expert card now shows: avatar initial, name, email, **expertise area badge**
+- Badge uses existing design tokens (`delphi-keppel` when selected, `slate-100` when unselected)
+- Selected state: `bg-delphi-keppel/15 text-delphi-keppel`
+- Unselected state: `bg-slate-100 text-slate-400`
+- Text is uppercase, 8px, font-black, tracking-wider — compact but readable
+- Full expertise text available via `title` attribute on hover
