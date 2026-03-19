@@ -10,6 +10,11 @@ export const USERS = {
  * Navega al home y verifica que la sesión está activa para el usuario solicitado.
  */
 export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitator') {
+  // Always inject the onboarding_complete flag into localStorage before doing anything
+  await page.addInitScript(() => {
+    window.localStorage.setItem('onboarding_complete', 'true');
+  });
+  
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
@@ -18,15 +23,21 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
   // Verificar si ya estamos autenticados con el usuario CORRECTO
   // Buscamos el email en el sidebar/perfil
   const currentEmailVisible = await page.getByText(creds.email).isVisible({ timeout: 2_000 }).catch(() => false);
-  const isSidebarVisible = await page.getByRole('button', { name: /proyectos/i }).isVisible({ timeout: 1_000 }).catch(() => false);
+  
+  // Buscar el título del Dashboard, o la navegación (puede ser link o button)
+  const visibles = await Promise.all([
+    page.getByRole('heading', { name: /dashboard/i }).isVisible({ timeout: 1_000 }).catch(() => false),
+    page.getByRole('button', { name: /proyectos/i }).isVisible({ timeout: 1_000 }).catch(() => false),
+    page.getByRole('link', { name: /proyectos/i }).isVisible({ timeout: 1_000 }).catch(() => false),
+    page.getByRole('button', { name: /cerrar sesión/i }).isVisible({ timeout: 1_000 }).catch(() => false)
+  ]);
+  const isDashboardOrSidebarVisible = visibles.some(v => v);
 
-  if (!currentEmailVisible || !isSidebarVisible) {
-    // Si no estamos o es el usuario equivocado, desloguear (opcional) o simplemente navegar a / de nuevo si hace falta
-    // Pero en la app, si no hay sesión, se muestra el login. 
-    // Si hay sesión de OTRO, hay que desloguear.
-    if (isSidebarVisible && !currentEmailVisible) {
-      // Estamos logueados como alguien más. Forzar logout o borrar cookies.
+  if (!currentEmailVisible || !isDashboardOrSidebarVisible) {
+    if (isDashboardOrSidebarVisible && !currentEmailVisible) {
+      // Estamos logueados como alguien más. Forzar logout o borrar cookies Y localStorage.
       await page.context().clearCookies();
+      await page.evaluate(() => window.localStorage.clear());
       await page.goto('/');
       await page.waitForLoadState('networkidle');
     }
@@ -39,8 +50,7 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
     await page.waitForLoadState('networkidle');
   }
 
-  // Siempre dismissar onboarding si aparece
-  await dismissOnboardingIfPresent(page);
+  // Dismissal via UI is no longer needed since we inject the flag via addInitScript
 }
 
 export async function dismissOnboardingIfPresent(page: Page): Promise<void> {

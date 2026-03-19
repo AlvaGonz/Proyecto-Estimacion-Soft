@@ -125,9 +125,9 @@ export const roundService = {
                 recommendation: convergence.recommendation,
                 // Ensure all stats from statisticsService are passed back to the frontend
                 stats: {
-                    ...stats,
-                    cv: stats.coefficientOfVariation,
-                    metricaResultados: stats
+                    ...statsResult,
+                    cv: statsResult.cv,
+                    metricaResultados: statsResult.metricaResultados
                 }
             }
         };
