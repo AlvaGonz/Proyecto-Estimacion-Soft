@@ -39,5 +39,11 @@ export const projectService = {
             method: 'PATCH',
             body: { action, expertIds }
         });
+    },
+
+    async deleteProject(id: string): Promise<void> {
+        return fetchApi<void>(`/projects/${id}`, {
+            method: 'DELETE'
+        });
     }
 };

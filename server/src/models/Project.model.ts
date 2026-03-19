@@ -52,6 +52,10 @@ const projectSchema = new Schema<IProject>(
             enum: Object.values(PROJECT_STATUS),
             default: PROJECT_STATUS.ACTIVE
         },
+        isDeleted: {
+            type: Boolean,
+            default: false
+        },
         estimationMethod: {
             type: String,
             enum: ['wideband-delphi', 'planning-poker', 'three-point'],

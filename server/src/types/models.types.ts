@@ -43,6 +43,7 @@ export interface IProject extends Document {
     facilitatorId: Types.ObjectId;
     expertIds: Types.ObjectId[];
     status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+    isDeleted?: boolean;
     estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
     createdAt: Date;

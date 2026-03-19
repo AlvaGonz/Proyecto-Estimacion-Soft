@@ -20,7 +20,7 @@ export const projectService = {
     },
 
     async findAll(userId: string, role: Role): Promise<IProject[]> {
-        const query: any = {};
+        const query: any = { isDeleted: { $ne: true } };
 
         // Data isolation based on role
         if (role === ROLES.FACILITADOR) {
@@ -41,7 +41,7 @@ export const projectService = {
             throw ApiError.badRequest('ID de proyecto inválido');
         }
 
-        const project = await Project.findById(id)
+        const project = await Project.findOne({ _id: id, isDeleted: { $ne: true } })
             .populate('facilitatorId', 'name email')
             .populate('expertIds', 'name email')
             .populate('taskCount'); // Virtual field
@@ -115,5 +115,49 @@ export const projectService = {
 
         await auditService.log({ userId: requesterId, action: `project:experts_${action}`, resource: 'Project', resourceId: id, details: { expertIds } });
         return updatedProject as IProject;
+    },
+
+    async softDelete(id: string, requesterId: string): Promise<void> {
+        const project = await Project.findById(id);
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        project.isDeleted = true;
+        await project.save();
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:delete',
+            resource: 'Project',
+            resourceId: id,
+            details: { name: project.name }
+        });
+    },
+
+    async findAllAdmin(): Promise<IProject[]> {
+        return await Project.find({})
+            .populate('facilitatorId', 'name email')
+            .populate('expertIds', 'name email')
+            .sort({ createdAt: -1 });
+    },
+
+    async restore(id: string, requesterId: string): Promise<IProject> {
+        const project = await Project.findByIdAndUpdate(
+            id,
+            { $set: { isDeleted: false } },
+            { new: true }
+        );
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:restore',
+            resource: 'Project',
+            resourceId: id
+        });
+        return project as IProject;
     }
 };
