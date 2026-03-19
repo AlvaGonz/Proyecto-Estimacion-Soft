@@ -107,8 +107,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     const handleFocus = () => loadRounds();
     window.addEventListener('focus', handleFocus);
 
-    return () => { 
-      isMounted = false; 
+    return () => {
+      isMounted = false;
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
     };
@@ -180,11 +180,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       setErrors({});
       setIsAnalyzing(true);
       const activeId = activeRound.id || (activeRound as any)._id;
-      
-      const metodoData = estimationMethod === 'three-point' 
-        ? { ...threePoint } 
-        : estimationMethod === 'planning-poker' 
-          ? { card: pokerCard } 
+
+      const metodoData = estimationMethod === 'three-point'
+        ? { ...threePoint }
+        : estimationMethod === 'planning-poker'
+          ? { card: pokerCard }
           : {};
 
       const newEst = await estimationService.submitEstimation(activeId, value, justification, metodoData);
@@ -314,7 +314,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   });
 
   // RF019: Add anonymous expert labels
-  const currentRoundEstimationsWithLabels: EstimationWithExpert[] = 
+  const currentRoundEstimationsWithLabels: EstimationWithExpert[] =
     convergenceService.addAnonymousLabels(currentRoundEstimations);
 
   // RF020: Calculate convergence when viewing a closed round
@@ -327,7 +327,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         lastClosedRound.stats.outlierEstimationIds?.length || 0
       );
       setConvergenceResult(convResult);
-      
+
       // Also set analysis for the panel display
       const analysisResult = convergenceService.getRecommendation(convResult);
       setAnalysis(analysisResult);
@@ -504,7 +504,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black text-slate-400">{est.expertLabel}</span>
-                            {outlier && <AlertTriangle className="w-3 h-3 text-delphi-giants" />}
+                            {outlier && (
+                              <div className="flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-delphi-giants" />
+                                <span className="text-[10px] font-black text-delphi-giants uppercase tracking-tighter">Atípico</span>
+                              </div>
+                            )}
                           </div>
                           <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Puntos de Historia' : unit === 'personDays' ? 'Días Persona' : unit}</span>
                         </div>
@@ -540,14 +545,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
                 <div className="space-y-4">
                   {canEstimate ? renderEstimationInput() : (
-                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                    <p className="text-slate-500 text-sm font-medium">
-                      {isFacilitator 
-                        ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos." 
-                        : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
-                    </p>
-                  </div>
-                )}
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                      <p className="text-slate-500 text-sm font-medium">
+                        {isFacilitator
+                          ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos."
+                          : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
+                      </p>
+                    </div>
+                  )}
                   {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
                   {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
                   <button
@@ -559,7 +564,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : !showBoxPlot ? (
               <div className={`p-6 md:p-8 rounded-[2rem] border transition-all ${isAnalyzing ? 'bg-slate-50' : 'bg-white shadow-sm'}`}>
                 {isAnalyzing ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-4">
@@ -616,24 +621,24 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                           {Object.entries(rounds[rounds.length - 1].stats!.metricaResultados!)
                             .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
                             .map(([key, val]) => (
-                            <div key={key} className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400 font-bold uppercase tracking-wider">
-                                {key === 'moda' ? 'Moda' : 
-                                 key === 'frecuencia' ? 'Frecuencia' :
-                                 key === 'consensoPct' ? 'Nivel de Consenso' :
-                                 key === 'expectedValue' ? 'Valor Esperado (E)' :
-                                 key === 'standardDeviation' ? 'Desviación (σ)' :
-                                 key === 'optimisticAvg' ? 'Promedio Optimista (O)' :
-                                 key === 'mostLikelyAvg' ? 'Promedio Probable (M)' :
-                                 key === 'mean' ? 'Media' :
-                                 key === 'median' ? 'Mediana' :
-                                 key === 'pessimisticAvg' ? 'Promedio Pesimista (P)' : key}
-                              </span>
-                              <span className="font-black text-slate-900">
-                                {typeof val === 'number' && key === 'consensoPct' ? `${val}%` : String(val)}
-                              </span>
-                            </div>
-                          ))}
+                              <div key={key} className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400 font-bold uppercase tracking-wider">
+                                  {key === 'moda' ? 'Moda' :
+                                    key === 'frecuencia' ? 'Frecuencia' :
+                                      key === 'consensoPct' ? 'Nivel de Consenso' :
+                                        key === 'expectedValue' ? 'Valor Esperado (E)' :
+                                          key === 'standardDeviation' ? 'Desviación (σ)' :
+                                            key === 'optimisticAvg' ? 'Promedio Optimista (O)' :
+                                              key === 'mostLikelyAvg' ? 'Promedio Probable (M)' :
+                                                key === 'mean' ? 'Media' :
+                                                  key === 'median' ? 'Mediana' :
+                                                    key === 'pessimisticAvg' ? 'Promedio Pesimista (P)' : key}
+                                </span>
+                                <span className="font-black text-slate-900">
+                                  {typeof val === 'number' && key === 'consensoPct' ? `${val}%` : String(val)}
+                                </span>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     )}
@@ -655,12 +660,13 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
     </AppErrorBoundary>
   );
 };
+
 
 export default EstimationRounds;

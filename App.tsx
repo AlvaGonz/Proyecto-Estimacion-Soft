@@ -48,6 +48,23 @@ const App: React.FC = () => {
     console.log("App: Initializing auth check...");
     const checkAuth = async () => {
       try {
+        // Check if auth flag exists in localStorage (set on successful login)
+        // If missing, the session was invalidated client-side (e.g., token expiry simulation)
+        const authFlag = localStorage.getItem('estimapro_auth');
+        if (!authFlag) {
+          console.log("App: No auth flag found in localStorage, clearing session");
+          // Clear httpOnly cookies via server logout endpoint
+          try {
+            await authService.logout();
+          } catch (logoutErr) {
+            // Ignore errors — cookies may already be cleared
+            console.log("App: Logout during init returned error (expected if no session):", logoutErr);
+          }
+          setCurrentUser(null);
+          setIsInitializing(false);
+          return;
+        }
+
         const user = await authService.getMe();
         console.log("App: Auth user:", user);
         if (user) {
@@ -55,9 +72,14 @@ const App: React.FC = () => {
           const userProjects = await projectService.getProjects();
           console.log("App: Projects loaded:", userProjects.length);
           setProjects(userProjects);
+        } else {
+          // API returned null user — clear stale auth flag
+          localStorage.removeItem('estimapro_auth');
         }
       } catch (err) {
         console.error("App: Auth initialization failed:", err);
+        // Clear stale auth flag on error
+        localStorage.removeItem('estimapro_auth');
       } finally {
         console.log("App: Auth initialization complete, setting isInitializing to false");
         setIsInitializing(false);
@@ -73,6 +95,7 @@ const App: React.FC = () => {
       console.error('Logout failed:', error);
     } finally {
       // Siempre limpiar el estado local aunque el API falle
+      localStorage.removeItem('estimapro_auth');
       setCurrentUser(null);
     }
   };

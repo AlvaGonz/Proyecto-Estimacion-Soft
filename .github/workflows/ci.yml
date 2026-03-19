@@ -1,8 +1,8 @@
-name: CI — DelphiEstimator Pro
+name: CI — EstimaPro
 
 on:
   push:
-    branches: [develop, main, 'feature/**', 'fix/**', 'chore/**']
+    branches: [develop, main, 'feature/**', 'chore/**', 'fix/**']
   pull_request:
     branches: [develop, main]
 
@@ -16,10 +16,10 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────
-  # JOB 1: TypeScript type check
+  # JOB 1: Install + Cache
   # ─────────────────────────────────────────────
-  typecheck:
-    name: TypeScript Check
+  install:
+    name: Install Dependencies
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,45 +28,59 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
       - run: npm ci
-      - name: Frontend Typecheck
+      - name: Install backend dependencies
+        run: cd server && npm ci
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Lint / Static Validation
+  # ─────────────────────────────────────────────
+  lint:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Frontend lint
         run: npm run lint
-      - name: Server Typecheck
+      - name: Backend lint
+        run: |
+          cd server
+          npm run lint
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Typecheck
+  # ─────────────────────────────────────────────
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Frontend typecheck
+        run: npm run lint
+      - name: Backend typecheck
         run: |
           cd server
           npm ci
           npx tsc --noEmit
 
   # ─────────────────────────────────────────────
-  # JOB 2: Unit Tests + Coverage
-  # ─────────────────────────────────────────────
-  unit-tests:
-    name: Unit Tests (Vitest)
-    runs-on: ubuntu-latest
-    needs: typecheck
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - run: npm ci
-      - name: Run unit tests with coverage
-        run: npx vitest run --coverage
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: coverage/
-          retention-days: 14
-
-  # ─────────────────────────────────────────────
-  # JOB 3: Build check
+  # JOB 4: Build Frontend
   # ─────────────────────────────────────────────
   build:
     name: Build Frontend
     runs-on: ubuntu-latest
-    needs: unit-tests
+    needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -83,12 +97,40 @@ jobs:
           retention-days: 7
 
   # ─────────────────────────────────────────────
-  # JOB 4: E2E Tests (solo en PR a develop/main)
+  # JOB 5: Unit Tests + Coverage
+  # ─────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - name: Run frontend unit tests with coverage
+        run: npx vitest run --coverage
+      - name: Run backend unit tests
+        run: |
+          cd server
+          npm run test
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # ─────────────────────────────────────────────
+  # JOB 6: E2E Tests (PR validation only)
   # ─────────────────────────────────────────────
   e2e-tests:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, unit-tests]
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
@@ -110,3 +152,24 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+  # ─────────────────────────────────────────────
+  # JOB 7: Docker Compose Validation
+  # ─────────────────────────────────────────────
+  docker-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose
+        run: docker-compose -f docker-compose.yml config
+      - name: Build Docker images
+        run: docker-compose build
+      - name: Test Docker services
+        run: |
+          docker-compose up -d
+          sleep 30
+          curl -f http://localhost:3000 || exit 1
+          curl -f http://localhost:4000/api/health || exit 1
+          docker-compose down

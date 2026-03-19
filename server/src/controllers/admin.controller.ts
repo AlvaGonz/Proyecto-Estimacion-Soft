@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { adminService } from '../services/admin.service.js';
+import { projectService } from '../services/project.service.js';
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
@@ -26,4 +27,14 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
 export const deactivateUser = asyncHandler(async (req: Request, res: Response) => {
     await adminService.deactivateUser(req.params.id, req.user!.id);
     res.json({ success: true, message: 'Usuario desactivado exitosamente' });
+});
+
+export const getProjects = asyncHandler(async (req: Request, res: Response) => {
+    const projects = await projectService.findAllAdmin();
+    res.json({ success: true, data: projects });
+});
+
+export const restoreProject = asyncHandler(async (req: Request, res: Response) => {
+    const project = await projectService.restore(req.params.id, req.user!.id);
+    res.json({ success: true, data: project, message: 'Proyecto restaurado exitosamente' });
 });

@@ -66,6 +66,17 @@ export const archiveProject = asyncHandler(async (req: Request, res: Response) =
     });
 });
 
+export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const requesterId = req.user?.id as string;
+    await projectService.softDelete(id, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Proyecto eliminado exitosamente'
+    });
+});
+
 export const manageExperts = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { action, expertIds } = req.body;

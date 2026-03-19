@@ -229,8 +229,8 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     }
     
     // Step 2: Expertos envían estimaciones
-    // [10, 10, 10, 10, 100] -> Sample size 5 makes 100 an outlier with IQR rule
-    const expertValues = [10, 10, 10, 10, 100];
+    // [20, 25, 30, 35, 100] -> Q1=25, Q3=35, IQR=10, UpperBound=35 + 1.5*10 = 50. 100 > 50 (Outlier)
+    const expertValues = [20, 25, 30, 35, 100];
     const expertRoles: ('expert1' | 'expert2' | 'expert3' | 'expert4' | 'expert5')[] = 
       ['expert1', 'expert2', 'expert3', 'expert4', 'expert5'];
     
@@ -259,10 +259,12 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     
     // Step 4: Verificar Outlier (100)
     // El sistema debe marcarlo como "atípico" o similar
-    await expect(page.getByText('100')).toBeVisible({ timeout: 5_000 });
-    await expect(
-      page.locator('div').filter({ hasText: /^100$/ }).locator('..').getByText(/atípico|outlier|extremo/i)
-    ).toBeVisible({ timeout: 10_000 });
+    // Usar texto más específico para evitar strict mode violation
+    await expect(page.getByText('100 Horas')).toBeVisible({ timeout: 5_000 });
+    // Refined locator: Find the card that has the text "100 Horas" and then check for the "Atípico" label within it.
+    // We use .first() or a more specific selector if needed, but since 100 is unique, this should work.
+    const outlierCard = page.locator('div').filter({ hasText: '100 Horas' }).filter({ hasText: 'Experto' });
+    await expect(outlierCard.getByText(/atípico/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('T048 — Estimaciones visibles después de cerrar ronda (RS34, RF013)', async ({ page }) => {
@@ -313,8 +315,9 @@ test.describe('ESTIMACIÓN — Cierre de Ronda y Métricas (RF015-RF016)', () =>
     ).toBeVisible({ timeout: 10_000 });
     
     // Verificar que ambos valores están presentes
-    await expect(page.getByText('5')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText('8')).toBeVisible({ timeout: 5_000 });
+    // Usar texto más específico para evitar strict mode violation (getByText('8') matchea timestamp del proyecto)
+    await expect(page.getByText('5 Horas')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('8 Horas')).toBeVisible({ timeout: 5_000 });
   });
 
 });

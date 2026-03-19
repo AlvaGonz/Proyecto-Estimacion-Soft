@@ -15,6 +15,7 @@ const userSchema = new Schema<IUser>(
             required: true,
         },
         isActive: { type: Boolean, default: true },
+        expertiseArea: { type: String, default: null, trim: true },
         refreshToken: { type: String, default: null, select: false },
         lastLogin: { type: Date },
     },
