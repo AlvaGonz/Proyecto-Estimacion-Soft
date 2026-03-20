@@ -43,6 +43,15 @@ class NotificationService {
     this.saveNotifications(updated);
   }
 
+  markAllAsReadForUser(userId: string) {
+    const notifications = this.getNotifications();
+    const updated = notifications.map(n => {
+      const belongsToUser = !n.targetUserId || n.targetUserId === userId;
+      return belongsToUser ? { ...n, read: true } : n;
+    });
+    this.saveNotifications(updated);
+  }
+
   deleteNotification(id: string) {
     const notifications = this.getNotifications();
     const filtered = notifications.filter(n => n.id !== id);

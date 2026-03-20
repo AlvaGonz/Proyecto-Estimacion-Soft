@@ -1,19 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Clock, Target, Users, Zap, X, Check, Trash2 } from 'lucide-react';
+import { Bell, Clock, Target, Users, Zap, X, Check, Trash2, ShieldCheck, MessageSquare, BarChart3, PlusCircle, CheckCircle2 } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 import { Notification } from '../types';
 
 interface NotificationCenterProps {
   onClose: () => void;
+  currentUserId: string;
 }
 
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, currentUserId }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     const fetchNotifications = () => {
-      setNotifications(notificationService.getNotifications());
+      const allNotifs = notificationService.getNotifications();
+      const userNotifs = allNotifs.filter(n => !n.targetUserId || n.targetUserId === currentUserId);
+      setNotifications(userNotifs);
     };
 
     fetchNotifications();
@@ -24,7 +27,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     return () => {
       window.removeEventListener('notifications_updated', fetchNotifications);
     };
-  }, []);
+  }, [currentUserId]);
 
   const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -32,7 +35,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
   };
 
   const handleMarkAllAsRead = () => {
-    notificationService.markAllAsRead();
+    notificationService.markAllAsReadForUser(currentUserId);
   };
 
   const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
@@ -52,18 +55,28 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     switch (type) {
       case 'project_invite': return <Users className="w-6 h-6" />;
       case 'round_opened':
-      case 'round_closed': return <Clock className="w-6 h-6" />;
-      case 'consensus_reached': return <Zap className="w-6 h-6" />;
-      default: return <Target className="w-6 h-6" />;
+      case 'new_round': return <PlusCircle className="w-6 h-6" />;
+      case 'round_closed':
+      case 'results_revealed': return <BarChart3 className="w-6 h-6" />;
+      case 'consensus_reached': return <CheckCircle2 className="w-6 h-6" />;
+      case 'expert_submission': return <MessageSquare className="w-6 h-6" />;
+      case 'reminder': return <Clock className="w-6 h-6" />;
+      case 'system': return <ShieldCheck className="w-6 h-6" />;
+      default: return <Bell className="w-6 h-6" />;
     }
   };
 
   const getIconColorClass = (type: string) => {
     switch (type) {
       case 'project_invite': return 'bg-delphi-keppel/10 text-delphi-keppel';
-      case 'round_opened': return 'bg-delphi-orange/10 text-delphi-orange';
-      case 'round_closed': return 'bg-delphi-orange/10 text-delphi-orange';
-      case 'consensus_reached': return 'bg-delphi-celadon/10 text-delphi-keppel';
+      case 'round_opened':
+      case 'new_round': return 'bg-delphi-celadon/10 text-delphi-keppel';
+      case 'round_closed':
+      case 'results_revealed': return 'bg-delphi-orange/10 text-delphi-orange';
+      case 'consensus_reached': return 'bg-delphi-keppel/10 text-delphi-keppel';
+      case 'expert_submission': return 'bg-blue-100 text-blue-500';
+      case 'reminder': return 'bg-delphi-giants/10 text-delphi-giants';
+      case 'system': return 'bg-slate-100 text-slate-500';
       default: return 'bg-slate-100 text-slate-400';
     }
   };

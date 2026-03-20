@@ -38,11 +38,12 @@ interface ProjectDetailProps {
   projectId: string;
   onBack: () => void;
   role: UserRole;
+  currentUserId: string;
 }
 
 type TabType = 'tasks' | 'docs' | 'discussion' | 'team' | 'audit';
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }) => {
+const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, currentUserId }) => {
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -252,10 +253,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
       // Since it's a finish, we can just notify all interested roles in a real app.
       // For now, in-app notification for the facilitator's session end.
       import('../services/notificationService').then(({ notificationService }) => {
-        notificationService.addNotification({
-          type: 'system',
-          message: `Proyecto "${project.name}" finalizado con éxito. Reportes disponibles.`,
-          projectId: project.id
+        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+        
+        targetIds.forEach(targetId => {
+          notificationService.addNotification({
+            type: 'system',
+            message: `Proyecto "${project.name}" finalizado con éxito. Reportes disponibles.`,
+            projectId: project.id,
+            targetUserId: targetId
+          });
         });
       });
 
@@ -271,6 +277,21 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     try {
       setIsDeleting(true);
       await projectService.deleteProject(projectId);
+      
+      import('../services/notificationService').then(({ notificationService }) => {
+        // Notify everyone except the person deleting the project!
+        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+        
+        targetIds.forEach(targetId => {
+          notificationService.addNotification({
+            type: 'system',
+            message: `El proyecto "${project.name}" ha sido eliminado.`,
+            projectId,
+            targetUserId: targetId
+          });
+        });
+      });
+
       onBack(); // Redirect to list
     } catch (err: any) {
       alert(err.message || "Error al eliminar el proyecto");
@@ -664,6 +685,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   onTaskFinalize={handleTaskFinalize}
                   isFacilitator={isFacilitator}
                   projectId={project.id}
+                  currentUserId={currentUserId}
                 />
               ) : (
                 <div className="h-64 md:h-96 bg-white rounded-[2rem] md:rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-200 gap-4 md:gap-6">
