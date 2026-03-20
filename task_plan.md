@@ -1,55 +1,31 @@
-# Task Plan: Fixing Estimation UI and Enhancements
+# Task Plan - Wiring Notification System
 
-## Goal
-Correct the functional round switching in Wideband Delphi and implement requested enhancements for facilitator control and display accuracy.
+## Phase 1: Audit and Analysis
+- [ ] Read and map `services/notificationService.ts` API.
+- [ ] Audit `components/NotificationCenter.tsx` for supported types and UI contract.
+- [ ] Audit `components/TeamPanel.tsx` for `project_invite` (expert assignment).
+- [ ] Audit `components/EstimationRounds.tsx` for `round_opened`, `round_closed`, and `consensus_reached`.
+- [ ] Audit `components/ProjectDetail.tsx` and `components/AdminPanel.tsx` for other triggering events.
+- [ ] Log discoveries in `findings.md`.
 
-## Current Phase
-Phase 1: Requirements & Discovery
+## Phase 2: Implementation - Service and Types
+- [ ] Update `NotificationType` in `notificationService.ts` to include all 5 events:
+  - `project_invite`
+  - `round_opened`
+  - `round_closed`
+  - `consensus_reached`
+  - `reminder`
+- [ ] Ensure `addNotification` dispatches `notifications_updated` event.
 
-## Phases
+## Phase 3: Implementation - Call Sites
+- [ ] Wire `project_invite` in `TeamPanel.tsx`.
+- [ ] Wire `round_opened` in `EstimationRounds.tsx` (handleStartNextRound).
+- [ ] Wire `round_closed` in `EstimationRounds.tsx` (handleCloseRound).
+- [ ] Wire `consensus_reached` in `EstimationRounds.tsx`.
 
-### Phase 1: Requirements & Discovery
-- [x] Understand user intent
-- [x] Identify constraints and requirements
-- [x] Document findings in findings.md
-- **Status:** complete
+## Phase 4: Implementation - UI Contract
+- [ ] Update `NotificationCenter.tsx` to handle all 5 types in `getIcon` and `getIconColorClass`.
 
-### Phase 2: Backend Planning & Implementation
-- [ ] Add `maxRounds` and `sprints` to Project model
-- [ ] Implement Facilitator update controllers for Project settings
-- [ ] Add/Update Round stats calculation for Participation % and Global Commitment
-- [ ] Ensure Round switching logic handles `maxRounds` correctly
-- **Status:** pending
-
-### Phase 3: Frontend Implementation
-- [ ] Replace "Your Estimation" modal with "Cumulative Results" for Facilitators
-- [ ] Create UI for editing Max Rounds and Sprints in Project Settings
-- [ ] Update Participation and Commitment displays with corrected calculations
-- **Status:** pending
-
-### Phase 4: Testing & Verification
-- [ ] Verify Round switching functionality
-- [ ] Test Facilitator edits (Max Rounds/Sprints)
-- [ ] Validate calculation accuracy
-- [ ] Confirm Facilitator's results view
-- **Status:** pending
-
-## Key Questions
-1. Where is the exact round switching logic (frontend or backend)?
-2. How is "Participation %" defined? (Experts submitted / total invited experts?)
-3. How is "Global Commitment" defined? (Tasks committed / total tasks in sprint?)
-
-## Decisions Made
-| Decision | Rationale |
-|----------|-----------|
-| Update Project Schema | Facilitator needs to configure `maxRounds` and `sprints`. |
-| Add new Controller for Project Settings | Separates standard project data from estimation-specific configurations. |
-
-## Errors Encountered
-| Error | Attempt | Resolution |
-|-------|---------|------------|
-| N/A   | 1       |            |
-
-## Notes
-- Roles: `UserRole.FACILITATOR` is the target role for most of these edits.
-- Wideband Delphi rules (iterative, anonymous) must be preserved.
+## Phase 5: Verification
+- [ ] Verify JSX syntax and build errors.
+- [ ] Create a manual verification checklist.

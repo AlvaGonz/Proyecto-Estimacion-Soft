@@ -58,6 +58,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sprintIsLocked, setSprintIsLocked] = useState(false);
+  const [roundsByTask, setRoundsByTask] = useState<Record<string, Round[]>>({});
   
   // Config form state
   const [configForm, setConfigForm] = useState({
@@ -95,6 +97,24 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
         ]);
         setProject(proj);
         setTasks(taskList);
+        
+        // Fetch rounds for all tasks to check for lock condition
+        const roundsPromises = taskList.map(t => roundService.getRoundsByTask(projectId, t.id));
+        const allRounds = await Promise.all(roundsPromises);
+        
+        const roundsMap: Record<string, Round[]> = {};
+        let hasEstimation = false;
+        
+        taskList.forEach((t, i) => {
+          roundsMap[t.id] = allRounds[i];
+          if (!hasEstimation && allRounds[i].some(r => r.estimations && r.estimations.length > 0)) {
+            hasEstimation = true;
+          }
+        });
+        
+        setRoundsByTask(roundsMap);
+        setSprintIsLocked(hasEstimation);
+
         if (taskList.length > 0) {
           setSelectedTaskId(taskList[0].id);
         }
@@ -177,13 +197,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskTitle || !newTaskDesc) return;
+    if (!newTaskTitle || !newTaskDesc || sprintIsLocked) return;
     try {
       const newTask = await taskService.createTask(projectId, {
         title: newTaskTitle,
         description: newTaskDesc,
       });
       setTasks([...tasks, newTask]);
+      setRoundsByTask(prev => ({ ...prev, [newTask.id]: [] }));
       setNewTaskTitle('');
       setNewTaskDesc('');
       setShowTaskForm(false);
@@ -207,6 +228,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
     try {
       const updatedTasks = await taskService.getTasks(projectId);
       setTasks(updatedTasks);
+      
+      // Update rounds for this task as it might have changed
+      const updatedRounds = await roundService.getRoundsByTask(projectId, taskId);
+      setRoundsByTask(prev => ({ ...prev, [taskId]: updatedRounds }));
+      
+      // Re-evaluate lock just in case
+      if (updatedRounds.some(r => r.estimations && r.estimations.length > 0)) {
+        setSprintIsLocked(true);
+      }
     } catch (err) {
       console.error("Error refreshing tasks after finalization", err);
     }
@@ -217,6 +247,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
       setIsFinalizing(true);
       const updated = await projectService.updateProject(projectId, { status: 'finished' });
       setProject(updated);
+      
+      // RF014: All participants should be notified when the session ends
+      // Since it's a finish, we can just notify all interested roles in a real app.
+      // For now, in-app notification for the facilitator's session end.
+      import('../services/notificationService').then(({ notificationService }) => {
+        notificationService.addNotification({
+          type: 'system',
+          message: `Proyecto "${project.name}" finalizado con éxito. Reportes disponibles.`,
+          projectId: project.id
+        });
+      });
+
       setShowFinalizeModal(false);
     } catch (err: any) {
       alert(err.message || "Error al finalizar el proyecto");
@@ -279,6 +321,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                 <Users className="w-4 h-4 text-delphi-orange" />
                 {project.expertIds?.length || 0} Expertos
               </p>
+              {sprintIsLocked && (
+                <>
+                  <div className="hidden sm:block h-4 w-px bg-slate-200" />
+                  <p className="text-delphi-giants font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 bg-delphi-giants/10 px-3 py-1 rounded-full animate-pulse">
+                    <History className="w-4 h-4" />
+                    🔒 Sprint bloqueado por estimación
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -294,7 +345,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
             </button>
             <button
               onClick={() => setShowTaskForm(true)}
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-delphi-keppel text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-delphi-keppel/30 hover:scale-[1.02] transition-all font-bold"
+              disabled={sprintIsLocked}
+              title={sprintIsLocked ? "No se pueden añadir tareas una vez iniciada la estimación" : ""}
+              className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all font-bold ${
+                sprintIsLocked 
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
+                  : 'bg-delphi-keppel text-white shadow-delphi-keppel/30 hover:scale-[1.02]'
+              }`}
             >
               <Plus className="w-4 h-4" />
               Añadir Tarea

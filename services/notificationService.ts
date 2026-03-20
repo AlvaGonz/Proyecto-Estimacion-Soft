@@ -1,12 +1,4 @@
-
-export interface Notification {
-  id: string;
-  type: 'project_invite' | 'round_opened' | 'round_closed' | 'consensus_reached' | 'system';
-  message: string;
-  projectId?: string;
-  createdAt: number;
-  read: boolean;
-}
+import { Notification } from '../types';
 
 class NotificationService {
   private STORAGE_KEY = 'estimapro_notifications';
