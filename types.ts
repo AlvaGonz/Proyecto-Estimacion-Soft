@@ -50,7 +50,8 @@ export type NotificationType =
   | 'system'
   | 'expert_submission'
   | 'results_revealed'
-  | 'new_round';
+  | 'new_round'
+  | 'reminder';
 
 export interface Notification {
   id: string;
@@ -58,6 +59,7 @@ export interface Notification {
   message: string;
   projectId?: string;
   taskId?: string;
+  targetUserId?: string;
   read: boolean;
   createdAt: number;
 }

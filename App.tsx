@@ -43,6 +43,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     console.log("App: Initializing auth check...");
@@ -88,7 +89,7 @@ const App: React.FC = () => {
     checkAuth();
 
     const handleUnauthorized = async () => {
-      await authService.logout().catch(() => {});
+      await authService.logout().catch(() => { });
       setCurrentUser(null);
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
@@ -106,6 +107,25 @@ const App: React.FC = () => {
       setCurrentUser(null);
     }
   };
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Notifications Logic for Red Dot
+    import('./services/notificationService').then(({ notificationService }) => {
+      const updateUnreadCount = () => {
+        const notifs = notificationService.getNotifications();
+        const unreadForUser = notifs.filter(n => !n.read && (!n.targetUserId || n.targetUserId === currentUser.id)).length;
+        setUnreadNotifications(unreadForUser);
+      };
+
+      updateUnreadCount();
+      window.addEventListener('notifications_updated', updateUnreadCount);
+
+      return () => {
+        window.removeEventListener('notifications_updated', updateUnreadCount);
+      };
+    });
+  }, [currentUser]);
 
   if (isInitializing) {
     return (
@@ -117,7 +137,7 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     if (authView === 'register') {
-      return <RegisterPage 
+      return <RegisterPage
         onRegister={async (u) => {
           setCurrentUser(u);
           setIsInitializing(true);
@@ -127,7 +147,7 @@ const App: React.FC = () => {
           } finally {
             setIsInitializing(false);
           }
-        }} 
+        }}
         onGoToLogin={() => setAuthView('login')}
       />;
     }
@@ -154,6 +174,17 @@ const App: React.FC = () => {
       const created = await projectService.createProject(newProjectData);
       setProjects([created, ...projects]);
       setView('projects');
+
+      import('./services/notificationService').then(({ notificationService }) => {
+        created.expertIds.forEach(expertId => {
+          notificationService.addNotification({
+            type: 'project_invite',
+            message: `Has sido invitado al proyecto "${created.name}".`,
+            projectId: created.id,
+            targetUserId: expertId
+          });
+        });
+      });
     } catch (err) {
       console.error(err);
       alert('Error creating project');
@@ -299,7 +330,9 @@ const App: React.FC = () => {
               aria-label="Ver notificaciones"
             >
               <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-delphi-giants border-2 border-white rounded-full"></span>
+              {unreadNotifications > 0 && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-delphi-giants border-2 border-white rounded-full"></span>
+              )}
             </button>
             <div className="h-8 w-px bg-slate-200 hidden xs:block" />
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel bg-delphi-keppel/5 px-3 md:px-5 py-2.5 rounded-2xl border border-delphi-keppel/10">
@@ -311,7 +344,10 @@ const App: React.FC = () => {
         </header>
 
         {showNotifications && (
-          <NotificationCenter onClose={() => setShowNotifications(false)} />
+          <NotificationCenter
+            onClose={() => setShowNotifications(false)}
+            currentUserId={currentUser.id}
+          />
         )}
 
         {isFacilitator && <OnboardingTour />}
@@ -326,7 +362,7 @@ const App: React.FC = () => {
                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                       {isExpert ? 'Panel del Experto' : 'Métrica General'}
                     </h2>
-                    <p className="text-slate-400 text-base md:text-lg font-medium">Hola, {currentUser.name.split(' ')[0]}. Gestiona tus sesiones Delphi.</p>
+                    <p className="text-slate-400 text-base md:text-lg font-medium">Hola, {currentUser.name.split(' ')[0]}. Gestiona tus sesiones de estimación.</p>
                   </div>
                   {isFacilitator && (
                     <button
@@ -430,6 +466,7 @@ const App: React.FC = () => {
                   projectId={selectedProjectId}
                   onBack={() => setView('projects')}
                   role={currentUser.role}
+                  currentUserId={currentUser.id}
                 />
               </div>
             )}
@@ -475,7 +512,7 @@ const App: React.FC = () => {
                   <code className="text-xs bg-slate-50 px-3 py-2 rounded-xl block font-mono text-slate-600 truncate mb-6">
                     {currentUser.id}
                   </code>
-                  
+
                   <div className="space-y-3">
                     <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
                       Cambiar Contraseña

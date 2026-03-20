@@ -12,7 +12,8 @@ import {
   Lock,
   MessageSquare,
   Users,
-  Target
+  Target,
+  Bell
 } from 'lucide-react';
 import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
 import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
@@ -36,10 +37,9 @@ interface EstimationRoundsProps {
   taskId: string;
   taskTitle: string;
   unit: string;
-  estimationMethod?: EstimationMethod;
-  onConsensusReached?: (value: number) => void;
   onTaskFinalize?: (taskId: string) => void;
   isFacilitator?: boolean;
+  currentUserId: string;
 }
 
 const METHOD_LABELS: Record<EstimationMethod, string> = {
@@ -56,7 +56,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   estimationMethod = 'wideband-delphi',
   onConsensusReached,
   onTaskFinalize,
-  isFacilitator = true
+  isFacilitator = true,
+  currentUserId
 }) => {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [activeRound, setActiveRound] = useState<Round | null>(null);
@@ -212,22 +213,29 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       
       // RF012: The facilitator receives an in-app notification when an expert submits an estimate.
       import('../services/notificationService').then(({ notificationService }) => {
-        notificationService.addNotification({
-          type: 'expert_submission',
-          message: `Un experto ha enviado una estimación para "${taskTitle}".`,
-          projectId,
-          taskId
-        });
-
-        // Check if all experts have submitted
         projectService.getProject(projectId).then(project => {
+          if (project.facilitatorId !== currentUserId) {
+            notificationService.addNotification({
+              type: 'expert_submission',
+              message: `Un experto ha enviado una estimación para "${taskTitle}".`,
+              projectId,
+              taskId,
+              targetUserId: project.facilitatorId
+            });
+          }
+
+          // Check if all experts have submitted
           const currentRoundEsts = [...estimations, newEst].filter(e => e.roundId === activeId);
           if (currentRoundEsts.length === (project.expertIds?.length || 0)) {
-            notificationService.addNotification({
-              type: 'system',
-              message: `Todos los expertos han completado sus estimaciones para "${taskTitle}".`,
-              projectId,
-              taskId
+            const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+            targetIds.forEach(targetId => {
+              notificationService.addNotification({
+                type: 'system',
+                message: `Todos los expertos han completado sus estimaciones para "${taskTitle}".`,
+                projectId,
+                taskId,
+                targetUserId: targetId
+              });
             });
           }
         });
@@ -251,6 +259,29 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleSendReminder = () => {
+    if (!activeRound) return;
+    setIsAnalyzing(true);
+    projectService.getProject(projectId).then(project => {
+      import('../services/notificationService').then(({ notificationService }) => {
+        const currentRoundEsts = estimations.filter(e => e.roundId === (activeRound.id || (activeRound as any)._id));
+        const submittedExpertIds = currentRoundEsts.map(e => e.expertId);
+        const missingExpertIds = (project.expertIds || []).filter(id => !submittedExpertIds.includes(id));
+        
+        missingExpertIds.forEach(targetId => {
+          notificationService.addNotification({
+            type: 'reminder',
+            message: `El facilitador solicita a los expertos faltantes completar su estimación (Ronda ${activeRound.roundNumber}) para "${taskTitle}".`,
+            projectId,
+            taskId,
+            targetUserId: targetId
+          });
+        });
+        alert('Recordatorio enviado a los expertos faltantes.');
+      });
+    }).catch(console.error).finally(() => setIsAnalyzing(false));
   };
 
   const handleCloseRound = async () => {
@@ -284,13 +315,38 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         return [...others, ...updatedEsts];
       });
 
-      // RF014: Experts are notified when the round results are revealed.
+      // RF014: Experts are notified when the round results are revealed and round closed.
       import('../services/notificationService').then(({ notificationService }) => {
-        notificationService.addNotification({
-          type: 'results_revealed',
-          message: `Resultados revelados para "${taskTitle}" (Ronda ${round.roundNumber}).`,
-          projectId,
-          taskId
+        projectService.getProject(projectId).then(project => {
+          const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+          
+          targetIds.forEach(targetId => {
+            notificationService.addNotification({
+              type: 'round_closed',
+              message: `Ronda ${round.roundNumber} de "${taskTitle}" cerrada.`,
+              projectId,
+              taskId,
+              targetUserId: targetId
+            });
+
+            if (convResult.converged) {
+              notificationService.addNotification({
+                type: 'consensus_reached',
+                message: `Consenso alcanzado para "${taskTitle}" (${round.stats?.mean.toFixed(1)} ${unit}).`,
+                projectId,
+                taskId,
+                targetUserId: targetId
+              });
+            }
+
+            notificationService.addNotification({
+              type: 'results_revealed',
+              message: `Resultados revelados para "${taskTitle}" (Ronda ${round.roundNumber}).`,
+              projectId,
+              taskId,
+              targetUserId: targetId
+            });
+          });
         });
       });
     } catch (err: any) {
@@ -312,11 +368,26 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
       // RF014: Experts are notified when a new round starts.
       import('../services/notificationService').then(({ notificationService }) => {
-        notificationService.addNotification({
-          type: 'new_round',
-          message: `Nueva ronda de estimación iniciada para "${taskTitle}".`,
-          projectId,
-          taskId
+        projectService.getProject(projectId).then(project => {
+          const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+          
+          targetIds.forEach(targetId => {
+            notificationService.addNotification({
+              type: 'round_opened',
+              message: `Ronda ${nextRound.roundNumber} abierta para "${taskTitle}".`,
+              projectId,
+              taskId,
+              targetUserId: targetId
+            });
+            
+            notificationService.addNotification({
+              type: 'new_round',
+              message: `Nueva ronda de estimación iniciada para "${taskTitle}".`,
+              projectId,
+              taskId,
+              targetUserId: targetId
+            });
+          });
         });
       });
     } catch (err: any) {
@@ -662,6 +733,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                             ></div>
                          </div>
                       </div>
+                      {Math.max(0, totalExperts - estimations.filter(e => e.roundId === activeRound.id).length) > 0 && (
+                        <button
+                          onClick={handleSendReminder}
+                          className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants/20 hover:scale-[1.02] rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+                        >
+                          <Bell className="w-4 h-4" />
+                          Enviar Recordatorio
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
@@ -673,7 +753,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 </div>
               </div>
             ) : !showBoxPlot ? (
-              <div className={`p-6 md:p-8 rounded-[2rem] border transition-all ${isAnalyzing ? 'bg-slate-50' : 'bg-white shadow-sm'}`}>
+              <div className={`p-6 md:p-8 rounded-[2rem] border transition-all overflow-hidden min-w-0 ${isAnalyzing ? 'bg-slate-50' : 'bg-white shadow-sm'}`}>
                 {isAnalyzing ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-4">
                     <Sparkles className="w-10 h-10 text-delphi-keppel animate-pulse" />
@@ -729,8 +809,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                           {Object.entries(viewedRound.stats.metricaResultados)
                             .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
                             .map(([key, val]) => (
-                              <div key={key} className="flex justify-between items-center text-xs">
-                                <span className="text-slate-400 font-bold uppercase tracking-wider">
+                              <div key={key} className="flex justify-between items-center text-xs gap-4">
+                                <span className="text-slate-400 font-bold uppercase tracking-wider shrink-0">
                                   {key === 'moda' ? 'Moda' :
                                     key === 'frecuencia' ? 'Frecuencia' :
                                       key === 'consensoPct' ? 'Nivel de Consenso' :
@@ -742,8 +822,10 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                                                   key === 'median' ? 'Mediana' :
                                                     key === 'pessimisticAvg' ? 'Promedio Pesimista (P)' : key}
                                 </span>
-                                <span className="font-black text-slate-900">
-                                  {typeof val === 'number' && key === 'consensoPct' ? `${val}%` : String(val)}
+                                <span className="font-black text-slate-900 text-right truncate">
+                                  {typeof val === 'number' 
+                                    ? (key === 'consensoPct' ? `${val.toFixed(0)}%` : val.toFixed(2)) 
+                                    : String(val)}
                                 </span>
                               </div>
                             ))}

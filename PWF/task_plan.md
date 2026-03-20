@@ -1,33 +1,40 @@
-# Task Plan — T046 & T048 Fix
-Status: complete ✅
-Date: 2026-03-19
+# Task Plan — EstimaPro Bug Fixes (Session 2026-03-20)
 
-## Phase 1: Context Load — [complete]
-- Read PWF/ and test-results/ folders
+## Objetivos
+1. [X] Resultados de ronda visibles desde la primera estimación (inline, no modal)
+2. [ ] Doble confirmación al cerrar ronda con expertos faltantes
+3. [ ] Fix notifications / recordatorios (actualmente no funcionan)
+4. [ ] Fix flickering de pantalla (re-render pasivo)
 
-## Phase 2: Root Cause Confirmed — [complete]
-### Bug 1 — Strict Mode Violation (Line 189, estimation-submit.spec.ts)
-- Cause: `/cerrar|finalizar ronda/i` matches "Cerrar sesión" (nav logout) + "Cerrar y Analizar Ronda" (panel)
-- Fix: Replace regex with exact string `'Cerrar y Analizar Ronda'`
+## Archivos Clave
+- `components/EstimationRounds.tsx` — lógica principal de rondas (~910 líneas)
+- `App.tsx` — unreadNotifications useEffect (posible causa de flickering)
+- `services/notificationService.ts` — ya revisado
+- `components/NotificationCenter.tsx` — ya revisado
 
-### Bug 2 — Button Disabled / Missing Test Precondition
-- Cause: Button is correctly disabled when 0 expert estimations exist (RF013)
-- Fix: Add API-based expert estimation setup BEFORE facilitator closes round
+## Fases
 
-## Phase 3: Fix Locator — [complete]
-- T048: Changed `page.getByText('8')` → `'8 Horas'` (strict mode violation from timestamp)
-- T048: Changed `page.getByText('5')` → `'5 Horas'` (consistency)
-- T047: Changed `page.getByText('100')` → `'100 Horas'` (proactive fix)
+### Fase 1: Exploración / Root Cause Analysis [in_progress]
+- [ ] Leer EstimationRounds.tsx completo para entender cómo se muestran resultados
+- [ ] Identificar el re-render que causa flickering
+- [ ] Identificar por qué fallan los recordatorios
 
-## Phase 4: Add Expert Estimation Setup — [complete]
-- T048 already had correct expert estimation flow (experts submit before facilitator closes)
-- No additional API injection needed — test flow was correct
+### Fase 2: Fix — Resultados inline desde 1ª estimación
+- Mostrar sección de resultados parciales (lista de estimaciones de la ronda actual)
+  debajo de la interfaz de estimación, sin modal, apenas haya ≥1 estimación.
+- El facilitador debe verlas; el experto NO debe ver las de otros mientras la ronda está abierta.
 
-## Phase 5: Verify T046 & T048 Pass — [complete]
-- Backend unit tests: 21/21 PASSED ✅
-- T046: PASSED ✅ (26.6s)
-- T048: PASSED ✅ (26.1s)
+### Fase 3: Fix — Doble confirmación al cerrar ronda con expertos faltantes
+- Antes de `handleCloseRound`, verificar si falta algún experto.
+- Si faltan → mostrar modal de confirmación con conteo.
 
-## Configuration Changes
-- `playwright.config.ts`: baseURL → `http://localhost:3002`
-- `e2e/global-setup.ts`: BASE_URL → `http://localhost:3002`
+### Fase 4: Fix — Notifications / recordatorios
+- Diagnóstico: el `import()` dinámico de notificationService puede fallar silenciosamente.
+- Solución: cambiar a import estático en los archivos que lo necesiten.
+
+### Fase 5: Fix — Flickering
+- Causa probable: `useEffect` en App.tsx con `import()` dinámico se re-ejecuta en loop.
+- Solución: convertir a import estático + estabilizar dependencias.
+
+## Errores / Hallazgos
+(vacío al inicio)
