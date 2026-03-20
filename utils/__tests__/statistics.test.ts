@@ -48,8 +48,8 @@ describe('calculateRoundStats', () => {
       { id: 'e5', value: 100, roundId: 'r1', taskId: 't1', expertId: 'u5', justification: '', timestamp: 0 },
     ];
     const stats = calculateRoundStats(withOutlier);
-    expect(stats.outliers).toContain('e5');
-    expect(stats.outliers).not.toContain('e1');
+    expect(stats.outlierEstimationIds).toContain('e5');
+    expect(stats.outlierEstimationIds).not.toContain('e1');
   });
 
   it('retorna arrays vacíos de outliers cuando todos convergen', () => {
@@ -59,12 +59,12 @@ describe('calculateRoundStats', () => {
       { id: 'e3', value: 6, roundId: 'r1', taskId: 't1', expertId: 'u3', justification: '', timestamp: 0 },
     ];
     const stats = calculateRoundStats(convergent);
-    expect(stats.outliers).toHaveLength(0);
+    expect(stats.outlierEstimationIds).toHaveLength(0);
   });
 
   it('retorna ceros con array vacío sin lanzar error', () => {
     const stats = calculateRoundStats([]);
     expect(stats.mean).toBe(0);
-    expect(stats.outliers).toHaveLength(0);
+    expect(stats.outlierEstimationIds).toHaveLength(0);
   });
 });

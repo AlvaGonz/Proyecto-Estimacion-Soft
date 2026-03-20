@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Bell, Clock, Target, Users, Zap, X, Check, Trash2 } from 'lucide-react';
-import { notificationService, Notification } from '../services/notificationService';
+import { notificationService } from '../services/notificationService';
+import { Notification } from '../types';
 
 interface NotificationCenterProps {
   onClose: () => void;

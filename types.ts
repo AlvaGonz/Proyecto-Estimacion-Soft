@@ -27,6 +27,7 @@ export interface Project {
   maxRounds: number;
   sprints: number;
   hasStartedRounds?: boolean;
+  sprintIsLocked?: boolean;
   isDeleted?: boolean;
   createdAt: number;
 }
@@ -39,6 +40,26 @@ export interface Task {
   status: 'pending' | 'estimating' | 'consensus' | 'finalized';
   finalEstimate?: number;
   completionPercentage?: number;
+}
+
+export type NotificationType = 
+  | 'project_invite' 
+  | 'round_opened' 
+  | 'round_closed' 
+  | 'consensus_reached' 
+  | 'system'
+  | 'expert_submission'
+  | 'results_revealed'
+  | 'new_round';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  projectId?: string;
+  taskId?: string;
+  read: boolean;
+  createdAt: number;
 }
 
 export interface Estimation {

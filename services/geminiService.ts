@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Estimation, RoundStats } from "../types";
 
@@ -21,7 +20,7 @@ export const analyzeConsensus = async (
     - Desviación Estándar: ${stats.stdDev}
     - Coeficiente de Variación: ${stats.coefficientOfVariation}%
     - Rango Intercuartílico (IQR): ${stats.iqr}
-    - Identificados como Outliers: ${stats.outliers.length} valores.
+    - Identificados como Outliers: ${stats.outlierEstimationIds.length} valores.
 
     JUSTIFICACIONES ANÓNIMAS DE LOS EXPERTOS:
     ${estimations.map(e => `- Valor Estimado: ${e.value} ${unit}. Justificación Técnica: "${e.justification}"`).join('\n')}
