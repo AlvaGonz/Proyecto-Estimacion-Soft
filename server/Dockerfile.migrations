@@ -1,0 +1,8 @@
+# server/Dockerfile.migrations for Database Initialization
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+# entrypoint logic is handled by run-seeds.sh
+ENTRYPOINT ["sh", "/app/run-seeds.sh"]

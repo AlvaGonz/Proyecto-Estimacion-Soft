@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ─── Stage 1: Build ────────────────────────────
 FROM node:20-alpine AS builder
 
@@ -35,3 +36,17 @@ USER appuser
 EXPOSE 4000
 
 CMD ["node", "dist/server.js"]
+=======
+# server/Dockerfile for Backend (Node/Express)
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+# entrypoint.sh provides local environment initialization
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+EXPOSE 4000
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["npm", "run", "dev"]
+>>>>>>> Dockers-Buid
