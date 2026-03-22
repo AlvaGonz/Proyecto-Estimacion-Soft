@@ -119,7 +119,7 @@ export const roundService = {
         await round.save();
 
         const result = {
-            round: round.toJSON(),
+            round: round.toJSON() as unknown as IRound,
             convergence: {
                 ...convergence,
                 recommendation: convergence.recommendation,
