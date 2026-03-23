@@ -31,6 +31,15 @@ import { AppErrorBoundary } from './components/ui/AppErrorBoundary';
 import { authService } from './services/authService';
 import { projectService } from './services/projectService';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { notificationService } from './services/notificationService';
+ 
+const STATUS_LABELS = {
+  'preparation': 'Preparación',
+  'kickoff': 'Kickoff',
+  'active': 'Activo',
+  'finished': 'Finalizado',
+  'archived': 'Archivado'
+} as const;
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -110,21 +119,20 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    // Notifications Logic for Red Dot
-    import('./services/notificationService').then(({ notificationService }) => {
-      const updateUnreadCount = () => {
-        const notifs = notificationService.getNotifications();
-        const unreadForUser = notifs.filter(n => !n.read && (!n.targetUserId || n.targetUserId === currentUser.id)).length;
-        setUnreadNotifications(unreadForUser);
-      };
+    // Notifications Logic for Red Dot — uses static import, no re-eval on each render
+    const updateUnreadCount = () => {
+      const notifs = notificationService.getNotifications();
+      const unreadForUser = notifs.filter(
+        n => !n.read && (!n.targetUserId || n.targetUserId === currentUser.id)
+      ).length;
+      setUnreadNotifications(unreadForUser);
+    };
 
-      updateUnreadCount();
-      window.addEventListener('notifications_updated', updateUnreadCount);
-
-      return () => {
-        window.removeEventListener('notifications_updated', updateUnreadCount);
-      };
-    });
+    updateUnreadCount();
+    window.addEventListener('notifications_updated', updateUnreadCount);
+    return () => {
+      window.removeEventListener('notifications_updated', updateUnreadCount);
+    };
   }, [currentUser]);
 
   if (isInitializing) {
@@ -175,15 +183,17 @@ const App: React.FC = () => {
       setProjects([created, ...projects]);
       setView('projects');
 
-      import('./services/notificationService').then(({ notificationService }) => {
-        created.expertIds.forEach(expertId => {
+      // RF025: Notificar a cada experto asignado, excepto al facilitador (redundancia)
+      created.expertIds.forEach(expertId => {
+        const idStr = typeof expertId === 'string' ? expertId : (expertId as any).id || (expertId as any)._id;
+        if (String(idStr) !== String(currentUser.id)) {
           notificationService.addNotification({
             type: 'project_invite',
             message: `Has sido invitado al proyecto "${created.name}".`,
             projectId: created.id,
-            targetUserId: expertId
+            targetUserId: String(idStr)
           });
-        });
+        }
       });
     } catch (err) {
       console.error(err);
@@ -200,9 +210,9 @@ const App: React.FC = () => {
     p.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeCount = projects.filter(p => p.status === 'active').length;
+  const activeCount = projects.filter(p => p.status === 'active' || p.status === 'kickoff').length;
   const finishedCount = projects.filter(p => p.status === 'finished').length;
-  const totalCount = projects.length;
+  const totalCount = projects.filter(p => p.status !== 'archived').length;
   const consensusRate = totalCount > 0 ? Math.round((finishedCount / totalCount) * 100) : 0;
 
   const stats = [
@@ -408,6 +418,7 @@ const App: React.FC = () => {
                       </h3>
                       <div className="space-y-6">
                         {projects.length > 0 ? [...projects]
+                          .filter(p => p.status !== 'archived')
                           .sort((a, b) => b.createdAt - a.createdAt)
                           .slice(0, 3)
                           .map((p, i) => (
@@ -415,8 +426,16 @@ const App: React.FC = () => {
                               <span className="text-[10px] font-black text-slate-500 w-10 shrink-0">
                                 {new Date(p.createdAt).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                               </span>
-                              <div className={`w-1.5 h-1.5 rounded-full bg-delphi-${p.status === 'active' ? 'keppel' : p.status === 'finished' ? 'celadon' : 'orange'} mt-1.5`} />
-                              <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">Proyecto: {p.name}</p>
+                              <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${
+                                p.status === 'active' ? 'bg-delphi-keppel' : 
+                                p.status === 'kickoff' ? 'bg-delphi-orange' :
+                                p.status === 'finished' ? 'bg-delphi-celadon' :
+                                p.status === 'preparation' ? 'bg-slate-400' :
+                                'bg-slate-200'}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-slate-400 leading-relaxed truncate">Proyecto: {p.name}</p>
+                                <p className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">{STATUS_LABELS[p.status as keyof typeof STATUS_LABELS] || p.status}</p>
+                              </div>
                             </div>
                           )) : (
                           <p className="text-xs text-slate-500 italic">Sin actividad reciente.</p>
@@ -485,7 +504,7 @@ const App: React.FC = () => {
 
             {view === 'admin' && (
               <div className="max-w-7xl mx-auto">
-                <AdminPanel />
+                <AdminPanel currentUser={currentUser} />
               </div>
             )}
           </AppErrorBoundary>

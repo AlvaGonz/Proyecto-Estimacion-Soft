@@ -27,8 +27,8 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
           <div className="absolute left-[23px] top-4 bottom-4 w-px bg-slate-100 hidden md:block" />
 
           <div className="space-y-12">
-            {entries.sort((a, b) => b.timestamp - a.timestamp).map((entry, i) => (
-              <div key={entry.id} className="relative flex flex-col md:flex-row gap-8 group">
+            {[...entries].sort((a, b) => b.timestamp - a.timestamp).map((entry) => (
+              <div key={entry.id || `audit-${entry.timestamp}-${entry.userId}-${entry.action}`} className="relative flex flex-col md:flex-row gap-8 group">
                 {/* Timeline dot */}
                 <div className="absolute left-[16px] top-4 w-4 h-4 rounded-full border-4 border-white bg-delphi-keppel shadow-[0_0_10px_rgba(43,186,165,0.4)] z-10 hidden md:block group-hover:scale-125 transition-transform" />
 

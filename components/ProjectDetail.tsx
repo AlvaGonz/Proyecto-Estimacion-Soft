@@ -26,6 +26,7 @@ import { LoadingSpinner } from './ui/LoadingSpinner';
 import { projectService } from '../services/projectService';
 import { taskService } from '../services/taskService';
 import { roundService } from '../services/roundService';
+import { notificationService } from '../services/notificationService';
 
 // TODO: Connect Discussion, Team, and AuditLog to actual endpoints when ready
 const MOCK_AUDIT: AuditEntry[] = [
@@ -164,7 +165,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
   }, [project, showConfigModal]);
   
   // RF021: El método es inmutable si ya hay tareas estimándose o consensuadas
-  const isMethodImmutable = tasks.some(t => t.status !== 'Pendiente');
+  const isMethodImmutable = tasks.some(t => {
+    const status = (t.status || '').toLowerCase();
+    // Consider as immutable if it's estimating, in consensus, or already finalized
+    return status === 'estimating' || status === 'estimando' || 
+           status === 'consensus' || status === 'consenso' || 
+           status === 'finalized' || status === 'finalizada';
+  });
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!configForm.name.trim()) {
@@ -252,16 +259,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       // RF014: All participants should be notified when the session ends
       // Since it's a finish, we can just notify all interested roles in a real app.
       // For now, in-app notification for the facilitator's session end.
-      import('../services/notificationService').then(({ notificationService }) => {
-        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
-        
-        targetIds.forEach(targetId => {
-          notificationService.addNotification({
-            type: 'system',
-            message: `Proyecto "${project.name}" finalizado con éxito. Reportes disponibles.`,
-            projectId: project.id,
-            targetUserId: targetId
-          });
+      const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+      
+      targetIds.forEach(targetId => {
+        notificationService.addNotification({
+          type: 'system',
+          message: `Proyecto "${project.name}" finalizado con éxito. Reportes disponibles.`,
+          projectId: project.id,
+          targetUserId: targetId
         });
       });
 
@@ -278,21 +283,27 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       setIsDeleting(true);
       await projectService.deleteProject(projectId);
       
-      import('../services/notificationService').then(({ notificationService }) => {
-        // Notify everyone except the person deleting the project!
-        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
-        
-        targetIds.forEach(targetId => {
-          notificationService.addNotification({
-            type: 'system',
-            message: `El proyecto "${project.name}" ha sido eliminado.`,
-            projectId,
-            targetUserId: targetId
-          });
+      // RF025: Enviar notificaciones únicamente a los afiliados (facilitador y expertos)
+      // Excepto al administrador que está realizando la eliminación.
+      const allIds = [project.facilitatorId, ...(project.expertIds || [])];
+      const targetIds = allIds
+        .map(id => (typeof id === 'object' && id !== null ? (id as any).id || (id as any)._id : id))
+        .filter(id => id && String(id) !== String(currentUserId));
+      
+      targetIds.forEach(targetId => {
+        notificationService.addNotification({
+          type: 'system',
+          message: `El proyecto "${project.name}" ha sido eliminado por el administrador.`,
+          projectId,
+          targetUserId: String(targetId)
         });
       });
 
-      onBack(); // Redirect to list
+      // Redireccionar y recargar para asegurar que la UI se actualice completamente
+      onBack();
+      setTimeout(() => {
+        window.location.reload();
+      }, 500); // Pequeño delay para que la transición de onBack sea visible o el storage se procese
     } catch (err: any) {
       alert(err.message || "Error al eliminar el proyecto");
     } finally {
@@ -324,12 +335,18 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
             <div className="flex items-center gap-3 md:gap-4 flex-wrap">
               <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight leading-none">{project.name}</h2>
               <span className={`px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] shadow-lg ${
-                project.status === 'active' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' : 
-                project.status === 'finished' ? 'bg-delphi-keppel text-white shadow-delphi-keppel/20' : 
-                project.status === 'kickoff' ? 'bg-delphi-celadon text-slate-900 shadow-delphi-celadon/20' :
-                project.status === 'preparation' ? 'bg-slate-200 text-slate-600 shadow-slate-200/20' :
+                project.status?.toLowerCase() === 'active' ? 'bg-delphi-celadon text-delphi-keppel shadow-delphi-keppel/20' : 
+                project.status?.toLowerCase() === 'finished' ? 'bg-delphi-keppel text-white shadow-delphi-keppel/20' : 
+                project.status?.toLowerCase() === 'kickoff' ? 'bg-delphi-orange text-white shadow-delphi-orange/20' :
+                project.status?.toLowerCase() === 'preparation' ? 'bg-slate-200 text-slate-600 shadow-slate-200/20' :
+                project.status?.toLowerCase() === 'archived' ? 'bg-slate-800 text-slate-100' :
                 'bg-slate-100 text-slate-400'}`}>
-                {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
+                {project.status?.toLowerCase() === 'preparation' ? 'Preparación' : 
+                 project.status?.toLowerCase() === 'kickoff' ? 'Kickoff' : 
+                 project.status?.toLowerCase() === 'active' ? 'Activo' : 
+                 project.status?.toLowerCase() === 'finished' ? 'Finalizado' : 
+                 project.status?.toLowerCase() === 'archived' ? 'Archivado' : 
+                 project.status}
               </span>
             </div>
             <div className="flex items-center gap-4 md:gap-6 mt-3 flex-wrap">
@@ -355,7 +372,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
           </div>
         </div>
 
-        {isFacilitator && project.status !== 'finished' && project.status !== 'archived' && (
+        {isFacilitator && project.status?.toLowerCase() !== 'finished' && project.status?.toLowerCase() !== 'archived' && (
           <div className="flex flex-col sm:flex-row gap-3">
             <button 
               onClick={() => setShowConfigModal(true)}
@@ -623,33 +640,72 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                     >
                       <div className="flex items-start gap-4">
                         <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status === 'consensus' || task.status === 'finalized' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                          {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
                             {task.title}
                           </h4>
-                          {task.status === 'consensus' || task.status === 'finalized' ? (
+                          {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? (
                             <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
                               <Award className="w-3 h-3" />
                               <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
                             </div>
                           ) : (
                             <div className="space-y-1.5 mt-2">
-                              <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-delphi-keppel transition-all duration-1000" 
-                                  style={{ width: `${task.completionPercentage || 0}%` }}
-                                ></div>
-                              </div>
-                              <div className="flex justify-between items-center mt-1">
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                  {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
-                                </span>
-                                <span className="text-[8px] font-black text-delphi-keppel uppercase tracking-widest">
-                                  {task.completionPercentage || 0}%
-                                </span>
-                              </div>
+                              {(() => {
+                                  // F1: Cálculo mejorado de progreso por tarea
+                                  if (task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized') return null; // Ya manejado arriba
+                                  
+                                  const taskRounds = roundsByTask[task.id] || [];
+                                  const totalExperts = project?.expertIds?.length || 1;
+                                  const maxRounds = project?.maxRounds || 3;
+                                  
+                                  const statusValue = (task.status || '').toLowerCase();
+                                  if (statusValue === 'pending' || statusValue === 'pendiente') {
+                                    return (
+                                      <>
+                                        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                          <div className="h-full bg-slate-200" style={{ width: '0%' }}></div>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-1">
+                                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">PENDIENTE</span>
+                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">0%</span>
+                                        </div>
+                                      </>
+                                    );
+                                  }
+
+                                  const currentRound = taskRounds[taskRounds.length - 1];
+                                  const currentRoundNumber = currentRound ? currentRound.roundNumber : 1;
+                                  const expertsWhoEstimated = currentRound ? (currentRound.estimations?.filter(e => e.value > 0).length || 0) : 0;
+                                  
+                                  const completedRoundsProgress = ((currentRoundNumber - 1) / maxRounds) * 100;
+                                  const currentRoundContribution = (expertsWhoEstimated / totalExperts) * (1 / maxRounds) * 100;
+                                  const totalProgress = Math.min(99, Math.round(completedRoundsProgress + currentRoundContribution));
+
+                                  const statusLabel = statusValue === 'estimating' ? 'ESTIMANDO' : statusValue.toUpperCase();
+                                  const statusColor = 'text-delphi-orange animate-pulse';
+
+                                  return (
+                                    <>
+                                      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div 
+                                          className="h-full bg-delphi-keppel transition-all duration-1000 shadow-[0_0_8px_rgba(43,186,165,0.4)]" 
+                                          style={{ width: `${totalProgress}%` }}
+                                        ></div>
+                                      </div>
+                                      <div className="flex justify-between items-center mt-1">
+                                        <span className={`text-[8px] font-black uppercase tracking-widest ${statusColor}`}>
+                                          {statusLabel}
+                                        </span>
+                                        <span className="text-[8px] font-black text-delphi-keppel uppercase tracking-widest">
+                                          {totalProgress}%
+                                        </span>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
                             </div>
                           )}
                         </div>
@@ -708,7 +764,14 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                 <p className="font-bold">Selecciona una tarea con rondas activas para ver el debate.</p>
               </div>
             ) : null}
-            {activeTab === 'team' && <TeamPanel expertIds={project?.expertIds} />}
+            {activeTab === 'team' && (
+              <TeamPanel 
+                expertIds={project?.expertIds} 
+                rounds={roundsByTask} 
+                tasks={tasks}
+                isFacilitator={isFacilitator}
+              />
+            )}
             {activeTab === 'audit' && <ProjectAuditLog entries={logs} />}
           </div>
         )}

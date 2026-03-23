@@ -65,7 +65,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
     'personDays': 'Días Persona'
   } as const;
 
-  const STATUS_MAP = {
+  const STATUS_LABELS_INTERNAL = {
     'preparation': 'preparation',
     'kickoff': 'kickoff',
     'active': 'active',
