@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Plus,
   LineChart,
@@ -13,7 +13,10 @@ import {
   MessageSquare,
   Users,
   Target,
-  Bell
+  Bell,
+  X,
+  ShieldAlert,
+  BarChart3
 } from 'lucide-react';
 import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
 import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
@@ -29,8 +32,9 @@ import { convergenceService, type ConvergenceResult, type EstimationWithExpert }
 import { taskService } from '../services/taskService';
 import { projectService } from '../services/projectService';
 import { LoadingSpinner } from './ui/LoadingSpinner';
-
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
+// Static import — avoids silent failures from dynamic import() in notification handlers
+import { notificationService } from '../services/notificationService';
 
 interface EstimationRoundsProps {
   projectId: string;
@@ -77,6 +81,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<{ value?: string; justification?: string; submit?: string }>({});
   const [totalExperts, setTotalExperts] = useState<number>(0);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [showCloseConfirmModal, setShowCloseConfirmModal] = useState(false);
+  const [showUpdateConfirmModal, setShowUpdateConfirmModal] = useState(false);
+  const autoSelectedForTask = useRef<string | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
     projectService.getProject(projectId).then(p => {
@@ -84,86 +93,74 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     });
   }, [projectId]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadRounds = async () => {
-      try {
-        setIsLoading(true);
-        const taskRounds = await roundService.getRoundsByTask(projectId, taskId);
+  const loadRounds = useCallback(async (showSpinner = true) => {
+    if (!taskId || !projectId) return;
+    
+    if (showSpinner) setIsLoading(true);
+    
+    try {
+      const allRounds = await roundService.getRoundsByTask(projectId, taskId);
+      const taskRounds = allRounds.filter(r => String(r.taskId) === String(taskId));
+      
+      if (isMounted.current) {
+        // RF032: Deep comparison or simply only update if counts change to avoid flicker
+        setRounds(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(taskRounds)) return prev;
+          return taskRounds;
+        });
+        
+        const active = taskRounds.find(r => r.status === 'open') || null;
+        setActiveRound(active);
 
-        if (isMounted) {
-          setRounds(taskRounds);
-          const active = taskRounds.find(r => r.status === 'open') || null;
-          setActiveRound(active);
-
-          // RF012-020: Auto-select latest round on initial load or if no selection
-          if (!selectedRoundId && taskRounds.length > 0) {
-            const latestId = active?.id || (active as any)?._id || (taskRounds[taskRounds.length - 1].id || (taskRounds[taskRounds.length - 1] as any)._id);
-            setSelectedRoundId(latestId);
-          }
-
-          if (taskRounds.length > 0) {
-            const allEsts = await Promise.all(
-              taskRounds.map(r => estimationService.getEstimationsByRound(r.id || (r as any)._id))
-            );
-            setEstimations(allEsts.flat());
-          }
+        // RF012-020: Auto-select latest round on task change or if no selection
+        if (autoSelectedForTask.current !== taskId && taskRounds.length > 0) {
+          const latestId = active?.id || (active as any)?._id ||
+            (taskRounds[taskRounds.length - 1].id || (taskRounds[taskRounds.length - 1] as any)._id);
+          setSelectedRoundId(latestId);
+          autoSelectedForTask.current = taskId;
         }
-      } catch (err) {
-        console.error("Failed to load rounds/estimations", err);
-      } finally {
-        if (isMounted) setIsLoading(false);
+        
+        if (active) {
+          const roundId = active.id || (active as any)._id;
+          const roundEstimations = await estimationService.getEstimationsByRound(roundId);
+          setEstimations(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(roundEstimations)) return prev;
+            return roundEstimations;
+          });
+        } else if (taskRounds.length > 0) { // If no active round, load estimations for the last closed round
+          const lastClosed = taskRounds[taskRounds.length - 1];
+          const roundId = lastClosed.id || (lastClosed as any)._id;
+          const roundEstimations = await estimationService.getEstimationsByRound(roundId);
+          setEstimations(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(roundEstimations)) return prev;
+            return roundEstimations;
+          });
+        } else {
+          setEstimations([]); // No rounds, no estimations
+        }
       }
-    };
+    } catch (err) {
+      console.error("Error loading rounds", err);
+    } finally {
+      if (isMounted.current && showSpinner) setIsLoading(false);
+    }
+  }, [projectId, taskId]); // Removed selectedRoundId to prevent flickering cycle
 
-    loadRounds();
-
-    // RF032/RF033 Data Sync: Polling cada 15s para evitar stale data
-    const pollInterval = setInterval(() => {
-      // Solo poll si hay una ronda abierta y somos facilitadores o estamos esperando estimaciones
-      loadRounds();
-    }, 15000);
-
-    // Refresh al volver a la pestaña
-    const handleFocus = () => loadRounds();
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      isMounted = false;
-      clearInterval(pollInterval);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [projectId, taskId]);
-
-  // Refresh data when window regains focus (handles multi-user scenarios)
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Re-fetch data when user returns to the page
-        const refreshData = async () => {
-          try {
-            const taskRounds = await roundService.getRoundsByTask(projectId, taskId);
-            setRounds(taskRounds);
-            const active = taskRounds.find(r => r.status === 'open') || null;
-            setActiveRound(active);
+    isMounted.current = true;
+    loadRounds(true);
+  }, [loadRounds]);
 
-            if (taskRounds.length > 0) {
-              const allEsts = await Promise.all(
-                taskRounds.map(r => estimationService.getEstimationsByRound(r.id || (r as any)._id))
-              );
-              setEstimations(allEsts.flat());
-            }
-          } catch (err) {
-            console.error("Failed to refresh data", err);
-          }
-        };
-        refreshData();
-      }
-    };
+  useEffect(() => {
+    // Polling is only active when there is an open round to follow
+    if (!activeRound) return;
+    
+    const pollInterval = setInterval(() => {
+      loadRounds(false); // background refresh
+    }, 30000);
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [projectId, taskId]);
+    return () => clearInterval(pollInterval);
+  }, [loadRounds, !!activeRound]);
 
   const getSubmitValue = (): number | null => {
     switch (estimationMethod) {
@@ -192,15 +189,38 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     return true;
   };
 
-  const handleSubmitEstimate = async () => {
+  const hasEstimation = React.useMemo(() => {
+    if (!activeRound) return false;
+    const activeId = activeRound.id || (activeRound as any)._id;
+    return estimations.some(e => {
+      const rId = e.roundId || (e as any)._id;
+      return String(rId) === String(activeId) && String(e.expertId || (e as any).userId) === String(currentUserId);
+    });
+  }, [estimations, activeRound, currentUserId]);
+
+  const handleSubmitEstimate = async (forceUpdate?: boolean | React.MouseEvent) => {
+    const isForceUpdate = forceUpdate === true;
     const value = getSubmitValue();
     if (!activeRound || value === null || value <= 0 || justification.length < 10) return;
 
     try {
       estimationSchema.parse({ value, justification });
       setErrors({});
-      setIsAnalyzing(true);
+
       const activeId = activeRound.id || (activeRound as any)._id;
+
+      // Check if user already submitted - if so, ask for confirmation first
+      const existingEst = estimations.find(e => {
+        const rId = e.roundId || (e as any)._id;
+        return String(rId) === String(activeId) && String(e.expertId || (e as any).userId) === String(currentUserId);
+      });
+
+      if (existingEst && !isForceUpdate) {
+        setShowUpdateConfirmModal(true);
+        return;
+      }
+
+      setIsAnalyzing(true);
 
       const metodoData = estimationMethod === 'three-point'
         ? { ...threePoint }
@@ -208,43 +228,57 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           ? { card: pokerCard }
           : {};
 
-      const newEst = await estimationService.submitEstimation(activeId, value, justification, metodoData);
-      setEstimations(prev => [...prev, newEst]);
+      let newEst: Estimation;
+      if (existingEst) {
+        newEst = await estimationService.updateEstimation(existingEst.id, value, justification, metodoData);
+        setEstimations(prev => prev.map(e => e.id === existingEst.id ? newEst : e));
+      } else {
+        newEst = await estimationService.submitEstimation(activeId, value, justification, metodoData);
+        setEstimations(prev => [...prev, newEst]);
+      }
       
-      // RF012: The facilitator receives an in-app notification when an expert submits an estimate.
-      import('../services/notificationService').then(({ notificationService }) => {
-        projectService.getProject(projectId).then(project => {
-          if (project.facilitatorId !== currentUserId) {
+      // RF012: Notify facilitator when an expert submits an estimate.
+      try {
+        const project = await projectService.getProject(projectId);
+        if (project.facilitatorId !== currentUserId) {
+          notificationService.addNotification({
+            type: 'expert_submission',
+            message: `Un experto ha ${existingEst ? 'actualizado' : 'enviado'} una estimación para "${taskTitle}".`,
+            projectId,
+            taskId,
+            targetUserId: project.facilitatorId
+          });
+        }
+        // Check if all experts have submitted
+        const currentRoundEsts = existingEst 
+          ? estimations.map(e => e.id === existingEst.id ? newEst : e).filter(e => String(e.roundId) === String(activeId))
+          : [...estimations, newEst].filter(e => String(e.roundId) === String(activeId));
+          
+        if (currentRoundEsts.length === totalExperts) {
+          const projectData = await projectService.getProject(projectId);
+          const targetIds = [projectData.facilitatorId, ...(projectData.expertIds || [])]
+            .map(id => typeof id === 'string' ? id : (id as any).id || (id as any)._id)
+            .filter(id => String(id) !== String(currentUserId));
+            
+          targetIds.forEach(targetId => {
             notificationService.addNotification({
-              type: 'expert_submission',
-              message: `Un experto ha enviado una estimación para "${taskTitle}".`,
+              type: 'system',
+              message: `Todos los expertos han completado sus estimaciones para "${taskTitle}".`,
               projectId,
               taskId,
-              targetUserId: project.facilitatorId
+              targetUserId: String(targetId)
             });
-          }
-
-          // Check if all experts have submitted
-          const currentRoundEsts = [...estimations, newEst].filter(e => e.roundId === activeId);
-          if (currentRoundEsts.length === (project.expertIds?.length || 0)) {
-            const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
-            targetIds.forEach(targetId => {
-              notificationService.addNotification({
-                type: 'system',
-                message: `Todos los expertos han completado sus estimaciones para "${taskTitle}".`,
-                projectId,
-                taskId,
-                targetUserId: targetId
-              });
-            });
-          }
-        });
-      });
+          });
+        }
+      } catch (notifErr) {
+        console.warn('Notification dispatch failed (non-critical):', notifErr);
+      }
 
       setDelphiValue('');
       setPokerCard(null);
       setThreePoint({ optimistic: '', mostLikely: '', pessimistic: '' });
       setJustification('');
+      setShowUpdateConfirmModal(false);
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
         const newErrors: Record<string, string> = {};
@@ -261,40 +295,68 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const handleSendReminder = () => {
+  const handleSendReminder = async () => {
     if (!activeRound) return;
     setIsAnalyzing(true);
-    projectService.getProject(projectId).then(project => {
-      import('../services/notificationService').then(({ notificationService }) => {
-        const currentRoundEsts = estimations.filter(e => e.roundId === (activeRound.id || (activeRound as any)._id));
-        const submittedExpertIds = currentRoundEsts.map(e => e.expertId);
-        const missingExpertIds = (project.expertIds || []).filter(id => !submittedExpertIds.includes(id));
-        
-        missingExpertIds.forEach(targetId => {
-          notificationService.addNotification({
-            type: 'reminder',
-            message: `El facilitador solicita a los expertos faltantes completar su estimación (Ronda ${activeRound.roundNumber}) para "${taskTitle}".`,
-            projectId,
-            taskId,
-            targetUserId: targetId
-          });
-        });
-        alert('Recordatorio enviado a los expertos faltantes.');
+    try {
+      // RS57-RS58: Targeted Reminders to missing experts ONLY
+      const projectData = await projectService.getProject(projectId);
+      const activeId = activeRound.id || (activeRound as any)._id;
+      const roundEstimations = await estimationService.getEstimationsByRound(activeId);
+      
+      const submittedExpertIds = roundEstimations.map(e => String(e.expertId || (e as any).userId));
+      
+      const missingExperts = (projectData.expertIds || []).filter(expert => {
+        const expertId = typeof expert === 'string' ? expert : (expert as any).id || (expert as any)._id;
+        return !submittedExpertIds.includes(String(expertId)) && String(expertId) !== String(currentUserId);
       });
-    }).catch(console.error).finally(() => setIsAnalyzing(false));
+
+      if (missingExperts.length === 0) {
+        alert("Todos los expertos han enviado sus estimaciones.");
+        return;
+      }
+
+      missingExperts.forEach(expert => {
+        const expertId = typeof expert === 'string' ? expert : (expert as any).id || (expert as any)._id;
+        
+        notificationService.addNotification({
+          type: 'reminder',
+          message: `Recordatorio: Falta tu estimación para "${taskTitle}" en la ronda ${activeRound.roundNumber}.`,
+          projectId,
+          taskId,
+          targetUserId: String(expertId)
+        });
+      });
+
+      alert(`Recordatorio enviado a ${missingExperts.length} experto(s) faltantes.`);
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      alert('Error al enviar el recordatorio.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleCloseRound = async () => {
     if (!activeRound) return;
 
+    // Double-confirmation if experts are still missing
+    const activeId = activeRound.id || (activeRound as any)._id;
+    const currentRoundEstCount = estimations.filter(e => String(e.roundId) === String(activeId)).length;
+    
+    if (currentRoundEstCount < totalExperts && !showCloseConfirmModal) {
+      setShowCloseConfirmModal(true);
+      return;
+    }
+    setShowCloseConfirmModal(false);
+
     try {
       setIsAnalyzing(true);
-      const activeId = activeRound.id || (activeRound as any)._id;
       const { round, analysis } = await roundService.closeRound(activeId);
 
       setRounds(prev => prev.map(r => (r.id || (r as any)._id) === activeId ? round : r));
       setActiveRound(null);
-      setSelectedRoundId(activeId); // Keep selection on this round
+      setSelectedRoundId(activeId);
       setAnalysis(analysis);
 
       // RF020: Calculate convergence for display
@@ -308,49 +370,46 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       );
       setConvergenceResult(convResult);
 
-      // Refresh estimations to get potential unmasked actuals or new outliers depending on server logic
       const updatedEsts = await estimationService.getEstimationsByRound(activeId);
       setEstimations(prev => {
         const others = prev.filter(e => e.roundId !== activeId);
         return [...others, ...updatedEsts];
       });
 
-      // RF014: Experts are notified when the round results are revealed and round closed.
-      import('../services/notificationService').then(({ notificationService }) => {
-        projectService.getProject(projectId).then(project => {
-          const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
-          
-          targetIds.forEach(targetId => {
+      // RF014: Notify all participants when round is closed
+      try {
+        const project = await projectService.getProject(projectId);
+        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+        targetIds.forEach(targetId => {
+          notificationService.addNotification({
+            type: 'round_closed',
+            message: `Ronda ${round.roundNumber} de "${taskTitle}" cerrada.`,
+            projectId,
+            taskId,
+            targetUserId: targetId
+          });
+          if (convResult.converged) {
             notificationService.addNotification({
-              type: 'round_closed',
-              message: `Ronda ${round.roundNumber} de "${taskTitle}" cerrada.`,
+              type: 'consensus_reached',
+              message: `Consenso alcanzado para "${taskTitle}" (${round.stats?.mean.toFixed(1)} ${unit}).`,
               projectId,
               taskId,
               targetUserId: targetId
             });
-
-            if (convResult.converged) {
-              notificationService.addNotification({
-                type: 'consensus_reached',
-                message: `Consenso alcanzado para "${taskTitle}" (${round.stats?.mean.toFixed(1)} ${unit}).`,
-                projectId,
-                taskId,
-                targetUserId: targetId
-              });
-            }
-
-            notificationService.addNotification({
-              type: 'results_revealed',
-              message: `Resultados revelados para "${taskTitle}" (Ronda ${round.roundNumber}).`,
-              projectId,
-              taskId,
-              targetUserId: targetId
-            });
+          }
+          notificationService.addNotification({
+            type: 'results_revealed',
+            message: `Resultados disponibles para "${taskTitle}" (Ronda ${round.roundNumber}).`,
+            projectId,
+            taskId,
+            targetUserId: targetId
           });
         });
-      });
+      } catch (notifErr) {
+        console.warn('Notification dispatch failed (non-critical):', notifErr);
+      }
     } catch (err: any) {
-      setErrors({ submit: err.message || "Failed to close round." });
+      setErrors({ submit: err.message || 'Failed to close round.' });
     } finally {
       setIsAnalyzing(false);
     }
@@ -366,30 +425,22 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       setSelectedRoundId(nextRound.id || (nextRound as any)._id);
       setAnalysis(null);
 
-      // RF014: Experts are notified when a new round starts.
-      import('../services/notificationService').then(({ notificationService }) => {
-        projectService.getProject(projectId).then(project => {
-          const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
-          
-          targetIds.forEach(targetId => {
-            notificationService.addNotification({
-              type: 'round_opened',
-              message: `Ronda ${nextRound.roundNumber} abierta para "${taskTitle}".`,
-              projectId,
-              taskId,
-              targetUserId: targetId
-            });
-            
-            notificationService.addNotification({
-              type: 'new_round',
-              message: `Nueva ronda de estimación iniciada para "${taskTitle}".`,
-              projectId,
-              taskId,
-              targetUserId: targetId
-            });
+      // RF014: Notify participants when new round opens
+      try {
+        const project = await projectService.getProject(projectId);
+        const targetIds = [project.facilitatorId, ...(project.expertIds || [])].filter(id => id !== currentUserId);
+        targetIds.forEach(targetId => {
+          notificationService.addNotification({
+            type: 'round_opened',
+            message: `Ronda ${nextRound.roundNumber} abierta para "${taskTitle}".`,
+            projectId,
+            taskId,
+            targetUserId: targetId
           });
         });
-      });
+      } catch (notifErr) {
+        console.warn('Notification dispatch failed (non-critical):', notifErr);
+      }
     } catch (err: any) {
       alert(err.message || 'Failed opening round');
     } finally {
@@ -495,8 +546,53 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       desviacion: r.stats?.stdDev
     }));
 
+  const realTimeStats = useMemo(() => {
+    if (!currentRoundEstimations.length) return null;
+    const baseStats = calculateRoundStats(currentRoundEstimations);
+    
+    // Generar metricaResultados según el método
+    const metrics: any = {
+      mean: baseStats.mean,
+      median: baseStats.median,
+      standardDeviation: baseStats.stdDev,
+      variance: baseStats.variance,
+      iqr: baseStats.iqr,
+      outliers: baseStats.outlierEstimationIds.length
+    };
+
+    if (estimationMethod === 'three-point') {
+      const optimisticValues = currentRoundEstimations.map(e => (e as any).threePoint?.optimistic || e.value);
+      const likelyValues = currentRoundEstimations.map(e => (e as any).threePoint?.mostLikely || e.value);
+      const pessimisticValues = currentRoundEstimations.map(e => (e as any).threePoint?.pessimistic || e.value);
+      
+      const optAvg = optimisticValues.reduce((a,b)=>a+b,0) / optimisticValues.length;
+      const likelyAvg = likelyValues.reduce((a,b)=>a+b,0) / likelyValues.length;
+      const pessAvg = pessimisticValues.reduce((a,b)=>a+b,0) / pessimisticValues.length;
+      
+      metrics.optimisticAvg = Number(optAvg.toFixed(2));
+      metrics.mostLikelyAvg = Number(likelyAvg.toFixed(2));
+      metrics.pessimisticAvg = Number(pessAvg.toFixed(2));
+      metrics.expectedValue = Number(((optAvg + 4 * likelyAvg + pessAvg) / 6).toFixed(2));
+    }
+
+    if (estimationMethod === 'planning-poker') {
+      const counts: Record<number, number> = {};
+      currentRoundEstimations.forEach(e => {
+        counts[e.value] = (counts[e.value] || 0) + 1;
+      });
+      const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+      metrics.moda = Number(sorted[0][0]);
+      metrics.frecuencia = sorted[0][1];
+      metrics.consensoPct = Number(((sorted[0][1] / currentRoundEstimations.length) * 100).toFixed(0));
+    }
+
+    return { ...baseStats, metricaResultados: metrics };
+  }, [currentRoundEstimations, estimationMethod]);
+
+  const displayedStats = viewedRound?.stats || (viewedRound?.status === 'open' && isFacilitator ? realTimeStats : null);
+
   const isOutlier = (estimationId: string) => {
-    return viewedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
+    return displayedStats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -623,14 +719,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {/* Lista de Estimaciones */}
+          {/* Lista de Estimaciones — visible desde la 1ª estimación */}
           <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-black text-slate-900">
-                {viewedRound ? `Ronda ${viewedRound.roundNumber}` : `Resultados`}
+                {viewedRound ? `Ronda ${viewedRound.roundNumber}` : 'Resultados'}
               </h4>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {currentRoundEstimations.length} Expertos
+                {currentRoundEstimations.length}/{totalExperts} Expertos
               </span>
             </div>
 
@@ -645,10 +741,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 <div className="space-y-3">
                   {currentRoundEstimationsWithLabels.map(est => {
                     const outlier = isOutlier(est.id);
+                    // RF019: While round is open, experts only see a placeholder — facilitator sees actual values
+                    const roundIsCurrentlyOpen = viewedRound?.status === 'open';
+                    const showValue = isFacilitator || !roundIsCurrentlyOpen;
                     return (
                       <div
                         key={est.id}
-                        className={`p-4 rounded-2xl border transition-all ${outlier ? 'bg-delphi-giants/5 border-delphi-giants/20' : 'bg-slate-50 border-slate-50 hover:bg-white hover:border-slate-200'}`}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          outlier ? 'bg-delphi-giants/5 border-delphi-giants/20' : 'bg-slate-50 border-slate-50 hover:bg-white hover:border-slate-200'
+                        }`}
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -660,9 +761,19 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                               </div>
                             )}
                           </div>
-                          <span className={`text-base font-black ${outlier ? 'text-delphi-giants' : 'text-slate-900'}`}>{est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Puntos de Historia' : unit === 'personDays' ? 'Días Persona' : unit}</span>
+                          {showValue ? (
+                            <span className={`text-base font-black ${
+                              outlier ? 'text-delphi-giants' : 'text-slate-900'
+                            }`}>
+                              {est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Pts' : 'Días'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black text-delphi-keppel bg-delphi-keppel/10 px-2 py-1 rounded-lg">Enviada ✓</span>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-500 italic leading-relaxed">"{est.justification || 'Sin comentario'}"</p>
+                        {(showValue || est.expertId === currentUserId) && (
+                          <p className="text-xs text-slate-500 italic leading-relaxed">"{est.justification || 'Sin comentario'}"</p>
+                        )}
                       </div>
                     );
                   })}
@@ -674,14 +785,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleCloseRound}
-                  disabled={currentRoundEstimations.length < 1}
+                  disabled={currentRoundEstimations.length < 1 || isAnalyzing}
                   className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-delphi-giants transition-all disabled:opacity-50"
                 >
-                  Cerrar y Analizar Ronda
+                  {isAnalyzing ? 'Procesando...' : 'Cerrar y Analizar Ronda'}
                 </button>
                 {errors.submit && <p id="close-error" role="alert" className="text-red-500 text-xs font-bold text-center">{errors.submit}</p>}
                 <p className="text-[10px] text-slate-400 text-center font-bold uppercase tracking-widest">
-                  Expertos Participantes: {currentRoundEstimations.length}
+                  Participantes: {currentRoundEstimations.length} de {totalExperts}
                 </p>
               </div>
             )}
@@ -701,11 +812,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                       {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
                       {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
                       <button
+                        type="button"
                         onClick={handleSubmitEstimate}
                         disabled={!canSubmit()}
                         className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
                       >
-                        Enviar Estimación
+                        {hasEstimation ? 'Actualizar Estimación' : 'Enviar Estimación'}
                       </button>
                     </>
                   ) : isFacilitator ? (
@@ -733,7 +845,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                             ></div>
                          </div>
                       </div>
-                      {Math.max(0, totalExperts - estimations.filter(e => e.roundId === activeRound.id).length) > 0 && (
+                      {Math.max(0, totalExperts - estimations.filter(e => String(e.roundId) === String(activeRound.id || (activeRound as any)._id)).length) > 0 && (
                         <button
                           onClick={handleSendReminder}
                           className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants/20 hover:scale-[1.02] rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
@@ -774,55 +886,103 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                       </span>
                     </div>
                     {/* RF020: Estadísticas de convergencia */}
-                    {convergenceResult && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="bg-slate-50 p-3 rounded-xl text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Media</p>
-                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.mean?.toFixed(2) || '-'}</p>
+                    {/* RF020: Estadísticas de convergencia */}
+                    {displayedStats && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Media</p>
+                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.mean?.toFixed(2) || '-'}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Mediana</p>
+                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.median?.toFixed(2) || '-'}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Desv. (σ)</p>
+                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.stdDev?.toFixed(2) || '-'}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">CV</p>
+                            <p className={`text-base sm:text-lg font-black truncate ${(displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.15 ? 'text-delphi-keppel' : (displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.30 ? 'text-delphi-orange' : 'text-delphi-giants'}`}>
+                              {((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) * 100).toFixed(1)}%
+                            </p>
+                          </div>
                         </div>
-                        <div className="bg-slate-50 p-3 rounded-xl text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mediana</p>
-                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.median?.toFixed(2) || '-'}</p>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded-xl text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desviación (CV)</p>
-                          <p className="text-lg font-black text-slate-900">{(convergenceResult.cv * 100).toFixed(1)}%</p>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded-xl text-center">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Atípicos</p>
-                          <p className="text-lg font-black text-slate-900">{convergenceResult.outlierCount}</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Varianza</p>
+                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.variance?.toFixed(2) || '-'}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Rango</p>
+                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">
+                              {displayedStats.range ? `${displayedStats.range[0]} - ${displayedStats.range[1]}` : '-'}
+                            </p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">IQR</p>
+                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.iqr?.toFixed(2) || '-'}</p>
+                          </div>
+                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Atípicos</p>
+                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.outlierEstimationIds?.length || 0}</p>
+                          </div>
                         </div>
                       </div>
                     )}
-                    <div className="bg-slate-50 p-5 rounded-2xl border-l-4 border-delphi-keppel">
-                      <p className="text-xs font-bold text-slate-900 leading-relaxed">{analysis.recommendation}</p>
+                    
+                    <div className={`p-5 rounded-2xl border-l-4 transition-all ${
+                      analysis.level === 'Alta' ? 'bg-delphi-keppel/5 border-delphi-keppel' : 
+                      analysis.level === 'Media' ? 'bg-delphi-vanilla border-delphi-orange' : 'bg-delphi-giants/5 border-delphi-giants'
+                    }`}>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Recomendación del Jefe de Proyecto</p>
+                      <p className="text-xs font-bold text-slate-900 leading-relaxed italic">
+                        "{analysis.level === 'Alta' ? 'Excelente alineación técnica. Los expertos están en consenso.' : 
+                          analysis.level === 'Media' ? 'Existe una ligera discrepancia. Se recomienda una breve discusión para alinear criterios.' : 
+                          'Divergencia significativa detectada. Es imperativo revisar los requisitos y realizar un nuevo debate.'}"
+                      </p>
+                      <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
+                        {analysis.recommendation}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed bg-slate-50 p-5 rounded-2xl">
+
+                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">AI Implementation Insights</span>
                       {analysis.aiInsights}
                     </p>
 
                     {/* RF015b/c: Resultados específicos del método */}
-                    {!activeRound && viewedRound?.stats?.metricaResultados && (
-                      <div className="bg-delphi-keppel/5 p-6 rounded-[2rem] border border-delphi-keppel/10 space-y-4 animate-in slide-in-from-top-4">
-                        <h4 className="text-sm font-black text-slate-900 border-b border-delphi-keppel/10 pb-2">Métricas del Método</h4>
-                        <div className="space-y-3">
-                          {Object.entries(viewedRound.stats.metricaResultados)
+                    {displayedStats?.metricaResultados && (
+                      <div className="bg-slate-900 text-white p-6 rounded-[2rem] border border-white/5 space-y-4 animate-in slide-in-from-top-4 shadow-xl">
+                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-delphi-keppel border-b border-white/10 pb-3 flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4" />
+                          Métricas {estimationMethod === 'planning-poker' ? 'Planning Poker' : estimationMethod === 'three-point' ? 'Three-Point' : 'Delphi'}
+                          {viewedRound?.status === 'open' && (
+                            <span className="ml-auto text-[8px] bg-delphi-keppel/20 text-delphi-keppel px-2 py-0.5 rounded-full animate-pulse">
+                              Tiempo Real
+                            </span>
+                          )}
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                          {Object.entries(displayedStats.metricaResultados)
                             .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
                             .map(([key, val]) => (
-                              <div key={key} className="flex justify-between items-center text-xs gap-4">
-                                <span className="text-slate-400 font-bold uppercase tracking-wider shrink-0">
+                              <div key={key} className="flex justify-between items-center text-[10px] md:text-xs py-1.5 border-b border-white/5 min-w-0">
+                                <span className="text-slate-400 font-bold uppercase tracking-wider shrink mr-2 truncate max-w-[65%]">
                                   {key === 'moda' ? 'Moda' :
                                     key === 'frecuencia' ? 'Frecuencia' :
-                                      key === 'consensoPct' ? 'Nivel de Consenso' :
-                                        key === 'expectedValue' ? 'Valor Esperado (E)' :
-                                          key === 'standardDeviation' ? 'Desviación (σ)' :
-                                            key === 'optimisticAvg' ? 'Promedio Optimista (O)' :
-                                              key === 'mostLikelyAvg' ? 'Promedio Probable (M)' :
+                                      key === 'consensoPct' ? 'Consenso' :
+                                        key === 'expectedValue' ? 'Valor Esperado' :
+                                          key === 'standardDeviation' ? 'Desviación' :
+                                            key === 'optimisticAvg' ? 'Promedio Opt.' :
+                                              key === 'mostLikelyAvg' ? 'Promedio Prob.' :
                                                 key === 'mean' ? 'Media' :
                                                   key === 'median' ? 'Mediana' :
-                                                    key === 'pessimisticAvg' ? 'Promedio Pesimista (P)' : key}
+                                                    key === 'pessimisticAvg' ? 'Promedio Pes.' : key}
                                 </span>
-                                <span className="font-black text-slate-900 text-right truncate">
+                                <span className="font-black text-delphi-keppel text-right shrink-0">
                                   {typeof val === 'number' 
                                     ? (key === 'consensoPct' ? `${val.toFixed(0)}%` : val.toFixed(2)) 
                                     : String(val)}
@@ -855,48 +1015,129 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         </div>
       </div>
 
-      {/* Modal de Resultados Breves (Anclado Abajo) */}
-      {viewedRound?.status === 'closed' && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-2xl animate-in slide-in-from-bottom-10 duration-500">
-          <div className="bg-slate-900 text-white p-5 rounded-[2rem] shadow-2xl border border-white/10 flex items-center justify-between gap-6 overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-delphi-keppel" />
-            
+      {/* Inline results summary — visible whenever the viewed round has at least 1 estimation */}
+      {viewedRound && currentRoundEstimations.length > 0 && (
+        <div className="bg-slate-900 text-white p-5 rounded-[2rem] border border-white/10 flex flex-wrap items-center justify-between gap-4 overflow-hidden relative animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-delphi-keppel rounded-l-[2rem]" />
+          <div className="flex items-center gap-4 pl-3">
+            <div className="bg-delphi-keppel/20 p-3 rounded-2xl shrink-0">
+              <Target className="w-5 h-5 text-delphi-keppel" />
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Resultado Ronda {viewedRound.roundNumber}</p>
+              <h5 className="text-base font-black flex items-center gap-2">
+                {viewedRound.status === 'closed'
+                  ? <>{viewedRound.stats?.mean?.toFixed(1) || '-'} {unit === 'hours' ? 'h' : unit === 'storyPoints' ? 'pts' : 'd'}</>
+                  : <span className="text-sm text-slate-300">{currentRoundEstimations.length} estimaciones recibidas…</span>
+                }
+                {viewedRound.status === 'closed' && analysis?.level && (
+                  <span className={`text-[8px] px-2 py-0.5 rounded-md font-black uppercase ${
+                    analysis.level === 'Alta' ? 'bg-delphi-keppel' :
+                    analysis.level === 'Media' ? 'bg-delphi-orange' : 'bg-delphi-giants'
+                  }`}>{analysis.level}</span>
+                )}
+              </h5>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 border-l border-white/10 pl-6">
+            {viewedRound.status === 'closed' && convergenceResult && (
+              <>
+                <div className="text-center">
+                  <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">CV</p>
+                  <p className="text-sm font-black text-delphi-keppel">{(convergenceResult.cv * 100).toFixed(0)}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Atípicos</p>
+                  <p className="text-sm font-black text-delphi-orange">{convergenceResult.outlierCount}</p>
+                </div>
+              </>
+            )}
+            {isFacilitator && !activeRound && viewedRound.status === 'closed' && (
+              <button
+                onClick={handleStartNextRound}
+                disabled={isAnalyzing}
+                className="bg-white text-slate-900 p-2.5 rounded-xl hover:bg-delphi-keppel hover:text-white transition-all shadow-lg"
+                title="Nueva Ronda"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Update Estimation Confirm Modal */}
+      {showUpdateConfirmModal && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300 space-y-6">
             <div className="flex items-center gap-4">
-              <div className="bg-delphi-keppel/20 p-3 rounded-2xl">
-                <Target className="w-5 h-5 text-delphi-keppel" />
+              <div className="bg-delphi-keppel/10 p-4 rounded-2xl shrink-0">
+                <Target className="w-8 h-8 text-delphi-keppel" />
               </div>
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Resultado Ronda {viewedRound.roundNumber}</p>
-                <h5 className="text-base font-black flex items-center gap-2">
-                  {viewedRound.stats?.mean?.toFixed(1) || '-'} {unit === 'hours' ? 'h' : unit === 'storyPoints' ? 'pts' : 'd'}
-                  <span className={`text-[8px] px-2 py-0.5 rounded-md ${
-                    analysis?.level === 'Alta' ? 'bg-delphi-keppel' : 
-                    analysis?.level === 'Media' ? 'bg-delphi-orange' : 'bg-delphi-giants'
-                  }`}>
-                    {analysis?.level || 'N/A'}
-                  </span>
-                </h5>
+                <h3 className="text-xl font-black text-slate-900">Actualizar Estimación</h3>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  ¿Estás seguro de que deseas actualizar tu estimación para esta ronda?
+                </p>
               </div>
             </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <p className="text-xs font-bold text-slate-700 leading-relaxed">
+                Tu estimación anterior será reemplazada por los nuevos valores proporcionados. El análisis de convergencia se recalculará automáticamente.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowUpdateConfirmModal(false)}
+                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleSubmitEstimate(true)}
+                className="flex-1 py-3 rounded-xl bg-delphi-keppel text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] shadow-lg shadow-delphi-keppel/20 transition-all"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <div className="flex items-center gap-6 border-l border-white/10 pl-6">
-              <div className="text-center">
-                <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">CV</p>
-                <p className="text-sm font-black text-delphi-keppel">{(convergenceResult?.cv ? convergenceResult.cv * 100 : 0).toFixed(0)}%</p>
+      {/* Double-confirmation modal — close round with missing experts */}
+      {showCloseConfirmModal && activeRound && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in zoom-in-95 duration-300 space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-delphi-giants/10 p-4 rounded-2xl shrink-0">
+                <ShieldAlert className="w-8 h-8 text-delphi-giants" />
               </div>
-              <div className="text-center">
-                <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Atípicos</p>
-                <p className="text-sm font-black text-delphi-orange">{convergenceResult?.outlierCount || 0}</p>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">¿Cerrar ronda incompleta?</h3>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Ronda {activeRound.roundNumber} — {totalExperts - estimations.filter(e => String(e.roundId) === String(activeRound.id || (activeRound as any)._id)).length} experto(s) aún no han enviado su estimación.
+                </p>
               </div>
-              {isFacilitator && (
-                <button 
-                  onClick={handleStartNextRound}
-                  className="bg-white text-slate-900 p-2.5 rounded-xl hover:bg-delphi-keppel hover:text-white transition-all shadow-lg"
-                  title="Nueva Ronda"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              )}
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <p className="text-xs font-bold text-amber-700 leading-relaxed">
+                ⚠️ Cerrar la ronda ahora eliminará la posibilidad de que los expertos restantes participen. El análisis de convergencia podría ser menos preciso.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCloseConfirmModal(false)}
+                className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCloseRound}
+                className="flex-1 py-3 rounded-xl bg-delphi-giants text-white font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg"
+              >
+                Cerrar de Todas Formas
+              </button>
             </div>
           </div>
         </div>

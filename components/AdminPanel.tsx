@@ -23,6 +23,8 @@ import {
 import { UserRole, User as AppUser, Round, Task, Project } from '../types';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 import { adminService, AdminUser } from '../services/adminService';
+import { projectService } from '../services/projectService';
+import { notificationService } from '../services/notificationService';
 import { taskService } from '../services/taskService';
 import { roundService } from '../services/roundService';
 import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds } from '../utils/performanceMetrics';
@@ -234,6 +236,40 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
          await loadProjects();
       } catch (err: any) {
          setError(err.message || 'Error al restaurar proyecto');
+      }
+   };
+
+   const handleDeleteProject = async (id: string, project: any) => {
+      if (!window.confirm(`¿Desea eliminar el proyecto "${project.name}"? Esta acción notificará a los afiliados.`)) return;
+      try {
+         setIsLoading(true);
+         await projectService.deleteProject(id);
+         
+         // RF025: Notificar a los afiliados
+         const facilitatorId = project.facilitatorId?.id || project.facilitatorId?._id || project.facilitatorId;
+         const expertIds = project.expertIds || [];
+         const allIds = [facilitatorId, ...expertIds];
+         
+         const targetIds = allIds
+            .map(uid => (typeof uid === 'object' && uid !== null ? uid.id || uid._id : uid))
+            .filter(uid => uid && String(uid) !== String(currentUser?.id));
+
+         targetIds.forEach(targetId => {
+            notificationService.addNotification({
+               type: 'system',
+               message: `El proyecto "${project.name}" ha sido eliminado por el administrador.`,
+               projectId: id,
+               targetUserId: String(targetId)
+            });
+         });
+
+         setSuccessMessage(`Proyecto "${project.name}" eliminado correctamente.`);
+         setTimeout(() => {
+            window.location.reload();
+         }, 1500);
+      } catch (err: any) {
+         setError(err.message || 'Error al eliminar proyecto');
+         setIsLoading(false);
       }
    };
 
@@ -532,13 +568,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                  </td>
                                  <td className="px-8 py-6 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                       {project.isDeleted && (
+                                       {project.isDeleted ? (
                                           <button
                                              aria-label={`Restaurar ${project.name}`}
                                              title="Restaurar proyecto"
                                              onClick={() => handleRestoreProject(project.id || project._id, project.name)}
                                              className="p-2.5 rounded-xl bg-delphi-keppel text-white hover:scale-105 transition-all shadow-lg shadow-delphi-keppel/20">
                                              <RotateCcw className="w-4 h-4" />
+                                          </button>
+                                       ) : (
+                                          <button
+                                             aria-label={`Eliminar ${project.name}`}
+                                             title="Eliminar proyecto"
+                                             onClick={() => handleDeleteProject(project.id || project._id, project)}
+                                             className="p-2.5 rounded-xl bg-red-600 text-white hover:scale-105 transition-all shadow-lg shadow-red-600/20">
+                                             <Trash2 className="w-4 h-4" />
                                           </button>
                                        )}
                                     </div>

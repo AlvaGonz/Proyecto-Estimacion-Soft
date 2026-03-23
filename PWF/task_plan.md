@@ -1,40 +1,49 @@
-# Task Plan — EstimaPro Bug Fixes (Session 2026-03-20)
+# REFINAMIENTO DE LÓGICA DE ESTIMACIÓN Y NOTIFICACIONES
 
-## Objetivos
-1. [X] Resultados de ronda visibles desde la primera estimación (inline, no modal)
-2. [ ] Doble confirmación al cerrar ronda con expertos faltantes
-3. [ ] Fix notifications / recordatorios (actualmente no funcionan)
-4. [ ] Fix flickering de pantalla (re-render pasivo)
+## 🎯 OBJETIVOS
+1. **F1: Cálculo de Progreso Real**: Implementar una lógica de cálculo de porcentaje de progreso basada en el estado de la tarea y el avance de las rondas.
+2. **F2: Resultados de Ronda Inline**: Asegurar que los resultados se muestren debajo de la interfaz desde la primera estimación (no en modal).
+3. **F3: Doble Confirmación**: Implementar/Verificar el modal de doble confirmación al cerrar rondas con expertos faltantes.
+4. **F4: Notificaciones Robustas**: Corregir recordatorios (IDs poblados) y lógica del punto rojo (facilitador no se auto-notifica).
+5. **F5: Corregir Flickering**: Optimizar estados de carga y efectos para evitar saltos visuales.
+6. **F6: Métricas sin Overflow**: Ajustar CSS en tablas de métricas para evitar desbordamientos.
 
-## Archivos Clave
-- `components/EstimationRounds.tsx` — lógica principal de rondas (~910 líneas)
-- `App.tsx` — unreadNotifications useEffect (posible causa de flickering)
-- `services/notificationService.ts` — ya revisado
-- `components/NotificationCenter.tsx` — ya revisado
+## 🗂️ ARCHIVOS AFECTADOS
+| Archivo | Acción | Motivo |
+|---------|--------|--------|
+| `components/EstimationRounds.tsx` | Modificar | Lógica de cierre, reminders, resultados inline y overflow. |
+| `components/ProjectDetail.tsx` | Modificar | Cálculo de barra de progreso por tarea. |
+| `components/NotificationCenter.tsx` | Modificar | Filtrado de notificaciones por usuario. |
+| `App.tsx` | Modificar | Lógica de punto rojo y evitar auto-notificación del facilitador. |
+| `types.ts` | Revisar | Asegurar consistencia de tipos (User vs string en expertIds). |
+| `services/roundService.ts` | Revisar | Asegurar que el cierre de ronda devuelve los datos necesarios. |
 
-## Fases
+## 🛠️ PLAN DE IMPLEMENTACIÓN
 
-### Fase 1: Exploración / Root Cause Analysis [in_progress]
-- [ ] Leer EstimationRounds.tsx completo para entender cómo se muestran resultados
-- [ ] Identificar el re-render que causa flickering
-- [ ] Identificar por qué fallan los recordatorios
+### Fase 1: Estabilidad UI y Barra de Progreso (`ProjectDetail.tsx`)
+- Implementar la lógica de progreso:
+  - `PENDIENTE`: 0%
+  - `ESTIMANDO`: `((ronda_actual - 1) / max_rondas * 100) + (estimaciones_ronda_actual / total_expertos / max_rondas * 100)`
+  - `CONSENSUADA/FINALIZADA`: 100%
 
-### Fase 2: Fix — Resultados inline desde 1ª estimación
-- Mostrar sección de resultados parciales (lista de estimaciones de la ronda actual)
-  debajo de la interfaz de estimación, sin modal, apenas haya ≥1 estimación.
-- El facilitador debe verlas; el experto NO debe ver las de otros mientras la ronda está abierta.
+### Fase 2: Lógica de Rondas y Reminders (`EstimationRounds.tsx`)
+- Corregir `handleSendReminder`: Manejar `expertIds` como objetos poblados.
+- Corregir `handleCloseRound`:
+  - Si faltan expertos, activar `showCloseConfirmModal`.
+  - Asegurar que el cierre proceda tras confirmación.
+- Resultados Inline: Verificar que el componente de resultados se renderice condicionalmente basado en si hay estimaciones (incluso si la ronda está abierta, pero anonimizado).
 
-### Fase 3: Fix — Doble confirmación al cerrar ronda con expertos faltantes
-- Antes de `handleCloseRound`, verificar si falta algún experto.
-- Si faltan → mostrar modal de confirmación con conteo.
+### Fase 3: Notificaciones y Seguridad (`App.tsx` & `NotificationCenter.tsx`)
+- Cambiar imports dinámicos a estáticos para `notificationService` en `App.tsx`.
+- En `handleCreateProject`, evitar añadir notificaciones si el `expertId` es el mismo que `currentUser.id`.
+- Asegurar que el punto rojo refleje solo las no leídas del usuario actual.
 
-### Fase 4: Fix — Notifications / recordatorios
-- Diagnóstico: el `import()` dinámico de notificationService puede fallar silenciosamente.
-- Solución: cambiar a import estático en los archivos que lo necesiten.
+### Fase 4: Pulido Visual
+- Ajustar `min-w-0`, `truncate` y `flex-shrink` en las tablas de métricas de `EstimationRounds.tsx`.
+- Revisar `loadRounds` para asegurar que el `isLoading` solo se active en acciones de usuario, no en el poll.
 
-### Fase 5: Fix — Flickering
-- Causa probable: `useEffect` en App.tsx con `import()` dinámico se re-ejecuta en loop.
-- Solución: convertir a import estático + estabilizar dependencias.
-
-## Errores / Hallazgos
-(vacío al inicio)
+## 🧪 CASOS DE PRUEBA
+1. **Progreso**: Crear tarea -> 0%. Un experto estima -> % parcial. Cerrar ronda -> % aumenta. Consenso -> 100%.
+2. **Reminders**: Facilitador envía recordatorio -> Solo expertos faltantes reciben notificación.
+3. **Cierre**: Intentar cerrar ronda sin todos los votos -> Modal de confirmación -> Confirmar -> Ronda cerrada.
+4. **Notificaciones**: Facilitador crea proyecto -> Expertos ven punto rojo. Facilitador NO ve notificación de su propia acción.

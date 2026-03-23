@@ -106,7 +106,7 @@ export const convergenceService = {
    */
   getConvergenceLevel(cv: number, converged: boolean): 'Alta' | 'Media' | 'Baja' {
     if (converged || cv <= 0.15) return 'Alta';
-    if (cv <= 0.35) return 'Media';
+    if (cv <= 0.30) return 'Media';
     return 'Baja';
   },
 

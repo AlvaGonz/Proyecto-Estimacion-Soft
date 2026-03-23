@@ -8,6 +8,14 @@ interface ProjectListProps {
   projects?: Project[];
   onProjectSelect: (id: string) => void;
 }
+ 
+const STATUS_LABELS = {
+  'preparation': 'Preparación',
+  'kickoff': 'Kickoff',
+  'active': 'Activo',
+  'finished': 'Finalizado',
+  'archived': 'Archivado'
+} as const;
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects = [], onProjectSelect }) => {
   return (
@@ -34,10 +42,11 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects = [], onProjectSelec
               <span className={`w-fit text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full border ${
                 project.status === 'active' ? 'bg-delphi-celadon/20 text-delphi-keppel border-delphi-keppel/20' : 
                 project.status === 'kickoff' ? 'bg-delphi-orange/20 text-delphi-giants border-delphi-giants/20' : 
-                project.status === 'finished' ? 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/30' :
+                project.status === 'finished' ? 'bg-green-100 text-green-700 border-green-200' :
                 project.status === 'preparation' ? 'bg-slate-200 text-slate-600 border-slate-300' :
+                project.status === 'archived' ? 'bg-slate-800 text-slate-100 border-slate-900' :
                 'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
+                {STATUS_LABELS[project.status as keyof typeof STATUS_LABELS] || project.status}
               </span>
             </div>
             <p className="text-sm text-slate-500 line-clamp-2 sm:line-clamp-1 mb-3">{project.description}</p>
