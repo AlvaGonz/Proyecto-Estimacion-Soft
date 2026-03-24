@@ -95,7 +95,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                                  </div>
                                  <div className="flex-1 space-y-3">
                                     <div className="flex items-center justify-between">
-                                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{new Date(c.timestamp).toLocaleString()}</span>
+                                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{new Date(c.timestamp || (c as any).createdAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                                        <button className="text-slate-300 hover:text-delphi-orange transition-colors"><Flag className="w-4 h-4" /></button>
                                     </div>
                                     <div className="bg-slate-50 border-slate-100 p-6 rounded-[2rem] rounded-tl-none border relative">

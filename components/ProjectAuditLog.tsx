@@ -27,17 +27,21 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
           <div className="absolute left-[23px] top-4 bottom-4 w-px bg-slate-100 hidden md:block" />
 
           <div className="space-y-12">
-            {[...entries].sort((a, b) => b.timestamp - a.timestamp).map((entry) => (
+            {[...entries].sort((a, b) => {
+              const bTime = b.timestamp || (b as any).createdAt || 0;
+              const aTime = a.timestamp || (a as any).createdAt || 0;
+              return bTime - aTime;
+            }).map((entry) => (
               <div key={entry.id || `audit-${entry.timestamp}-${entry.userId}-${entry.action}`} className="relative flex flex-col md:flex-row gap-8 group">
                 {/* Timeline dot */}
                 <div className="absolute left-[16px] top-4 w-4 h-4 rounded-full border-4 border-white bg-delphi-keppel shadow-[0_0_10px_rgba(43,186,165,0.4)] z-10 hidden md:block group-hover:scale-125 transition-transform" />
 
                 <div className="md:w-32 pt-2">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    {new Date(entry.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                    {new Date(entry.timestamp || (entry as any).createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                   </p>
                   <p className="text-xs font-bold text-slate-300">
-                    {new Date(entry.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(entry.timestamp || (entry as any).createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
 

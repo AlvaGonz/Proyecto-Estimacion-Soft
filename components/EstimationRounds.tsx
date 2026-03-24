@@ -93,6 +93,40 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     });
   }, [projectId]);
 
+  // RF: Implement safe edit flow - prefill form if estimation exists
+  useEffect(() => {
+    if (activeRound && estimations.length > 0) {
+      const activeId = activeRound.id || (activeRound as any)._id;
+      const existingEst = estimations.find(e => {
+        const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
+        const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
+        return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
+      });
+
+      if (existingEst) {
+        setJustification(existingEst.justification || '');
+        if (estimationMethod === 'wideband-delphi') {
+          setDelphiValue(existingEst.value);
+        } else if (estimationMethod === 'planning-poker') {
+          setPokerCard((existingEst.metodoData?.card ?? existingEst.value) as any);
+        } else if (estimationMethod === 'three-point') {
+          if (existingEst.metodoData) {
+            setThreePoint({
+              optimistic: existingEst.metodoData.optimistic ?? '',
+              mostLikely: existingEst.metodoData.mostLikely ?? '',
+              pessimistic: existingEst.metodoData.pessimistic ?? ''
+            });
+          }
+        }
+      } else {
+        setJustification('');
+        setDelphiValue('');
+        setPokerCard(null);
+        setThreePoint({ optimistic: '', mostLikely: '', pessimistic: '' });
+      }
+    }
+  }, [activeRound, estimations, currentUserId, taskId, estimationMethod]);
+
   const loadRounds = useCallback(async (showSpinner = true) => {
     if (!taskId || !projectId) return;
     
@@ -193,10 +227,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     if (!activeRound) return false;
     const activeId = activeRound.id || (activeRound as any)._id;
     return estimations.some(e => {
-      const rId = e.roundId || (e as any)._id;
-      return String(rId) === String(activeId) && String(e.expertId || (e as any).userId) === String(currentUserId);
+      const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
+      const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
+      return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
     });
-  }, [estimations, activeRound, currentUserId]);
+  }, [estimations, activeRound, currentUserId, taskId]);
 
   const handleSubmitEstimate = async (forceUpdate?: boolean | React.MouseEvent) => {
     const isForceUpdate = forceUpdate === true;
@@ -211,8 +246,9 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
       // Check if user already submitted - if so, ask for confirmation first
       const existingEst = estimations.find(e => {
-        const rId = e.roundId || (e as any)._id;
-        return String(rId) === String(activeId) && String(e.expertId || (e as any).userId) === String(currentUserId);
+        const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
+        const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
+        return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
       });
 
       if (existingEst && !isForceUpdate) {
@@ -308,7 +344,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       
       const missingExperts = (projectData.expertIds || []).filter(expert => {
         const expertId = typeof expert === 'string' ? expert : (expert as any).id || (expert as any)._id;
-        return !submittedExpertIds.includes(String(expertId)) && String(expertId) !== String(currentUserId);
+        // Strict check to ensure the expert hasn't estimated for this specific task and round
+        const hasEstimatedThisTask = roundEstimations.some(e => 
+          String(e.expertId || (e as any).userId) === String(expertId) && 
+          String(e.taskId) === String(taskId)
+        );
+        return !hasEstimatedThisTask && String(expertId) !== String(currentUserId);
       });
 
       if (missingExperts.length === 0) {
@@ -483,6 +524,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           <PokerCards
             selectedCard={pokerCard}
             justification={justification}
+            unit={unit}
             onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
             disabled={!canEstimate}
           />
@@ -589,7 +631,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     return { ...baseStats, metricaResultados: metrics };
   }, [currentRoundEstimations, estimationMethod]);
 
-  const displayedStats = viewedRound?.stats || (viewedRound?.status === 'open' && isFacilitator ? realTimeStats : null);
+  const displayedStats = viewedRound?.stats || (viewedRound?.status === 'open' ? realTimeStats : null);
 
   const isOutlier = (estimationId: string) => {
     return displayedStats?.outlierEstimationIds?.includes(estimationId) || false;
@@ -765,7 +807,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                             <span className={`text-base font-black ${
                               outlier ? 'text-delphi-giants' : 'text-slate-900'
                             }`}>
-                              {est.value} {unit === 'hours' ? 'Horas' : unit === 'storyPoints' ? 'Pts' : 'Días'}
+                               {est.value} {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'Horas' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'Pts' : 'Días'}
                             </span>
                           ) : (
                             <span className="text-[10px] font-black text-delphi-keppel bg-delphi-keppel/10 px-2 py-1 rounded-lg">Enviada ✓</span>
@@ -817,7 +859,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                         disabled={!canSubmit()}
                         className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
                       >
-                        {hasEstimation ? 'Actualizar Estimación' : 'Enviar Estimación'}
+                        {hasEstimation ? 'Editar Estimación' : 'Enviar Estimación'}
                       </button>
                     </>
                   ) : isFacilitator ? (
@@ -1016,7 +1058,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       </div>
 
       {/* Inline results summary — visible whenever the viewed round has at least 1 estimation */}
-      {viewedRound && currentRoundEstimations.length > 0 && (
+      {viewedRound && currentRoundEstimations.length > 0 && viewedRound.status === 'open' && (
         <div className="bg-slate-900 text-white p-5 rounded-[2rem] border border-white/10 flex flex-wrap items-center justify-between gap-4 overflow-hidden relative animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-delphi-keppel rounded-l-[2rem]" />
           <div className="flex items-center gap-4 pl-3">
@@ -1027,7 +1069,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Resultado Ronda {viewedRound.roundNumber}</p>
               <h5 className="text-base font-black flex items-center gap-2">
                 {viewedRound.status === 'closed'
-                  ? <>{viewedRound.stats?.mean?.toFixed(1) || '-'} {unit === 'hours' ? 'h' : unit === 'storyPoints' ? 'pts' : 'd'}</>
+                  ? <>{viewedRound.stats?.mean?.toFixed(1) || '-'} {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'h' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'pts' : 'd'}</>
                   : <span className="text-sm text-slate-300">{currentRoundEstimations.length} estimaciones recibidas…</span>
                 }
                 {viewedRound.status === 'closed' && analysis?.level && (
@@ -1041,15 +1083,15 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           </div>
 
           <div className="flex items-center gap-6 border-l border-white/10 pl-6">
-            {viewedRound.status === 'closed' && convergenceResult && (
+            {(viewedRound.status === 'closed' || (isFacilitator && currentRoundEstimations.length > 0)) && displayedStats && (
               <>
                 <div className="text-center">
                   <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">CV</p>
-                  <p className="text-sm font-black text-delphi-keppel">{(convergenceResult.cv * 100).toFixed(0)}%</p>
+                  <p className="text-sm font-black text-delphi-keppel">{((displayedStats.coefficientOfVariation || (displayedStats as any).cv || (convergenceResult?.cv ?? 0)) * 100).toFixed(0)}%</p>
                 </div>
                 <div className="text-center">
                   <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Atípicos</p>
-                  <p className="text-sm font-black text-delphi-orange">{convergenceResult.outlierCount}</p>
+                  <p className="text-sm font-black text-delphi-orange">{displayedStats.outlierEstimationIds?.length || 0}</p>
                 </div>
               </>
             )}

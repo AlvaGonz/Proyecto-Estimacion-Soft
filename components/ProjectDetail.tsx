@@ -587,7 +587,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       )}
 
       {/* Navegación por Pestañas */}
-      <nav aria-label="Navegación del proyecto" role="tablist" className="flex border-b border-slate-200 gap-6 md:gap-12 overflow-x-auto no-scrollbar scroll-smooth">
+      <nav aria-label="Navegación del proyecto" role="tablist" className="flex bg-slate-100/50 p-1.5 md:p-2 rounded-2xl md:rounded-3xl gap-2 md:gap-4 overflow-x-auto no-scrollbar scroll-smooth shadow-inner border border-slate-200/50 backdrop-blur-sm w-fit max-w-full">
         {[
           { id: 'tasks', label: 'Proceso', icon: Activity },
           { id: 'docs', label: 'Docs', icon: FileText },
@@ -602,151 +602,177 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex items-center gap-2 md:gap-3 pb-4 md:pb-5 px-1 text-[10px] md:text-sm font-black uppercase tracking-[0.15em] transition-all shrink-0 relative ${activeTab === tab.id
-              ? 'text-delphi-keppel'
-              : 'text-slate-400 hover:text-slate-600'
+            className={`flex items-center gap-2 md:gap-3 py-3 md:py-4 px-6 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black uppercase tracking-[0.1EM] transition-all shrink-0 ${activeTab === tab.id
+              ? 'bg-white text-delphi-keppel shadow-sm ring-1 ring-slate-900/5 scale-[1.02]'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
               }`}
           >
-            <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'scale-110' : ''}`} />
+            <tab.icon className={`w-4 h-4 md:w-5 md:h-5 ${activeTab === tab.id ? 'opacity-100' : 'opacity-60'}`} />
             {tab.label}
-            {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 w-full h-1 md:h-1.5 bg-delphi-keppel rounded-t-full" />
-            )}
           </button>
         ))}
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative">
         {activeTab === 'tasks' && (
-          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-            <div className="lg:col-span-4 space-y-8">
-              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="font-black text-xl tracking-tight">Tareas del Sprint</h3>
-                  <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-4 lg:sticky lg:top-8 space-y-6 md:space-y-8">
+              <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] md:rounded-[3xl] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-8 flex flex-col h-full max-h-[80vh]">
+                <div className="flex items-center justify-between mb-8 shrink-0">
+                  <h3 className="font-black text-xl md:text-2xl tracking-tight text-slate-800">Tareas</h3>
+                  <div className="bg-delphi-keppel/10 px-4 py-2 rounded-xl text-[10px] md:text-xs font-black text-delphi-keppel uppercase tracking-widest ring-1 ring-delphi-keppel/20">
                     {tasks.length} items
                   </div>
                 </div>
 
-                <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
-                  {tasks.map(task => (
-                    <button
-                      key={task.id}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className={`w-full text-left p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all ${selectedTaskId === task.id
-                        ? 'border-delphi-keppel bg-delphi-keppel/[0.03]'
-                        : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
-                        }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
-                            {task.title}
-                          </h4>
-                          {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? (
-                            <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
-                              <Award className="w-3 h-3" />
-                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-1.5 mt-2">
-                              {(() => {
-                                  // F1: Cálculo mejorado de progreso por tarea
-                                  if (task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized') return null; // Ya manejado arriba
-                                  
-                                  const taskRounds = roundsByTask[task.id] || [];
-                                  const totalExperts = project?.expertIds?.length || 1;
-                                  const maxRounds = project?.maxRounds || 3;
-                                  
-                                  const statusValue = (task.status || '').toLowerCase();
-                                  if (statusValue === 'pending' || statusValue === 'pendiente') {
+                <div className="space-y-3 md:space-y-4 overflow-y-auto no-scrollbar pb-6 grow">
+                  {tasks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-48 text-center px-4">
+                      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                        <Activity className="w-6 h-6 text-slate-300" />
+                      </div>
+                      <p className="text-slate-500 font-bold text-sm">No hay tareas creadas.</p>
+                      {isFacilitator && (
+                        <p className="text-slate-400 text-xs mt-2">Usa el botón "Añadir Tarea" para comenzar.</p>
+                      )}
+                    </div>
+                  ) : (
+                    tasks.map(task => (
+                      <button
+                        key={task.id}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className={`w-full text-left p-4 md:p-5 rounded-2xl md:rounded-[1.5rem] border-2 transition-all duration-300 relative overflow-hidden group ${selectedTaskId === task.id
+                          ? 'border-delphi-keppel bg-gradient-to-br from-delphi-keppel/[0.05] to-transparent shadow-sm'
+                          : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]'
+                          }`}
+                      >
+                        {selectedTaskId === task.id && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-delphi-keppel rounded-r-full" />
+                        )}
+                        <div className="flex items-start gap-4">
+                          <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                            {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                          </div>
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h4 className={`text-sm md:text-[15px] font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-600'}`}>
+                              {task.title}
+                            </h4>
+                            {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? (
+                              <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-3 py-1 rounded-xl ring-1 ring-delphi-keppel/20">
+                                <Award className="w-3 h-3" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 mt-3">
+                                {(() => {
+                                    if (task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized') return null;
+                                    
+                                    const taskRounds = roundsByTask[task.id] || [];
+                                    const totalExperts = project?.expertIds?.length || 1;
+                                    const maxRounds = project?.maxRounds || 3;
+                                    
+                                    const statusValue = (task.status || '').toLowerCase();
+                                    if (statusValue === 'pending' || statusValue === 'pendiente') {
+                                      return (
+                                        <>
+                                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-slate-200" style={{ width: '0%' }}></div>
+                                          </div>
+                                          <div className="flex justify-between items-center mt-1.5">
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">PENDIENTE</span>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">0%</span>
+                                          </div>
+                                        </>
+                                      );
+                                    }
+  
+                                    const currentRound = taskRounds[taskRounds.length - 1];
+                                    const currentRoundNumber = currentRound ? currentRound.roundNumber : 1;
+                                    const expertsWhoEstimated = currentRound ? (currentRound.estimations?.filter(e => e.value > 0).length || 0) : 0;
+                                    
+                                    const completedRoundsProgress = ((currentRoundNumber - 1) / maxRounds) * 100;
+                                    const currentRoundContribution = (expertsWhoEstimated / totalExperts) * (1 / maxRounds) * 100;
+                                    const totalProgress = Math.min(99, Math.round(completedRoundsProgress + currentRoundContribution));
+  
+                                    const statusLabel = statusValue === 'estimating' ? 'ESTIMANDO' : statusValue.toUpperCase();
+                                    const statusColor = 'text-delphi-orange animate-pulse';
+  
                                     return (
                                       <>
-                                        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                          <div className="h-full bg-slate-200" style={{ width: '0%' }}></div>
+                                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                          <div 
+                                            className="h-full bg-gradient-to-r from-delphi-keppel/50 to-delphi-keppel transition-all duration-1000 shadow-[0_0_8px_rgba(43,186,165,0.4)]" 
+                                            style={{ width: `${totalProgress}%` }}
+                                          ></div>
                                         </div>
-                                        <div className="flex justify-between items-center mt-1">
-                                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">PENDIENTE</span>
-                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">0%</span>
+                                        <div className="flex justify-between items-center mt-1.5">
+                                          <span className={`text-[9px] font-black uppercase tracking-widest ${statusColor}`}>
+                                            {statusLabel}
+                                          </span>
+                                          <span className="text-[9px] font-black text-delphi-keppel uppercase tracking-widest">
+                                            {totalProgress}%
+                                          </span>
                                         </div>
                                       </>
                                     );
-                                  }
-
-                                  const currentRound = taskRounds[taskRounds.length - 1];
-                                  const currentRoundNumber = currentRound ? currentRound.roundNumber : 1;
-                                  const expertsWhoEstimated = currentRound ? (currentRound.estimations?.filter(e => e.value > 0).length || 0) : 0;
-                                  
-                                  const completedRoundsProgress = ((currentRoundNumber - 1) / maxRounds) * 100;
-                                  const currentRoundContribution = (expertsWhoEstimated / totalExperts) * (1 / maxRounds) * 100;
-                                  const totalProgress = Math.min(99, Math.round(completedRoundsProgress + currentRoundContribution));
-
-                                  const statusLabel = statusValue === 'estimating' ? 'ESTIMANDO' : statusValue.toUpperCase();
-                                  const statusColor = 'text-delphi-orange animate-pulse';
-
-                                  return (
-                                    <>
-                                      <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div 
-                                          className="h-full bg-delphi-keppel transition-all duration-1000 shadow-[0_0_8px_rgba(43,186,165,0.4)]" 
-                                          style={{ width: `${totalProgress}%` }}
-                                        ></div>
-                                      </div>
-                                      <div className="flex justify-between items-center mt-1">
-                                        <span className={`text-[8px] font-black uppercase tracking-widest ${statusColor}`}>
-                                          {statusLabel}
-                                        </span>
-                                        <span className="text-[8px] font-black text-delphi-keppel uppercase tracking-widest">
-                                          {totalProgress}%
-                                        </span>
-                                      </div>
-                                    </>
-                                  );
-                                })()}
-                            </div>
-                          )}
+                                  })()}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
               {isFacilitator && (
-                <div className="bg-slate-900 p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 relative overflow-hidden group">
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 md:p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group shadow-xl shadow-slate-900/10">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-700">
+                    <ShieldCheck className="w-32 h-32" />
+                  </div>
                   <div className="relative z-10">
-                    <h4 className="flex items-center gap-3 text-delphi-keppel font-black mb-3 md:mb-4 text-base">
-                      <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
+                    <div className="bg-delphi-keppel/20 w-fit p-3 rounded-2xl mb-4 text-delphi-keppel">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <h4 className="flex items-center gap-3 text-white font-black mb-2 text-lg">
                       Facilitador
                     </h4>
-                    <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
-                      Supervisión activa del flujo iterativo.
+                    <p className="text-sm text-slate-400 font-medium">
+                      Supervisión activa del flujo iterativo y consensos.
                     </p>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="lg:col-span-8 space-y-10">
+            <div className="lg:col-span-8 space-y-10 min-h-[500px]">
               {currentTask ? (
-                <EstimationRounds
-                  taskId={currentTask.id}
-                  taskTitle={currentTask.title}
-                  unit={project.unit || "Horas"}
-                  estimationMethod={project.estimationMethod}
-                  onConsensusReached={handleTaskConsensus}
-                  onTaskFinalize={handleTaskFinalize}
-                  isFacilitator={isFacilitator}
-                  projectId={project.id}
-                  currentUserId={currentUserId}
-                />
+                <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+                  <EstimationRounds
+                    taskId={currentTask.id}
+                    taskTitle={currentTask.title}
+                    unit={project.unit || "hours"}
+                    estimationMethod={project.estimationMethod}
+                    onConsensusReached={handleTaskConsensus}
+                    onTaskFinalize={handleTaskFinalize}
+                    isFacilitator={isFacilitator}
+                    projectId={project.id}
+                    currentUserId={currentUserId}
+                  />
+                </div>
               ) : (
-                <div className="h-64 md:h-96 bg-white rounded-[2rem] md:rounded-[3rem] border-4 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-200 gap-4 md:gap-6">
-                  <Star className="w-12 h-12 md:w-20 md:h-20 opacity-20" />
-                  <p className="font-black text-lg md:text-2xl tracking-tight text-slate-300">Selecciona una tarea</p>
+                <div className="h-full min-h-[60vh] bg-white/50 backdrop-blur-3xl rounded-[3rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-8 shadow-sm">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-delphi-keppel/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                    <div className="bg-white p-8 rounded-full shadow-xl shadow-slate-200/50 relative z-10 animate-bounce cursor-default" style={{ animationDuration: '3s' }}>
+                      <Star className="w-12 h-12 md:w-16 md:h-16 text-slate-300" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2 relative z-10">
+                    <p className="font-black text-2xl md:text-3xl tracking-tight text-slate-800">Selecciona una tarea</p>
+                    <p className="font-medium text-slate-500">Elige una tarea de la lista para ver o iniciar su debate y estimación.</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -754,14 +780,19 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         )}
 
         {activeTab !== 'tasks' && (
-          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
+          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
             {activeTab === 'discussion' && activeRound ? (
               <DiscussionSpace roundId={activeRound.id} />
             ) : activeTab === 'discussion' ? (
-              <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
-                <MessageSquare className="w-12 h-12 opacity-20" />
-                <p className="font-bold">Selecciona una tarea con rondas activas para ver el debate.</p>
+              <div className="h-[60vh] bg-white rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-slate-400 gap-6 shadow-sm">
+                <div className="bg-slate-50 p-8 rounded-full">
+                  <MessageSquare className="w-12 h-12 text-slate-300" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-2xl tracking-tight text-slate-800">No hay ronda activa</p>
+                  <p className="font-medium text-slate-500 mt-2">Selecciona una tarea con rondas activas para unirte al debate.</p>
+                </div>
               </div>
             ) : null}
             {activeTab === 'team' && (
@@ -772,7 +803,12 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                 isFacilitator={isFacilitator}
               />
             )}
-            {activeTab === 'audit' && <ProjectAuditLog entries={logs} />}
+            {activeTab === 'audit' && (
+              <ProjectAuditLog entries={logs.filter(log => {
+                const detailsStr = typeof log.details === 'string' ? log.details : JSON.stringify(log.details || {});
+                return !selectedTaskId || detailsStr.includes(selectedTaskId) || log.action.includes('Project') || log.action.includes('Proyecto');
+              })} />
+            )}
           </div>
         )}
       </div>
