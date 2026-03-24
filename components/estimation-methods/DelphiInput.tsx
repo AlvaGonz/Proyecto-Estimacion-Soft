@@ -27,7 +27,7 @@ const DelphiInput: React.FC<DelphiInputProps> = ({
         <label htmlFor="delphi-value" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
           Tu estimación
         </label>
-        <div className="flex items-center gap-3">
+        <div className="relative">
           <input
             id="delphi-value"
             type="number"
@@ -36,12 +36,14 @@ const DelphiInput: React.FC<DelphiInputProps> = ({
             value={value === '' ? '' : value}
             onChange={handleValueChange}
             disabled={disabled}
-            className={`flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-lg font-black text-slate-900 focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-5 pr-36 py-4 text-lg font-black text-slate-900 focus:ring-2 focus:ring-delphi-keppel/30 focus:border-delphi-keppel transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
             placeholder="0"
           />
-          <span className="px-4 py-2.5 rounded-xl bg-delphi-keppel/10 text-delphi-keppel font-black text-sm uppercase tracking-wider shrink-0">
-            {unit}
-          </span>
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <span className="px-3 py-1.5 rounded-xl bg-delphi-keppel/10 text-delphi-keppel font-black text-xs uppercase tracking-wider">
+              {unit}
+            </span>
+          </div>
         </div>
       </div>
       <div className="space-y-2">

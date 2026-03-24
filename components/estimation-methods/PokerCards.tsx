@@ -4,6 +4,7 @@ import { FIBONACCI_SEQUENCE, type FibonacciCard } from '../../types';
 interface PokerCardsProps {
   selectedCard: FibonacciCard | null;
   justification: string;
+  unit: string;
   onChange: (card: FibonacciCard | null, justification: string) => void;
   disabled?: boolean;
 }
@@ -11,6 +12,7 @@ interface PokerCardsProps {
 const PokerCards: React.FC<PokerCardsProps> = ({
   selectedCard,
   justification,
+  unit,
   onChange,
   disabled = false,
 }) => {
@@ -19,7 +21,7 @@ const PokerCards: React.FC<PokerCardsProps> = ({
       <div className="space-y-2">
         {selectedCard !== null && (
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            Seleccionaste: <strong className="text-delphi-keppel">{selectedCard === '?' ? '?' : `${selectedCard} puntos`}</strong>
+            Seleccionaste: <strong className="text-delphi-keppel">{selectedCard === '?' ? '?' : `${selectedCard} ${unit === 'storyPoints' ? 'puntos' : unit === 'hours' ? 'horas' : 'días'}`}</strong>
           </p>
         )}
         <div className="grid grid-cols-4 sm:grid-cols-9 gap-3">
