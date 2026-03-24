@@ -348,15 +348,15 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
               </span>
             </div>
             <div className="flex items-center gap-6 md:gap-10 flex-wrap">
-              <p className="text-slate-500 font-bold text-xs md:text-sm uppercase tracking-widest flex items-center gap-3">
+              <div className="text-slate-500 font-bold text-xs md:text-sm uppercase tracking-widest flex items-center gap-3">
                 <div className="p-2 bg-delphi-keppel/10 rounded-lg"><FileText className="w-4 h-4 text-delphi-keppel" /></div>
                 Unidad: <span className="text-slate-900">{project.unit === 'hours' ? 'Horas' : project.unit === 'storyPoints' ? 'Puntos de Historia' : project.unit === 'personDays' ? 'Días Persona' : project.unit}</span>
-              </p>
+              </div>
               <div className="hidden sm:block h-6 w-px bg-slate-200" />
-              <p className="text-slate-500 font-bold text-xs md:text-sm uppercase tracking-widest flex items-center gap-3">
+              <div className="text-slate-500 font-bold text-xs md:text-sm uppercase tracking-widest flex items-center gap-3">
                 <div className="p-2 bg-delphi-orange/10 rounded-lg"><Users className="w-4 h-4 text-delphi-orange" /></div>
                 <span className="text-slate-900">{project.expertIds?.length || 0}</span> Expertos
-              </p>
+              </div>
               {sprintIsLocked && (
                 <>
                   <div className="hidden sm:block h-6 w-px bg-slate-200" />
@@ -414,7 +414,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
 
       {showTaskForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] w-full max-w-xl p-10 md:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] w-full max-w-xl p-6 md:p-10 lg:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
             <div className="flex items-center justify-between mb-12">
               <div className="space-y-1">
                 <h3 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">Nueva Tarea</h3>
@@ -474,7 +474,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       {/* Modal de Configuración del Proyecto */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] w-full max-w-2xl p-10 md:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh] overflow-y-auto no-scrollbar border border-white/40 ring-1 ring-slate-900/5">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] md:rounded-[3rem] w-full max-w-2xl p-6 md:p-10 lg:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 max-h-[90vh] overflow-y-auto no-scrollbar border border-white/40 ring-1 ring-slate-900/5">
             <div className="flex items-center justify-between mb-12">
               <div className="space-y-1">
                 <h3 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900">Configurar Proyecto</h3>
@@ -804,7 +804,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                   
                   <div className="relative">
                     <div className="absolute inset-0 bg-delphi-keppel/20 blur-[100px] rounded-full scale-150 animate-pulse transition-all duration-1000 group-hover:scale-[2]" />
-                    <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 transition-all duration-500 group-hover:-translate-y-2">
+                    <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 transition-all duration-500 group-hover:-translate-y-2">
                       <Star className="w-16 h-16 md:w-20 md:h-20 text-slate-200 group-hover:text-delphi-keppel transition-colors duration-500" />
                     </div>
                   </div>
@@ -857,7 +857,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
 
       {showFinalizeModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white/95 backdrop-blur-2xl rounded-[3.5rem] w-full max-w-md p-10 md:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] md:rounded-[3.5rem] w-full max-w-md p-6 md:p-10 lg:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
             <div className="flex flex-col items-center text-center gap-8">
               <div className="relative">
                 <div className="absolute inset-0 bg-delphi-keppel/20 blur-3xl rounded-full scale-150 animate-pulse" />
@@ -895,7 +895,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white/95 backdrop-blur-2xl rounded-[3.5rem] w-full max-w-md p-10 md:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[2rem] md:rounded-[3.5rem] w-full max-w-md p-6 md:p-10 lg:p-14 shadow-[0_32px_80px_rgba(0,0,0,0.15)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 border border-white/40 ring-1 ring-slate-900/5">
             <div className="flex flex-col items-center text-center gap-8">
               <div className="relative">
                 <div className="absolute inset-0 bg-delphi-giants/20 blur-3xl rounded-full scale-150 animate-pulse" />

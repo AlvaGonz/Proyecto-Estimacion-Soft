@@ -1,4 +1,4 @@
-import { Project, AuditEntry } from '../types';
+import { Project, Task, AuditEntry } from '../types';
 import { fetchApi } from '../utils/api';
 
 export const projectService = {
@@ -45,5 +45,16 @@ export const projectService = {
         return fetchApi<void>(`/projects/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    async createTask(projectId: string, data: { title: string; description: string }): Promise<Task> {
+        return fetchApi<Task>(`/projects/${projectId}/tasks`, {
+            method: 'POST',
+            body: data,
+        });
+    },
+
+    async getTasksByProject(projectId: string): Promise<Task[]> {
+        return fetchApi<Task[]>(`/projects/${projectId}/tasks`);
     }
 };

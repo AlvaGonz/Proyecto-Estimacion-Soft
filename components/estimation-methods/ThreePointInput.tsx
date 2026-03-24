@@ -55,7 +55,7 @@ const ThreePointInput: React.FC<ThreePointInputProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-delphi-celadon ml-1">
             O (Optimista)

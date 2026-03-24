@@ -61,6 +61,22 @@ export const projectSchemaV2 = z.object({
 
 export type ProjectFormDataV2 = z.infer<typeof projectSchemaV2>;
 
+// ─── Wizard step schemas ──────────────────────────────────────
+export const wizardStep1Schema = z.object({
+  name: z.string().min(3, 'Mínimo 3 caracteres').max(120, 'Máximo 120 caracteres'),
+  description: z.string().min(10, 'Mínimo 10 caracteres').max(500, 'Máximo 500 caracteres'),
+  unit: z.enum(['hours', 'storyPoints', 'personDays'], { message: 'Selecciona una unidad' }),
+});
+
+export const wizardStep2Schema = z.object({
+  estimationMethod: estimationMethodSchema,
+});
+
+export const wizardTaskSchema = z.object({
+  title: z.string().min(3, 'Mínimo 3 caracteres').max(200, 'Máximo 200 caracteres'),
+  description: z.string().max(300, 'Máximo 300 caracteres').optional(),
+});
+
 export const threePointSchema = z.object({
   optimistic: z.number().min(0, 'O debe ser >= 0'),
   mostLikely: z.number().min(0, 'M debe ser >= 0'),

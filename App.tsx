@@ -178,9 +178,28 @@ const App: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleCreateProject = async (newProjectData: Project) => {
+  const handleCreateProject = async (newProjectData: Project, tasks?: Array<{ id: string; title: string; description: string }>) => {
     try {
       const created = await projectService.createProject(newProjectData);
+
+      // RF008: Persist wizard tasks in the backend
+      if (tasks && tasks.length > 0) {
+        const taskResults = await Promise.allSettled(
+          tasks
+            .filter(t => t.title.trim().length > 0)
+            .map(t =>
+              projectService.createTask(created.id, {
+                title: t.title.trim(),
+                description: t.description?.trim() || 'Sin descripción proporcionada.',
+              })
+            )
+        );
+        const failedCount = taskResults.filter(r => r.status === 'rejected').length;
+        if (failedCount > 0) {
+          console.warn(`[RF008] ${failedCount}/${tasks.length} task(s) failed to save`);
+        }
+      }
+
       setProjects([created, ...projects]);
       setView('projects');
 
@@ -338,12 +357,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
-            <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-slate-100 shadow-sm animate-reveal" style={{ animationDelay: '200ms' }}>
-              <div className="w-2 h-2 rounded-full bg-delphi-keppel animate-pulse" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Server: Online</span>
-            </div>
-
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className={`relative p-3 rounded-2xl transition-all duration-300 ${showNotifications
@@ -358,16 +372,6 @@ const App: React.FC = () => {
                 </span>
               )}
             </button>
-
-            <div className="h-10 w-px bg-slate-200 hidden sm:block" />
-
-            <div className="flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
-              <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-[10px] font-black text-slate-900 leading-none">V 1.0.4</span>
-                <span className="text-[9px] font-bold text-delphi-keppel uppercase tracking-widest mt-0.5">Premium</span>
-              </div>
-              <ShieldCheck className="w-6 h-6 text-delphi-keppel opacity-80" />
-            </div>
           </div>
         </header>
 
@@ -411,19 +415,19 @@ const App: React.FC = () => {
                 </section>
 
                 {/* Stats Grid - Premium Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-10">
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                   {stats.map((s, i) => (
                     <div
                       key={i}
-                      className="glass-card p-8 rounded-[2.5rem] hover:translate-y-[-8px] transition-all duration-500 group relative overflow-hidden animate-reveal"
+                      className="glass-card p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] hover:translate-y-[-8px] transition-all duration-500 group relative overflow-hidden animate-reveal cursor-default"
                       style={{ animationDelay: `${i * 100 + 400}ms` }}
                     >
                       <div className={`absolute -right-4 -top-4 w-24 h-24 bg-delphi-${s.color}/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700`} />
-                      <div className={`bg-delphi-${s.color}/10 p-4 rounded-2xl text-delphi-${s.color} w-fit mb-6 group-hover:bg-delphi-${s.color} group-hover:text-white transition-all shadow-lg shadow-delphi-${s.color}/10`}>
-                        <s.icon className="w-8 h-8" />
+                      <div className={`bg-delphi-${s.color}/10 p-3 sm:p-4 rounded-xl sm:rounded-2xl w-fit mb-4 sm:mb-6 group-hover:bg-delphi-${s.color} group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-delphi-${s.color}/50 transition-all duration-300`}>
+                        <s.icon className={`w-6 h-6 sm:w-8 sm:h-8 text-delphi-${s.color} group-hover:text-white transition-colors duration-300`} />
                       </div>
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{s.label}</p>
-                      <p className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">{s.val}</p>
+                      <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 sm:mb-2">{s.label}</p>
+                      <p className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tighter">{s.val}</p>
                     </div>
                   ))}
                 </div>
@@ -558,34 +562,36 @@ const App: React.FC = () => {
 
         {/* Profile Modal */}
         {showProfileModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowProfileModal(false)} />
-            <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 relative shadow-2xl animate-in zoom-in duration-300">
-              <button onClick={() => setShowProfileModal(false)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900">
-                <X className="w-6 h-6" />
-              </button>
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-delphi mx-auto flex items-center justify-center text-white text-3xl font-black mb-6 shadow-xl">
+            <div className="bg-white/95 backdrop-blur-2xl w-full max-w-sm rounded-[2.5rem] sm:rounded-[3rem] relative shadow-2xl animate-in zoom-in duration-300 overflow-hidden">
+              {/* Gradient header band */}
+              <div className="h-28 sm:h-32 bg-gradient-to-br from-delphi-keppel via-delphi-celadon/60 to-delphi-keppel/80 relative">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.15),transparent_70%)]" />
+                <button onClick={() => setShowProfileModal(false)} className="absolute top-5 right-5 p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-all">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Avatar overlapping the header */}
+              <div className="flex flex-col items-center -mt-14 sm:-mt-16 px-6 sm:px-10 pb-8 sm:pb-10">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-delphi-keppel to-delphi-celadon flex items-center justify-center text-white text-3xl sm:text-4xl font-black shadow-2xl shadow-delphi-keppel/30 border-4 border-white">
                   {currentUser.name.charAt(0)}
                 </div>
-                <h3 className="text-2xl font-black text-slate-900">{currentUser.name}</h3>
-                <p className="text-delphi-keppel font-black uppercase tracking-widest text-xs mt-1">{currentUser.role}</p>
-                <p className="text-slate-400 font-medium text-sm mt-4">{currentUser.email}</p>
 
-                <div className="mt-8 pt-8 border-t border-slate-100 text-left">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID de sesión</p>
-                  <code className="text-xs bg-slate-50 px-3 py-2 rounded-xl block font-mono text-slate-600 truncate mb-6">
-                    {currentUser.id}
-                  </code>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 mt-5 text-center">{currentUser.name}</h3>
+                <span className="mt-2 px-4 py-1.5 rounded-full bg-delphi-keppel/10 text-delphi-keppel text-[10px] font-black uppercase tracking-[0.2em] border border-delphi-keppel/20">
+                  {currentUser.role}
+                </span>
+                <p className="text-slate-400 font-medium text-sm mt-3">{currentUser.email}</p>
 
-                  <div className="space-y-3">
-                    <button className="w-full py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all">
-                      Cambiar Contraseña
-                    </button>
-                    <button onClick={handleLogout} className="w-full py-4 rounded-2xl bg-delphi-giants/10 text-delphi-giants font-black text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all">
-                      Cerrar Sesión
-                    </button>
-                  </div>
+                <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-slate-100 w-full space-y-3">
+                  <button className="w-full py-3.5 sm:py-4 rounded-2xl bg-delphi-keppel/10 text-delphi-keppel font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-keppel hover:text-white transition-all duration-300 border border-delphi-keppel/20">
+                    Cambiar Contraseña
+                  </button>
+                  <button onClick={handleLogout} className="w-full py-3.5 sm:py-4 rounded-2xl bg-white text-delphi-giants font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all duration-300 border-2 border-delphi-giants/20">
+                    Cerrar Sesión
+                  </button>
                 </div>
               </div>
             </div>
