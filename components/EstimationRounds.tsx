@@ -16,7 +16,8 @@ import {
   Bell,
   X,
   ShieldAlert,
-  BarChart3
+  BarChart3,
+  Calculator
 } from 'lucide-react';
 import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
 import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
@@ -71,6 +72,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [threePoint, setThreePoint] = useState<{ optimistic: number | ''; mostLikely: number | ''; pessimistic: number | '' }>({
     optimistic: '', mostLikely: '', pessimistic: '',
   });
+  const [userActiveEstimation, setUserActiveEstimation] = useState<Estimation | null>(null);
   const [justification, setJustification] = useState('');
   const [analysis, setAnalysis] = useState<ConvergenceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -93,39 +95,52 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     });
   }, [projectId]);
 
-  // RF: Implement safe edit flow - prefill form if estimation exists
+  // RF: Implement safe edit flow - handle active round estimation independently of viewed results
   useEffect(() => {
-    if (activeRound && estimations.length > 0) {
-      const activeId = activeRound.id || (activeRound as any)._id;
-      const existingEst = estimations.find(e => {
-        const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
-        const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
-        return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
-      });
-
-      if (existingEst) {
-        setJustification(existingEst.justification || '');
-        if (estimationMethod === 'wideband-delphi') {
-          setDelphiValue(existingEst.value);
-        } else if (estimationMethod === 'planning-poker') {
-          setPokerCard((existingEst.metodoData?.card ?? existingEst.value) as any);
-        } else if (estimationMethod === 'three-point') {
-          if (existingEst.metodoData) {
-            setThreePoint({
-              optimistic: existingEst.metodoData.optimistic ?? '',
-              mostLikely: existingEst.metodoData.mostLikely ?? '',
-              pessimistic: existingEst.metodoData.pessimistic ?? ''
-            });
-          }
-        }
-      } else {
-        setJustification('');
-        setDelphiValue('');
-        setPokerCard(null);
-        setThreePoint({ optimistic: '', mostLikely: '', pessimistic: '' });
+    const fetchActiveUserEst = async () => {
+      if (!activeRound || isFacilitator) {
+        setUserActiveEstimation(null);
+        return;
       }
-    }
-  }, [activeRound, estimations, currentUserId, taskId, estimationMethod]);
+      
+      const activeId = activeRound.id || (activeRound as any)._id;
+      try {
+        const roundEsts = await estimationService.getEstimationsByRound(activeId);
+        const myEst = roundEsts.find(e => {
+          const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
+          return String(eId) === String(currentUserId);
+        });
+        
+        if (myEst && isMounted.current) {
+          setUserActiveEstimation(myEst);
+          setJustification(myEst.justification || '');
+          if (estimationMethod === 'wideband-delphi') {
+            setDelphiValue(myEst.value);
+          } else if (estimationMethod === 'planning-poker') {
+            setPokerCard((myEst.metodoData?.card ?? myEst.value) as any);
+          } else if (estimationMethod === 'three-point') {
+            if (myEst.metodoData) {
+              setThreePoint({
+                optimistic: myEst.metodoData.optimistic ?? '',
+                mostLikely: myEst.metodoData.mostLikely ?? '',
+                pessimistic: myEst.metodoData.pessimistic ?? ''
+              });
+            }
+          }
+        } else if (isMounted.current) {
+          setUserActiveEstimation(null);
+          setJustification('');
+          setDelphiValue('');
+          setPokerCard(null);
+          setThreePoint({ optimistic: '', mostLikely: '', pessimistic: '' });
+        }
+      } catch (err) {
+        console.error("Error fetching user active estimation", err);
+      }
+    };
+    
+    fetchActiveUserEst();
+  }, [activeRound, currentUserId, estimationMethod, isFacilitator]);
 
   const loadRounds = useCallback(async (showSpinner = true) => {
     if (!taskId || !projectId) return;
@@ -155,22 +170,20 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         }
         
         if (active) {
-          const roundId = active.id || (active as any)._id;
-          const roundEstimations = await estimationService.getEstimationsByRound(roundId);
-          setEstimations(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(roundEstimations)) return prev;
-            return roundEstimations;
-          });
-        } else if (taskRounds.length > 0) { // If no active round, load estimations for the last closed round
+          const activeId = active.id || (active as any)._id;
+          // If we're polling and looking at the active round, refresh the estimations list
+          if (String(selectedRoundId) === String(activeId)) {
+            const roundEstimations = await estimationService.getEstimationsByRound(activeId);
+            setEstimations(prev => {
+              if (JSON.stringify(prev) === JSON.stringify(roundEstimations)) return prev;
+              return roundEstimations;
+            });
+          }
+        } else if (taskRounds.length > 0 && !selectedRoundId) { 
+          // Default to last closed round if no active round and no selection
           const lastClosed = taskRounds[taskRounds.length - 1];
           const roundId = lastClosed.id || (lastClosed as any)._id;
-          const roundEstimations = await estimationService.getEstimationsByRound(roundId);
-          setEstimations(prev => {
-            if (JSON.stringify(prev) === JSON.stringify(roundEstimations)) return prev;
-            return roundEstimations;
-          });
-        } else {
-          setEstimations([]); // No rounds, no estimations
+          setSelectedRoundId(roundId);
         }
       }
     } catch (err) {
@@ -178,12 +191,26 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     } finally {
       if (isMounted.current && showSpinner) setIsLoading(false);
     }
-  }, [projectId, taskId]); // Removed selectedRoundId to prevent flickering cycle
+  }, [projectId, taskId, selectedRoundId]); 
 
   useEffect(() => {
     isMounted.current = true;
     loadRounds(true);
   }, [loadRounds]);
+
+  // Load estimations for ANY selected round
+  useEffect(() => {
+    const fetchRoundEsts = async () => {
+      if (!selectedRoundId) return;
+      try {
+        const ests = await estimationService.getEstimationsByRound(selectedRoundId);
+        if (isMounted.current) setEstimations(ests);
+      } catch (err) {
+        console.error("Error fetching round estimations", err);
+      }
+    };
+    fetchRoundEsts();
+  }, [selectedRoundId]);
 
   useEffect(() => {
     // Polling is only active when there is an open round to follow
@@ -223,15 +250,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     return true;
   };
 
-  const hasEstimation = React.useMemo(() => {
-    if (!activeRound) return false;
-    const activeId = activeRound.id || (activeRound as any)._id;
-    return estimations.some(e => {
-      const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
-      const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
-      return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
-    });
-  }, [estimations, activeRound, currentUserId, taskId]);
+  const hasEstimation = !!userActiveEstimation;
 
   const handleSubmitEstimate = async (forceUpdate?: boolean | React.MouseEvent) => {
     const isForceUpdate = forceUpdate === true;
@@ -244,12 +263,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
       const activeId = activeRound.id || (activeRound as any)._id;
 
-      // Check if user already submitted - if so, ask for confirmation first
-      const existingEst = estimations.find(e => {
-        const rId = typeof e.roundId === 'object' && e.roundId !== null ? (e.roundId as any)._id || (e.roundId as any).id : e.roundId || (e as any)._id;
-        const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
-        return String(rId) === String(activeId) && String(eId) === String(currentUserId) && String(e.taskId) === String(taskId);
-      });
+      const existingEst = userActiveEstimation;
 
       if (existingEst && !isForceUpdate) {
         setShowUpdateConfirmModal(true);
@@ -267,10 +281,18 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       let newEst: Estimation;
       if (existingEst) {
         newEst = await estimationService.updateEstimation(existingEst.id, value, justification, metodoData);
-        setEstimations(prev => prev.map(e => e.id === existingEst.id ? newEst : e));
+        setUserActiveEstimation(newEst);
+        // Refresh visible list if viewing active round
+        if (String(selectedRoundId) === String(activeId)) {
+          setEstimations(prev => prev.map(e => e.id === existingEst.id ? newEst : e));
+        }
       } else {
         newEst = await estimationService.submitEstimation(activeId, value, justification, metodoData);
-        setEstimations(prev => [...prev, newEst]);
+        setUserActiveEstimation(newEst);
+        // Refresh visible list if viewing active round
+        if (String(selectedRoundId) === String(activeId)) {
+          setEstimations(prev => [...prev, newEst]);
+        }
       }
       
       // RF012: Notify facilitator when an expert submits an estimate.
@@ -340,16 +362,19 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       const activeId = activeRound.id || (activeRound as any)._id;
       const roundEstimations = await estimationService.getEstimationsByRound(activeId);
       
-      const submittedExpertIds = roundEstimations.map(e => String(e.expertId || (e as any).userId));
-      
       const missingExperts = (projectData.expertIds || []).filter(expert => {
         const expertId = typeof expert === 'string' ? expert : (expert as any).id || (expert as any)._id;
-        // Strict check to ensure the expert hasn't estimated for this specific task and round
-        const hasEstimatedThisTask = roundEstimations.some(e => 
-          String(e.expertId || (e as any).userId) === String(expertId) && 
-          String(e.taskId) === String(taskId)
-        );
-        return !hasEstimatedThisTask && String(expertId) !== String(currentUserId);
+        
+        // Use currentUserId to exclude self if expert
+        if (String(expertId) === String(currentUserId)) return false;
+
+        // Strict check to ensure the expert hasn't estimated for this specific round
+        const hasEstimatedThisRound = roundEstimations.some(e => {
+          const eId = typeof e.expertId === 'object' && e.expertId !== null ? (e.expertId as any)._id || (e.expertId as any).id : e.expertId || (e as any).userId;
+          return String(eId) === String(expertId);
+        });
+        
+        return !hasEstimatedThisRound;
       });
 
       if (missingExperts.length === 0) {
@@ -362,14 +387,14 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         
         notificationService.addNotification({
           type: 'reminder',
-          message: `Recordatorio: Falta tu estimación para "${taskTitle}" en la ronda ${activeRound.roundNumber}.`,
+          message: `⏰ Recordatorio: Falta tu estimación para "${taskTitle}" en la Ronda ${activeRound.roundNumber}.`,
           projectId,
           taskId,
           targetUserId: String(expertId)
         });
       });
 
-      alert(`Recordatorio enviado a ${missingExperts.length} experto(s) faltantes.`);
+      alert(`✅ Recordatorio enviado a ${missingExperts.length} experto(s) faltantes.`);
     } catch (err) {
       console.error('Error sending reminder:', err);
       alert('Error al enviar el recordatorio.');
@@ -644,25 +669,28 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   return (
     <AppErrorBoundary>
       <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
-        {/* Header Responsivo */}
-        <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-delphi-keppel/10 p-3 rounded-2xl shrink-0">
+        {/* Header Responsivo Premium */}
+        <div className="bg-white/95 backdrop-blur-xl p-6 md:p-8 rounded-[2.5rem] border border-white/40 shadow-xl flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-full bg-delphi-keppel opacity-80" />
+          <div className="flex items-center gap-5">
+            <div className="bg-delphi-keppel/10 p-4 rounded-2xl shrink-0 group-hover:scale-110 transition-transform">
               <LineChart className="w-6 h-6 md:w-8 md:h-8 text-delphi-keppel" />
             </div>
             <div>
-              <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">{taskTitle}</h3>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-[10px] font-black text-delphi-keppel uppercase tracking-widest">{unit}</span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <h3 className="text-xl md:text-3xl font-black text-slate-900 tracking-tight leading-tight">{taskTitle}</h3>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <span className="px-3 py-1 bg-delphi-keppel/10 text-delphi-keppel text-[10px] font-black uppercase tracking-widest rounded-lg border border-delphi-keppel/20">
+                  Unidad: {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'Horas' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'Story Points' : unit}
+                </span>
+                <span className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-slate-200">
                   Método: {METHOD_LABELS[estimationMethod]}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            <div className="flex items-center gap-2 bg-slate-50/50 backdrop-blur-md p-2 rounded-2xl border border-slate-200/50 overflow-x-auto no-scrollbar w-full sm:w-auto">
               {rounds.map(r => {
                 const rId = r.id || (r as any)._id;
                 const isSelected = rId === selectedRoundId;
@@ -672,9 +700,9 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                   <button
                     key={rId}
                     onClick={() => setSelectedRoundId(rId)}
-                    className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${isSelected
-                      ? (isOpen ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-slate-900 text-white border-slate-900 shadow-lg')
-                      : 'bg-white border-slate-200 text-slate-400 hover:border-delphi-keppel hover:text-delphi-keppel'
+                    className={`w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl flex items-center justify-center font-black text-xs transition-all border-2 ${isSelected
+                      ? (isOpen ? 'bg-delphi-keppel text-white border-delphi-keppel shadow-lg shadow-delphi-keppel/30 scale-105' : 'bg-slate-900 text-white border-slate-900 shadow-xl scale-105')
+                      : 'bg-white border-white text-slate-400 hover:border-delphi-keppel hover:text-delphi-keppel hover:scale-105'
                       }`}
                   >
                     R{r.roundNumber}
@@ -685,25 +713,25 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 <button
                   onClick={handleStartNextRound}
                   aria-label="Nueva ronda"
-                  className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-delphi-keppel transition-all"
+                  className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-xl bg-white/50 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel transition-all group/new"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-6 h-6 group-hover/new:rotate-90 transition-transform" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-2xl shadow-lg w-full sm:w-auto justify-center">
+            <div className="flex items-center gap-1 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl w-full sm:w-auto justify-center">
               <button
                 onClick={() => setShowEvolution(!showEvolution)}
                 aria-label="Ver evolución"
-                className={`p-2 rounded-xl transition-all ${showEvolution ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
+                className={`p-2.5 rounded-xl transition-all ${showEvolution ? 'bg-delphi-keppel text-white scale-110' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 <History className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setShowBoxPlot(!showBoxPlot)}
                 aria-label="Ver distribución"
-                className={`p-2 rounded-xl transition-all ${showBoxPlot ? 'bg-delphi-keppel text-white' : 'text-slate-400'}`}
+                className={`p-2.5 rounded-xl transition-all ${showBoxPlot ? 'bg-delphi-keppel text-white scale-110' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 <BarChart2 className="w-5 h-5" />
               </button>
@@ -712,46 +740,75 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         </div>
 
         {(showEvolution || showBoxPlot) && (
-          <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
+          <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] border border-white/40 shadow-2xl overflow-hidden relative group">
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-delphi-keppel/10 rounded-full blur-3xl" />
+            
             {showEvolution && (
-              <div className="space-y-6">
-                <h4 className="text-lg font-black text-slate-900 flex items-center gap-3">
-                  <TrendingUp className="w-5 h-5 text-delphi-keppel" />
-                  Evolución
-                </h4>
-                <div className="h-56 md:h-64 w-full">
+              <div className="space-y-8 relative z-10">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                    <History className="w-6 h-6 text-delphi-keppel" />
+                    Evolución de Estimaciones
+                  </h4>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                       <div className="w-3 h-3 rounded-full bg-delphi-keppel" />
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Media</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <div className="w-3 h-3 rounded-full border-2 border-delphi-orange border-dashed" />
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Desv. Estándar</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-64 md:h-80 w-full">
                   {evolutionData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <ReLineChart data={evolutionData}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" fontSize={10} />
-                        <YAxis fontSize={10} />
-                        <Tooltip contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                        <Line type="monotone" dataKey="media" stroke="#2BBAA5" strokeWidth={3} dot={{ r: 4 }} name="Media" />
-                        <Line type="monotone" dataKey="desviacion" stroke="#F96635" strokeWidth={2} strokeDasharray="5 5" name="Desv." />
+                        <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                        <YAxis fontSize={10} axisLine={false} tickLine={false} />
+                        <Tooltip 
+                           contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)' }} 
+                           itemStyle={{ fontWeight: '900', fontSize: '12px' }}
+                        />
+                        <Line type="monotone" dataKey="media" stroke="#2BBAA5" strokeWidth={4} dot={{ r: 6, fill: '#2BBAA5', strokeWidth: 3, stroke: '#fff' }} activeDot={{ r: 8 }} name="Media" />
+                        <Line type="monotone" dataKey="desviacion" stroke="#F96635" strokeWidth={2} strokeDasharray="8 8" dot={false} name="Desv. Estándar" />
                       </ReLineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-slate-300 italic text-xs">Sin datos aún.</div>
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 italic gap-4">
+                      <History className="w-12 h-12 opacity-10" />
+                      <span className="text-xs font-black uppercase tracking-[0.2em]">Esperando datos históricos...</span>
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
             {showBoxPlot && (
-              <div className={`${showEvolution ? 'mt-8 pt-8 border-t' : ''} space-y-6`}>
-                <h4 className="text-lg font-black text-slate-900 flex items-center gap-3">
-                  <BarChart2 className="w-5 h-5 text-delphi-giants" />
-                  Distribución
+              <div className={`${showEvolution ? 'mt-12 pt-12 border-t border-slate-100' : ''} space-y-8 relative z-10`}>
+                <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                  <BarChart2 className="w-6 h-6 text-delphi-giants" />
+                  Distribución de Frecuencia
                 </h4>
-                <div className="h-56 md:h-64 w-full">
+                <div className="h-64 md:h-80 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={distributionData}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2BBAA5" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#2BBAA5" stopOpacity={0.6} />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" fontSize={10} />
-                      <YAxis fontSize={10} />
-                      <Tooltip contentStyle={{ borderRadius: '15px', border: 'none' }} />
-                      <Bar dataKey="count" fill="#2BBAA5" radius={[8, 8, 0, 0]} name="Expertos" />
+                      <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                      <YAxis fontSize={10} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)' }}
+                        cursor={{ fill: 'rgba(43, 186, 165, 0.05)', radius: [10, 10, 0, 0] }}
+                      />
+                      <Bar dataKey="count" fill="url(#barGradient)" radius={[10, 10, 0, 0]} name="Expertos" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -761,60 +818,96 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-          {/* Lista de Estimaciones — visible desde la 1ª estimación */}
-          <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-black text-slate-900">
-                {viewedRound ? `Ronda ${viewedRound.roundNumber}` : 'Resultados'}
-              </h4>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {currentRoundEstimations.length}/{totalExperts} Expertos
-              </span>
+          {/* Lista de Estimaciones Glassmorphism */}
+          <div className="bg-white/95 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/40 shadow-xl flex flex-col h-full group relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-delphi-keppel/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-delphi-keppel/10 transition-colors" />
+            
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div className="space-y-1">
+                <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+                  {viewedRound ? `Ronda ${viewedRound.roundNumber}` : 'Resultados'}
+                </h4>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estimaciones Recibidas</p>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-2xl font-black text-delphi-keppel leading-none">
+                  {currentRoundEstimations.length}<span className="text-slate-200 ml-1">/</span><span className="text-slate-300 text-lg">{totalExperts}</span>
+                </span>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Participantes</span>
+              </div>
             </div>
 
-            <div className="flex-1 space-y-3 min-h-[200px]">
+            <div className="flex-1 space-y-4 min-h-[300px] relative z-10 custom-scrollbar overflow-y-auto pr-2">
               {currentRoundEstimationsWithLabels.length === 0 ? (
-                <EmptyState
-                  icon={<BarChart2 className="w-8 h-8" />}
-                  title="Esperando participaciones"
-                  description="Aún no hay estimaciones en esta ronda."
-                />
+                <div className="h-full flex flex-col items-center justify-center text-center p-10 gap-6 opacity-40">
+                  <div className="bg-slate-100 p-8 rounded-[2.5rem]">
+                    <BarChart2 className="w-16 h-16 text-slate-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h5 className="text-lg font-black text-slate-900 uppercase tracking-widest">Esperando Datos</h5>
+                    <p className="text-sm font-medium text-slate-500 max-w-[200px]">Aún no se han registrado estimaciones en esta ronda estratégica.</p>
+                  </div>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  {currentRoundEstimationsWithLabels.map(est => {
+                <div className="grid grid-cols-1 gap-4">
+                  {currentRoundEstimationsWithLabels.map((est, idx) => {
                     const outlier = isOutlier(est.id);
-                    // RF019: While round is open, experts only see a placeholder — facilitator sees actual values
                     const roundIsCurrentlyOpen = viewedRound?.status === 'open';
                     const showValue = isFacilitator || !roundIsCurrentlyOpen;
+                    
                     return (
                       <div
                         key={est.id}
-                        className={`p-4 rounded-2xl border transition-all ${
-                          outlier ? 'bg-delphi-giants/5 border-delphi-giants/20' : 'bg-slate-50 border-slate-50 hover:bg-white hover:border-slate-200'
+                        className={`expert-card p-6 rounded-[2rem] border transition-all relative overflow-hidden group/item ${
+                          outlier 
+                            ? 'bg-delphi-giants/5 border-delphi-giants/20 hover:bg-delphi-giants/10' 
+                            : 'bg-slate-50 border-slate-100 hover:bg-white hover:border-delphi-keppel/30 hover:shadow-lg hover:shadow-slate-200/50'
                         }`}
+                        data-testid={`expert-card-${est.id}`}
+                        style={{ animationDelay: `${idx * 100}ms` }}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-slate-400">{est.expertLabel}</span>
-                            {outlier && (
-                              <div className="flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-delphi-giants" />
-                                <span className="text-[10px] font-black text-delphi-giants uppercase tracking-tighter">Atípico</span>
-                              </div>
-                            )}
+                        {outlier && (
+                          <div className="absolute top-0 right-0 py-1.5 px-4 bg-delphi-giants text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl flex items-center gap-1.5 z-20">
+                            <ShieldAlert className="w-3 h-3" />
+                            Atípico Detectado
                           </div>
-                          {showValue ? (
-                            <span className={`text-base font-black ${
-                              outlier ? 'text-delphi-giants' : 'text-slate-900'
+                        )}
+                        
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${
+                               outlier ? 'bg-delphi-giants/20 text-delphi-giants' : 'bg-slate-900 text-white'
                             }`}>
-                               {est.value} {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'Horas' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'Pts' : 'Días'}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-black text-delphi-keppel bg-delphi-keppel/10 px-2 py-1 rounded-lg">Enviada ✓</span>
-                          )}
+                               {est.expertLabel.substring(0, 2)}
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Experto</p>
+                               <p className="text-xs font-black text-slate-900">{est.expertLabel}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                             {showValue ? (
+                               <div className="flex flex-col items-end">
+                                 <span className={`text-2xl font-black leading-none ${outlier ? 'text-delphi-giants' : 'text-delphi-keppel'}`}>
+                                   {est.value} {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'Horas' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'SP' : (unit?.toLowerCase() === 'persondays') ? 'DP' : unit}
+                                 </span>
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-2 bg-delphi-keppel/10 px-4 py-2 rounded-xl border border-delphi-keppel/20">
+                                 <CheckCircle2 className="w-4 h-4 text-delphi-keppel" />
+                                 <span className="text-[9px] font-black text-delphi-keppel uppercase tracking-widest">Enviada</span>
+                               </div>
+                             )}
+                          </div>
                         </div>
+
                         {(showValue || est.expertId === currentUserId) && (
-                          <p className="text-xs text-slate-500 italic leading-relaxed">"{est.justification || 'Sin comentario'}"</p>
+                          <div className="mt-4 pt-4 border-t border-slate-200/50 relative z-10">
+                            <p className="text-xs text-slate-600 font-medium leading-relaxed italic bg-white/50 p-3 rounded-xl border border-slate-100">
+                               "{est.justification || 'Sin comentario técnico proporcionado.'}"
+                            </p>
+                          </div>
                         )}
                       </div>
                     );
@@ -840,215 +933,200 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             )}
           </div>
 
-          {/* Panel de Entrada / IA */}
+          {/* Panel de Entrada / IA — Glassmorphism */}
           <div className="space-y-6">
             {activeRound ? (
-              <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                <h4 className="text-xl font-black text-slate-900">
-                  {isFacilitator ? "Progreso de la Ronda" : "Tu Estimación"}
-                </h4>
-                <div className="space-y-4">
+              <div className="bg-white/95 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/40 shadow-xl space-y-8 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-2 h-full bg-delphi-keppel" />
+                <div className="flex items-center justify-between">
+                  <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+                    {isFacilitator ? "Control de Ronda" : (hasEstimation ? "Modificar Estimación" : "Tu Estimación")}
+                  </h4>
+                  {hasEstimation && !isFacilitator && (
+                    <span className="px-3 py-1 bg-delphi-keppel/10 text-delphi-keppel text-[8px] font-black uppercase tracking-widest rounded-lg border border-delphi-keppel/20">
+                      Modo Edición
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-6">
                   {canEstimate ? (
-                    <>
-                      {renderEstimationInput()}
-                      {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
-                      {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                      <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                        {renderEstimationInput()}
+                        {errors.value && <p id="value-error" role="alert" className="text-delphi-giants text-[10px] font-black uppercase tracking-tighter mt-3 ml-1">Error: {errors.value}</p>}
+                        {errors.justification && <p id="justification-error" role="alert" className="text-delphi-giants text-[10px] font-black uppercase tracking-tighter mt-3 ml-1">Error: {errors.justification}</p>}
+                      </div>
+                      
                       <button
                         type="button"
                         onClick={handleSubmitEstimate}
                         disabled={!canSubmit()}
-                        className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
+                        className="w-full bg-delphi-keppel text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-delphi-keppel/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                       >
-                        {hasEstimation ? 'Editar Estimación' : 'Enviar Estimación'}
+                        {hasEstimation ? 'Guardar Cambios de Estimación' : 'Enviar Estimación Oficial'}
                       </button>
-                    </>
+                      <p className="text-[9px] text-slate-400 text-center font-bold uppercase tracking-widest">
+                        {hasEstimation ? 'Puedes actualizar tu postura hasta que se cierre la ronda.' : 'Tu estimación será anónima durante la fase de votación.'}
+                      </p>
+                    </div>
                   ) : isFacilitator ? (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-4">
-                      <div className="flex justify-center mb-2">
-                        <div className="bg-delphi-keppel/10 p-4 rounded-full">
-                          <Users className="w-8 h-8 text-delphi-keppel" />
+                    <div className="bg-slate-900/5 backdrop-blur-sm border-2 border-dashed border-slate-200 rounded-[2.5rem] p-8 text-center space-y-6 group-hover:border-delphi-keppel/30 transition-colors">
+                      <div className="flex justify-center">
+                        <div className="bg-delphi-keppel/10 p-6 rounded-[2rem] relative">
+                          <Users className="w-10 h-10 text-delphi-keppel" />
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-delphi-orange rounded-full border-4 border-white animate-ping" />
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <p className="text-slate-900 font-black text-sm uppercase tracking-widest">Estado de Participación</p>
-                        <p className="text-slate-500 text-xs font-medium leading-relaxed">
-                          {estimations.filter(e => e.roundId === activeRound.id).length} de {totalExperts} expertos han estimado en esta ronda.
-                          <br />
-                          <span className="text-delphi-orange font-bold">
-                            Faltan {Math.max(0, totalExperts - estimations.filter(e => e.roundId === activeRound.id).length)} expertos por estimar.
-                          </span>
+                      <div className="space-y-3">
+                        <p className="text-slate-900 font-black text-sm uppercase tracking-[0.2em]">Monitoreo de Participación</p>
+                        <p className="text-slate-500 text-xs font-semibold leading-relaxed max-w-[250px] mx-auto">
+                          <span className="text-delphi-keppel font-black text-lg">{estimations.filter(e => String(e.roundId) === String(activeRound.id || (activeRound as any)._id)).length}</span> de <span className="text-slate-900 font-black text-lg">{totalExperts}</span> especialistas han participado.
                         </p>
                       </div>
-                      <div className="pt-2">
-                         <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-delphi-keppel transition-all duration-500" 
-                              style={{ width: `${Math.min(100, (estimations.filter(e => e.roundId === activeRound.id).length / (totalExperts || 1)) * 100)}%` }}
-                            ></div>
-                         </div>
+
+                      <div className="px-4">
+                        <div className="h-3 w-full bg-slate-200/50 rounded-full overflow-hidden border border-slate-100 p-0.5">
+                           <div 
+                             className="h-full bg-gradient-to-r from-delphi-keppel to-delphi-keppel/60 rounded-full transition-all duration-1000 shadow-sm" 
+                             style={{ width: `${Math.min(100, (estimations.filter(e => String(e.roundId) === String(activeRound.id || (activeRound as any)._id)).length / (totalExperts || 1)) * 100)}%` }}
+                           />
+                        </div>
                       </div>
+
                       {Math.max(0, totalExperts - estimations.filter(e => String(e.roundId) === String(activeRound.id || (activeRound as any)._id)).length) > 0 && (
                         <button
                           onClick={handleSendReminder}
-                          className="mt-4 flex items-center justify-center gap-2 w-full py-3 bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants/20 hover:scale-[1.02] rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
+                          className="flex items-center justify-center gap-3 w-full py-4 bg-white text-delphi-giants border-2 border-delphi-giants/10 hover:border-delphi-giants/40 hover:bg-delphi-giants/5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95"
                         >
-                          <Bell className="w-4 h-4" />
-                          Enviar Recordatorio
+                          <Bell className="w-4 h-4 animate-bounce" />
+                          Notificar a Expertos Faltantes
                         </button>
                       )}
                     </div>
                   ) : (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
-                      <p className="text-slate-500 text-sm font-medium">
-                        La ronda está cerrada. Espera a que el facilitador abra una nueva ronda.
+                    <div className="bg-slate-50 border border-slate-100 rounded-3xl p-10 text-center space-y-4">
+                      <ShieldAlert className="w-12 h-12 text-slate-300 mx-auto" />
+                      <p className="text-slate-500 text-sm font-black uppercase tracking-widest">
+                        Ronda Estacionaria
+                      </p>
+                      <p className="text-xs text-slate-400 font-medium">
+                        Esta ronda ya no acepta más participaciones. Por favor, aguarda el análisis del facilitador.
                       </p>
                     </div>
                   )}
                 </div>
               </div>
             ) : !showBoxPlot ? (
-              <div className={`p-6 md:p-8 rounded-[2rem] border transition-all overflow-hidden min-w-0 ${isAnalyzing ? 'bg-slate-50' : 'bg-white shadow-sm'}`}>
+              <div className={`p-8 md:p-10 rounded-[2.5rem] border transition-all overflow-hidden min-w-0 ${isAnalyzing ? 'bg-slate-50/50 backdrop-blur-md' : 'bg-white shadow-xl border-white/40'}`}>
                 {isAnalyzing ? (
-                  <div className="flex flex-col items-center justify-center py-10 gap-4">
-                    <Sparkles className="w-10 h-10 text-delphi-keppel animate-pulse" />
-                    <p className="font-black text-slate-900 text-sm">Analizando datos...</p>
-                  </div>
-                ) : analysis ? (
-                  <div className="space-y-6 animate-in fade-in duration-500">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h4 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                        <BrainCircuit className="w-6 h-6 text-delphi-keppel" />
-                        Análisis de Convergencia
-                      </h4>
-                      {/* RF021: Indicador visual de consenso */}
-                      <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${analysis.level === 'Alta' ? 'bg-delphi-keppel text-white' :
-                        analysis.level === 'Media' ? 'bg-delphi-vanilla text-delphi-orange' : 'bg-delphi-giants text-white'
-                        }`}>
-                        {analysis.level === 'Alta' ? 'Convergencia Alta' : analysis.level === 'Media' ? 'Convergencia Media' : 'Convergencia Baja'}
-                      </span>
+                  <div className="flex flex-col items-center justify-center py-16 gap-6">
+                    <div className="relative">
+                       <div className="w-16 h-16 border-4 border-delphi-keppel/20 border-t-delphi-keppel rounded-full animate-spin" />
+                       <BrainCircuit className="w-8 h-8 text-delphi-keppel absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
                     </div>
-                    {/* RF020: Estadísticas de convergencia */}
-                    {/* RF020: Estadísticas de convergencia */}
-                    {displayedStats && (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Media</p>
-                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.mean?.toFixed(2) || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Mediana</p>
-                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.median?.toFixed(2) || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Desv. (σ)</p>
-                            <p className="text-base sm:text-lg font-black text-slate-900 truncate">{displayedStats.stdDev?.toFixed(2) || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">CV</p>
-                            <p className={`text-base sm:text-lg font-black truncate ${(displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.15 ? 'text-delphi-keppel' : (displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.30 ? 'text-delphi-orange' : 'text-delphi-giants'}`}>
-                              {((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                        </div>
+                    <p className="font-black text-slate-900 text-sm uppercase tracking-[0.3em]">IA: Sincronizando Estimaciones...</p>
+                  </div>
+                ) : (analysis || (isFacilitator && displayedStats)) ? (
+                  <div className="space-y-8 animate-in fade-in zoom-in-95 duration-700">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-6">
+                      <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                        <Sparkles className="w-6 h-6 text-delphi-keppel" />
+                        {analysis ? 'Veredicto de Convergencia' : 'Estadísticas en Tiempo Real'}
+                      </h4>
+                      {analysis ? (
+                        <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${analysis.level === 'Alta' ? 'bg-delphi-keppel text-white' :
+                          analysis.level === 'Media' ? 'bg-delphi-vanilla text-delphi-orange border border-delphi-orange/20' : 'bg-delphi-giants text-white shadow-lg shadow-delphi-giants/20'
+                          }`}>
+                          {analysis.level === 'Alta' ? 'Convergencia Máxima' : analysis.level === 'Media' ? 'Convergencia Parcial' : 'Baja Coherencia'}
+                        </span>
+                      ) : (
+                        <span className="px-4 py-1.5 rounded-xl bg-delphi-keppel/10 text-delphi-keppel text-[9px] font-black uppercase tracking-widest border border-delphi-keppel/20">
+                          Monitoreo en Vivo
+                        </span>
+                      )}
+                    </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Varianza</p>
-                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.variance?.toFixed(2) || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Rango</p>
-                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">
-                              {displayedStats.range ? `${displayedStats.range[0]} - ${displayedStats.range[1]}` : '-'}
-                            </p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">IQR</p>
-                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.iqr?.toFixed(2) || '-'}</p>
-                          </div>
-                          <div className="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 min-w-0">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 truncate">Atípicos</p>
-                            <p className="text-xs sm:text-sm font-black text-slate-600 truncate">{displayedStats.outlierEstimationIds?.length || 0}</p>
-                          </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Media', val: displayedStats.mean?.toFixed(2), icon: Target },
+                        { label: 'Mediana', val: displayedStats.median?.toFixed(2), icon: Target },
+                        { label: 'Desv. (σ)', val: displayedStats.stdDev?.toFixed(2), icon: Calculator },
+                        { label: 'CV %', val: `${((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) * 100).toFixed(1)}%`, highlight: true }
+                      ].map((item, i) => (
+                        <div key={i} className="bg-slate-50/50 p-5 rounded-2xl text-center border border-slate-100/50 hover:bg-white hover:shadow-lg transition-all">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+                          <p className={`text-lg font-black ${item.highlight ? ((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.15 ? 'text-delphi-keppel' : 'text-delphi-orange') : 'text-slate-900'}`}>
+                            {item.val || '-'}
+                          </p>
                         </div>
+                      ))}
+                    </div>
+
+                    {analysis && (
+                      <div className={`p-6 rounded-[2rem] border-l-[6px] transition-all shadow-md group/card relative overflow-hidden ${
+                        analysis.level === 'Alta' ? 'bg-delphi-keppel/5 border-delphi-keppel' : 
+                        analysis.level === 'Media' ? 'bg-delphi-vanilla border-delphi-orange' : 'bg-delphi-giants/5 border-delphi-giants'
+                      }`}>
+                        <div className="absolute -right-8 -bottom-8 opacity-5 group-hover:scale-110 transition-transform">
+                          <BrainCircuit className="w-32 h-32" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
+                           <Target className="w-3 h-3" /> Recomendación Estratégica
+                        </p>
+                        <p className="text-sm font-bold text-slate-900 leading-relaxed italic mb-4">
+                          "{analysis.level === 'Alta' ? 'El grupo ha alcanzado un consenso robusto. Listo para consolidación.' : 
+                            analysis.level === 'Media' ? 'Alineación moderada. Los extremos deben justificar sus posturas.' : 
+                            'Disparidad crítica detectada. Requiere re-evaluación profunda de requisitos.'}"
+                        </p>
+                        <p className="text-[12px] font-medium text-slate-700 leading-relaxed relative z-10">
+                          {analysis.recommendation}
+                        </p>
                       </div>
                     )}
                     
-                    <div className={`p-5 rounded-2xl border-l-4 transition-all ${
-                      analysis.level === 'Alta' ? 'bg-delphi-keppel/5 border-delphi-keppel' : 
-                      analysis.level === 'Media' ? 'bg-delphi-vanilla border-delphi-orange' : 'bg-delphi-giants/5 border-delphi-giants'
-                    }`}>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Recomendación del Jefe de Proyecto</p>
-                      <p className="text-xs font-bold text-slate-900 leading-relaxed italic">
-                        "{analysis.level === 'Alta' ? 'Excelente alineación técnica. Los expertos están en consenso.' : 
-                          analysis.level === 'Media' ? 'Existe una ligera discrepancia. Se recomienda una breve discusión para alinear criterios.' : 
-                          'Divergencia significativa detectada. Es imperativo revisar los requisitos y realizar un nuevo debate.'}"
-                      </p>
-                      <p className="text-[11px] font-medium text-slate-600 mt-3 leading-relaxed">
-                        {analysis.recommendation}
-                      </p>
+                    <div className="bg-slate-900 text-white p-6 rounded-[2.5rem] mt-8 shadow-2xl relative overflow-hidden group/stats">
+                      <div className="absolute top-0 right-0 w-32 h-full bg-delphi-keppel/10 -skew-x-12 translate-x-16" />
+                      <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-delphi-keppel mb-6 flex items-center gap-3">
+                         <BarChart3 className="w-4 h-4" /> Desglose Analítico por Método
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
+                        {Object.entries(displayedStats.metricaResultados || {})
+                          .filter(([key]) => !['distribucion', 'mean', 'median', 'standardDeviation', 'variance', 'iqr', 'outliers'].includes(key))
+                          .map(([key, val]) => (
+                            <div key={key} className="flex justify-between items-center py-2 border-b border-white/10">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                {key === 'moda' ? 'Moda' :
+                                  key === 'frecuencia' ? 'Frecuencia' :
+                                  key === 'consensoPct' ? 'Consenso' :
+                                  key === 'expectedValue' ? 'Valor Esperado' :
+                                  key === 'optimisticAvg' ? 'Promedio Opt.' :
+                                  key === 'mostLikelyAvg' ? 'Promedio Prob.' :
+                                  key === 'pessimisticAvg' ? 'Promedio Pes.' : key}
+                              </span>
+                              <span className="font-black text-white text-xs">
+                                {typeof val === 'number' ? (key === 'consensoPct' ? `${val.toFixed(0)}%` : val.toFixed(2)) : String(val)}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
                     </div>
 
-                    <p className="text-[11px] text-slate-500 font-medium leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">AI Implementation Insights</span>
-                      {analysis.aiInsights}
-                    </p>
-
-                    {/* RF015b/c: Resultados específicos del método */}
-                    {displayedStats?.metricaResultados && (
-                      <div className="bg-slate-900 text-white p-6 rounded-[2rem] border border-white/5 space-y-4 animate-in slide-in-from-top-4 shadow-xl">
-                        <h4 className="text-xs font-black uppercase tracking-[0.2em] text-delphi-keppel border-b border-white/10 pb-3 flex items-center gap-2">
-                          <BarChart3 className="w-4 h-4" />
-                          Métricas {estimationMethod === 'planning-poker' ? 'Planning Poker' : estimationMethod === 'three-point' ? 'Three-Point' : 'Delphi'}
-                          {viewedRound?.status === 'open' && (
-                            <span className="ml-auto text-[8px] bg-delphi-keppel/20 text-delphi-keppel px-2 py-0.5 rounded-full animate-pulse">
-                              Tiempo Real
-                            </span>
-                          )}
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                          {Object.entries(displayedStats.metricaResultados)
-                            .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
-                            .map(([key, val]) => (
-                              <div key={key} className="flex justify-between items-center text-[10px] md:text-xs py-1.5 border-b border-white/5 min-w-0">
-                                <span className="text-slate-400 font-bold uppercase tracking-wider shrink mr-2 truncate max-w-[65%]">
-                                  {key === 'moda' ? 'Moda' :
-                                    key === 'frecuencia' ? 'Frecuencia' :
-                                      key === 'consensoPct' ? 'Consenso' :
-                                        key === 'expectedValue' ? 'Valor Esperado' :
-                                          key === 'standardDeviation' ? 'Desviación' :
-                                            key === 'optimisticAvg' ? 'Promedio Opt.' :
-                                              key === 'mostLikelyAvg' ? 'Promedio Prob.' :
-                                                key === 'mean' ? 'Media' :
-                                                  key === 'median' ? 'Mediana' :
-                                                    key === 'pessimisticAvg' ? 'Promedio Pes.' : key}
-                                </span>
-                                <span className="font-black text-delphi-keppel text-right shrink-0">
-                                  {typeof val === 'number' 
-                                    ? (key === 'consensoPct' ? `${val.toFixed(0)}%` : val.toFixed(2)) 
-                                    : String(val)}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                    <div className="pt-6 flex flex-col sm:flex-row gap-4">
                       {isFacilitator && rounds.length > 0 && (
-                        <button onClick={handleFinalizeTask} className="flex-1 bg-delphi-keppel text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">
-                          Finalizar Tarea
+                        <button onClick={handleFinalizeTask} className="flex-1 bg-white border-2 border-delphi-keppel text-delphi-keppel py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-delphi-keppel hover:text-white transition-all shadow-lg active:scale-95">
+                          Finalizar Consenso
                         </button>
                       )}
-                      <button onClick={handleStartNextRound} className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">
-                        Nueva Ronda
+                      <button onClick={handleStartNextRound} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl active:scale-95">
+                        Iniciar Nueva Ronda
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-300 italic text-xs">
-                    Cierra la ronda para el análisis.
+                  <div className="flex flex-col items-center justify-center py-16 text-slate-300 gap-4 opacity-50">
+                    <ShieldAlert className="w-16 h-16" />
+                    <p className="font-black text-[10px] uppercase tracking-[0.3em] text-center max-w-[200px]">Cierra la ronda táctica para habilitar el análisis de IA.</p>
                   </div>
                 )}
               </div>
@@ -1057,53 +1135,65 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         </div>
       </div>
 
-      {/* Inline results summary — visible whenever the viewed round has at least 1 estimation */}
-      {viewedRound && currentRoundEstimations.length > 0 && viewedRound.status === 'open' && (
-        <div className="bg-slate-900 text-white p-5 rounded-[2rem] border border-white/10 flex flex-wrap items-center justify-between gap-4 overflow-hidden relative animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-delphi-keppel rounded-l-[2rem]" />
-          <div className="flex items-center gap-4 pl-3">
-            <div className="bg-delphi-keppel/20 p-3 rounded-2xl shrink-0">
-              <Target className="w-5 h-5 text-delphi-keppel" />
+      {/* Inline results summary — Premium Floating Summary */}
+      {viewedRound && currentRoundEstimations.length > 0 && (
+        <div className="bg-slate-900/95 backdrop-blur-xl text-white p-6 rounded-[2.5rem] border border-white/10 flex flex-wrap items-center justify-between gap-6 overflow-hidden relative shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-700">
+          <div className="absolute top-0 left-0 w-2 h-full bg-delphi-keppel shadow-[0_0_20px_rgba(43,186,165,0.5)]" />
+          
+          <div className="flex items-center gap-6 pl-4">
+            <div className="bg-delphi-keppel/20 p-4 rounded-2xl shrink-0 border border-delphi-keppel/20">
+              <Target className="w-6 h-6 text-delphi-keppel" />
             </div>
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Resultado Ronda {viewedRound.roundNumber}</p>
-              <h5 className="text-base font-black flex items-center gap-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Métricas de Ronda {viewedRound.roundNumber}</p>
+              <h5 className="text-xl font-black flex items-center gap-3">
                 {viewedRound.status === 'closed'
-                  ? <>{viewedRound.stats?.mean?.toFixed(1) || '-'} {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'h' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'pts' : 'd'}</>
-                  : <span className="text-sm text-slate-300">{currentRoundEstimations.length} estimaciones recibidas…</span>
+                  ? <span className="flex items-center gap-2">
+                      {viewedRound.stats?.mean?.toFixed(1) || '-'} 
+                      <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">
+                        {(unit?.toLowerCase() === 'hours' || unit?.toLowerCase() === 'horas') ? 'h' : (unit?.toLowerCase() === 'storypoints' || unit?.toLowerCase() === 'pts') ? 'sp' : (unit?.toLowerCase() === 'persondays') ? 'dp' : unit}
+                      </span>
+                    </span>
+                  : <span className="text-sm font-black text-slate-300 flex items-center gap-2 italic">
+                      <div className="w-2 h-2 bg-delphi-keppel rounded-full animate-pulse" />
+                      {currentRoundEstimations.length} Estimaciones Recibidas
+                    </span>
                 }
                 {viewedRound.status === 'closed' && analysis?.level && (
-                  <span className={`text-[8px] px-2 py-0.5 rounded-md font-black uppercase ${
-                    analysis.level === 'Alta' ? 'bg-delphi-keppel' :
-                    analysis.level === 'Media' ? 'bg-delphi-orange' : 'bg-delphi-giants'
+                  <span className={`text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest shadow-lg ${
+                    analysis.level === 'Alta' ? 'bg-delphi-keppel text-white' :
+                    analysis.level === 'Media' ? 'bg-delphi-orange text-white' : 'bg-delphi-giants text-white'
                   }`}>{analysis.level}</span>
                 )}
               </h5>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 border-l border-white/10 pl-6">
-            {(viewedRound.status === 'closed' || (isFacilitator && currentRoundEstimations.length > 0)) && displayedStats && (
+          <div className="flex items-center gap-8 border-l border-white/5 pl-8">
+            {displayedStats && (
               <>
-                <div className="text-center">
-                  <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">CV</p>
-                  <p className="text-sm font-black text-delphi-keppel">{((displayedStats.coefficientOfVariation || (displayedStats as any).cv || (convergenceResult?.cv ?? 0)) * 100).toFixed(0)}%</p>
+                <div className="text-center group/metric transition-transform hover:scale-110">
+                  <p className="text-[10px] font-black uppercase tracking-tighter text-slate-500 mb-1">CV Actual</p>
+                  <p className={`text-xl font-black ${((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) <= 0.15) ? 'text-delphi-keppel' : 'text-delphi-orange'}`}>
+                    {((displayedStats.coefficientOfVariation || (displayedStats as any).cv || 0) * 100).toFixed(0)}%
+                  </p>
                 </div>
-                <div className="text-center">
-                  <p className="text-[8px] font-black uppercase tracking-tighter text-slate-400">Atípicos</p>
-                  <p className="text-sm font-black text-delphi-orange">{displayedStats.outlierEstimationIds?.length || 0}</p>
+                <div className="text-center group/metric transition-transform hover:scale-110">
+                  <p className="text-[10px] font-black uppercase tracking-tighter text-slate-500 mb-1">Atípicos</p>
+                  <p className="text-xl font-black text-delphi-orange">{displayedStats.outlierEstimationIds?.length || 0}</p>
                 </div>
               </>
             )}
-            {isFacilitator && !activeRound && viewedRound.status === 'closed' && (
-              <button
-                onClick={handleStartNextRound}
-                disabled={isAnalyzing}
-                className="bg-white text-slate-900 p-2.5 rounded-xl hover:bg-delphi-keppel hover:text-white transition-all shadow-lg"
-                title="Nueva Ronda"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+            
+            {isFacilitator && viewedRound.status === 'closed' && (
+              <div className="flex gap-2">
+                 <button
+                  onClick={handleStartNextRound}
+                  className="bg-white text-slate-900 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-delphi-keppel hover:text-white transition-all shadow-xl active:scale-95"
+                >
+                  Nueva Ronda
+                </button>
+              </div>
             )}
           </div>
         </div>
