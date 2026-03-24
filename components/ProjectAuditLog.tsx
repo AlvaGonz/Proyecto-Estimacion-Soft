@@ -55,13 +55,25 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                     </div>
                     <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100">
                       <User className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">ID: {entry.userId}</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">ID: {entry.userId.slice(-6)}</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                    {typeof entry.details === 'object' ? JSON.stringify(entry.details) : entry.details}
-                  </p>
-                  <button aria-label={`Ver datos crudos de ${entry.action}`} className="mt-6 flex items-center gap-2 text-delphi-keppel opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 outline-none">
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                      {typeof entry.details === 'string' && entry.details.startsWith('{') ? (
+                        <code className="text-[10px] bg-slate-100 p-2 rounded-lg block overflow-x-auto">
+                          {JSON.stringify(JSON.parse(entry.details), null, 2)}
+                        </code>
+                      ) : (
+                        entry.details
+                      )}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => console.log('Raw data:', entry)}
+                    aria-label={`Ver datos crudos de ${entry.action}`} 
+                    className="mt-6 flex items-center gap-2 text-delphi-keppel opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 outline-none"
+                  >
                     <span className="text-[10px] font-black uppercase tracking-widest">Ver datos crudos</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
