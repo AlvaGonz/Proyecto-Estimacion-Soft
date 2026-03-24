@@ -39,7 +39,10 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
       setIsLoading(true);
       try {
         const fetchedExperts = await Promise.all(
-          expertIds.map(id => userService.getUserById(id))
+          expertIds.map(id => {
+            const idStr = typeof id === 'string' ? id : (id as any).id || (id as any)._id;
+            return userService.getUserById(String(idStr));
+          })
         );
         setExperts(fetchedExperts);
       } catch (error) {
@@ -102,7 +105,7 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
 
   return (
     <div className="space-y-10 animate-reveal">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 p-10 rounded-[3rem] glass-card border-white/40 shadow-xl shadow-delphi-keppel/5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] glass-card border-white/40 shadow-xl shadow-delphi-keppel/5">
         <div className="flex items-center gap-8">
           <div className="bg-gradient-to-br from-delphi-keppel to-delphi-keppel/80 p-5 rounded-[2rem] shadow-2xl shadow-delphi-keppel/20 group-hover:scale-110 transition-transform">
             <BarChart3 className="w-10 h-10 text-white" />
@@ -158,7 +161,7 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
                     <CheckCircle2 className="w-5 h-5 text-delphi-keppel mx-auto mb-2" />
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Ritmo</p>
@@ -202,7 +205,7 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
         ))}
       </div>
 
-      <div className="bg-slate-900 p-12 rounded-[4rem] text-white flex flex-col md:flex-row items-center gap-12 shadow-2xl overflow-hidden relative group border border-white/5">
+      <div className="bg-slate-900 p-6 md:p-12 rounded-[2rem] md:rounded-[4rem] text-white flex flex-col md:flex-row items-center gap-6 md:gap-12 shadow-2xl overflow-hidden relative group border border-white/5">
         <div className="shrink-0 bg-gradient-to-br from-delphi-keppel to-delphi-keppel/60 p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(43,186,165,0.4)] group-hover:rotate-12 transition-all duration-700 relative z-10">
           <Zap className="w-16 h-16" />
         </div>

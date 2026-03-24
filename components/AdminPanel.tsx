@@ -284,7 +284,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             />
          )}
 
-         <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
+         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
             <div className="flex items-center gap-8">
                <div className="bg-delphi-giants p-4 rounded-3xl shadow-xl shadow-delphi-giants/20">
                   <ShieldCheck className="w-10 h-10 text-white" />
@@ -596,7 +596,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             </div>
          ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-               <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+               <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
                   <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
                      <Zap className="w-6 h-6 text-delphi-orange" />
                      Parámetros de Convergencia
@@ -614,7 +614,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                   </div>
                </div>
 
-               <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-xl space-y-8 relative overflow-hidden">
+               <div className="bg-slate-900 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] text-white shadow-xl space-y-8 relative overflow-hidden">
                   <h3 className="text-2xl font-black tracking-tight flex items-center gap-3 relative z-10">
                      <Lock className="w-6 h-6 text-delphi-giants" />
                      Seguridad Institucional

@@ -85,3 +85,12 @@
     radial-gradient(at 50% 0%, hsla(37, 95%, 55%, 0.03) 0, transparent 50%), 
     radial-gradient(at 100% 0%, hsla(15, 95%, 59%, 0.05) 0, transparent 50%);
 }
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Gradient brand token */
+.bg-gradient-delphi {
+  background: linear-gradient(135deg, hsl(171, 62%, 45%), hsl(145, 41%, 70%));
+}
