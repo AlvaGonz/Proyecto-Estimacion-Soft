@@ -24,7 +24,7 @@ Con el contexto del brain, genera un SPEC.md con:
 
 ESPERA MI APROBACIÓN DEL SPEC ANTES DE CONTINUAR.
 
-=== FASE C: AGENT PROMPT PARA ANTIGRAVITY ===
+=== FASE C: AGENT PROMPT PARA AGENT ===
 Una vez aprobado el spec, genera el bloque "Copy/Paste into IDE":
 
 ---AGENT PROMPT---
