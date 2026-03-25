@@ -1,5 +1,8 @@
-# Lessons Learned — EstimaPro
-## SETUP — 2026-03-25 — CI/CD
-**Mistake:** typecheck job in ci.yml called npm run lint instead of npx tsc --noEmit
-**Rule:** Never copy-paste CI jobs without verifying the run command is correct
-**Applies to:** .github/workflows/ci.yml, all future workflow jobs
+# Agent Lessons — EstimaPro
+## Pattern: lessons/<date>/<rule>
+> Updated automatically by agentic-eval skill after each correction.
+
+### 2026-03-25 — Bootstrap
+- RULE: typecheck job must call `npx tsc --noEmit`, NOT `npm run lint`
+- RULE: audit branch skills must be installed before writing new workflows
+- RULE: Never mark a workflow task complete without a passing CI run
