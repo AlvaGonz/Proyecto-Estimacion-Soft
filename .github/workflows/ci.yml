@@ -142,7 +142,7 @@ jobs:
       - run: cd server && npm ci
       - name: Validate LOGAUDITORIA module exists
         run: |
-          test -f server/src/models/AuditLog.js || test -f server/src/models/AuditLog.ts || \
+          test -f server/src/models/AuditLog.js || test -f server/src/models/AuditLog.ts || test -f server/src/models/AuditLog.model.ts || \
           (echo "LOGAUDITORIA model not found — RNF007 violated" && exit 1)
       - name: Run audit log unit tests
         run: |
