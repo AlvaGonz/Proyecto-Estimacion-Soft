@@ -29,3 +29,17 @@ e2e/.auth/
 *.njsproj
 *.sln
 *.sw?
+
+# Agentic Orchestration (Local-Only)
+.env
+.env.local
+.env.docker
+.env.example
+agent-skills/
+requirements.txt
+tasks/lessons.md
+.cache/
+__pycache__/
+*.py[cod]
+*$py.class
+**/__pycache__/

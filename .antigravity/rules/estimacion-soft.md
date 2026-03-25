@@ -2,10 +2,10 @@
 trigger: always_on
 ---
 
-# 🚀 ANTIGRAVITY WORKSPACE RULES — Proyecto: DelphiEstimator Pro
+# 🚀 AGENT WORKSPACE RULES — Proyecto: DelphiEstimator Pro
 # Repo: AlvaGonz/Proyecto-Estimacion-Soft
 # Versión: 1.0 | Stack: React 19 + Vite 6 + TS 5.8 + Gemini AI
-# ESTAS REGLAS EXTIENDEN (no reemplazan) las Reglas Globales de Antigravity
+# ESTAS REGLAS EXTIENDEN (no reemplazan) las Reglas Globales de AGENT
 
 ---
 

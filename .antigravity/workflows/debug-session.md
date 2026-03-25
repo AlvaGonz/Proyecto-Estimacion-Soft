@@ -18,7 +18,7 @@ PASO 2 → Analiza el stack trace siguiendo el Protocolo ARQ (ARQ.txt):
   - Clasifica: ¿Error de tipo? ¿Lógica de negocio? ¿Violación de dominio Delphi?
   - Responde: ¿Violó alguna regla de types.ts o del ciclo de estados?
 
-PASO 3 → Genera el AGENT PROMPT quirúrgico para Antigravity:
+PASO 3 → Genera el AGENT PROMPT quirúrgico para AGENT:
   - Context: @[archivo exacto donde falla] @types.ts
   - Objetivo: fix específico sin tocar código adyacente
   - Constraint: No refactorices más allá del fix. Un cambio atómico.

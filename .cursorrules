@@ -37,7 +37,7 @@ read the relevant SKILL.md file first. Key skills:
 
 ## Planning Protocol
 For every new feature:
-1. Read @.antigravity/skills/planning-with-files/SKILL.md
+1. Read @.agent/skills/planning-with-files/SKILL.md
 2. Create PLANNING.md in root with the feature plan
 3. Get approval before writing any implementation code
 4. Update PLANNING.md checkboxes as you complete each step
