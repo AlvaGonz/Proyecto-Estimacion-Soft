@@ -8,52 +8,72 @@ interface ProjectListProps {
   projects?: Project[];
   onProjectSelect: (id: string) => void;
 }
+ 
+const STATUS_LABELS = {
+  'preparation': 'Preparación',
+  'kickoff': 'Kickoff',
+  'active': 'Activo',
+  'finished': 'Finalizado',
+  'archived': 'Archivado'
+} as const;
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects = [], onProjectSelect }) => {
   return (
-    <div className="grid grid-cols-1 gap-6">
+    <div className="grid grid-cols-1 gap-8 animate-reveal">
       {projects.length === 0 ? (
         <EmptyState 
-          icon={<Target className="w-12 h-12" />}
+          icon={<Target className="w-16 h-16 text-slate-300" />}
           title="No hay proyectos"
-          description="Aún no se han registrado proyectos en el sistema."
+          description="Aún no se han registrado proyectos en el sistema. Comienza creando uno nuevo."
         />
-      ) : projects.map((project) => (
+      ) : projects.map((project, index) => (
         <button 
           key={project.id}
           onClick={() => onProjectSelect(project.id)}
-          aria-label={`Ver detalles del proyecto ${project.name}`}
-          className="group flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-3xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer w-full text-left focus:outline-none focus:ring-2 focus:ring-delphi-keppel/50"
+          style={{ animationDelay: `${index * 100}ms` }}
+          className="group flex flex-col md:flex-row items-center gap-8 p-8 rounded-[2.5rem] glass-card hover:bg-white hover:shadow-2xl hover:shadow-delphi-keppel/10 hover:translate-x-2 transition-all duration-500 w-full text-left focus:outline-none focus:ring-4 focus:ring-delphi-keppel/10 animate-reveal"
         >
-          <div className="w-16 h-16 bg-white rounded-2xl border-2 border-slate-100 flex items-center justify-center text-delphi-keppel shadow-sm group-hover:border-delphi-keppel/30 group-hover:bg-delphi-keppel/5 transition-all shrink-0">
-            <Target className="w-8 h-8" />
+          <div className="w-20 h-20 bg-gradient-to-br from-white to-slate-50 rounded-[1.5rem] border border-slate-100 flex items-center justify-center text-delphi-keppel shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shrink-0">
+            <Target className="w-10 h-10" />
           </div>
-          <div className="flex-1 w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
-              <h4 className="font-black text-slate-900 group-hover:text-delphi-keppel transition-colors text-lg">{project.name}</h4>
-              <span className={`w-fit text-[10px] uppercase tracking-widest font-black px-3 py-1 rounded-full border ${
-                project.status === 'active' ? 'bg-delphi-celadon/20 text-delphi-keppel border-delphi-keppel/20' : 
-                project.status === 'kickoff' ? 'bg-delphi-orange/20 text-delphi-giants border-delphi-giants/20' : 
-                project.status === 'finished' ? 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/30' :
-                project.status === 'preparation' ? 'bg-slate-200 text-slate-600 border-slate-300' :
-                'bg-slate-100 text-slate-400 border-slate-200'}`}>
-                {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
+          
+          <div className="flex-1 w-full space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h4 className="font-black text-slate-900 group-hover:text-delphi-keppel transition-colors text-xl tracking-tight">
+                {project.name}
+              </h4>
+              <span className={`w-fit text-[10px] uppercase tracking-[0.2em] font-black px-4 py-1.5 rounded-full border shadow-sm ${
+                project.status === 'active' ? 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/20' : 
+                project.status === 'kickoff' ? 'bg-delphi-orange/10 text-delphi-orange border-delphi-orange/20' : 
+                project.status === 'finished' ? 'bg-delphi-celadon/20 text-delphi-keppel border-delphi-celadon/30' :
+                project.status === 'preparation' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                'bg-slate-900 text-white border-slate-800'}`}>
+                {STATUS_LABELS[project.status as keyof typeof STATUS_LABELS] || project.status}
               </span>
             </div>
-            <p className="text-sm text-slate-500 line-clamp-2 sm:line-clamp-1 mb-3">{project.description}</p>
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-1">
-              <span className="text-xs font-bold text-slate-400 flex items-center gap-2">
+            
+            <p className="text-slate-500 font-medium line-clamp-2 md:line-clamp-1 text-sm leading-relaxed max-w-2xl">
+              {project.description}
+            </p>
+            
+            <div className="flex flex-wrap items-center gap-6 pt-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
                 <Calendar className="w-4 h-4 text-delphi-keppel" />
-                {new Date(project.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-              </span>
-              <span className="text-xs font-bold text-slate-400 flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-600">
+                  {new Date(project.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
                 <Users className="w-4 h-4 text-delphi-orange" />
-                {project.expertIds.length} expertos
-              </span>
+                <span className="text-xs font-bold text-slate-600">
+                  {project.expertIds.length} Expertos
+                </span>
+              </div>
             </div>
           </div>
-          <div className="hidden sm:block bg-slate-100 p-2 rounded-xl text-slate-400 group-hover:bg-delphi-keppel group-hover:text-white transition-all">
-            <ChevronRight className="w-5 h-5" />
+          
+          <div className="hidden md:flex bg-slate-50 p-3 rounded-2xl text-slate-300 group-hover:bg-delphi-keppel group-hover:text-white group-hover:shadow-lg group-hover:shadow-delphi-keppel/30 transition-all duration-500">
+            <ChevronRight className="w-6 h-6" />
           </div>
         </button>
       ))}

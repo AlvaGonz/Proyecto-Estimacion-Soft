@@ -1,19 +1,96 @@
 @import "tailwindcss";
 
 @theme {
-  --font-family-inter: 'Inter', sans-serif;
+  --font-family-inter: 'Inter', 'Outfit', sans-serif;
   
-  --color-delphi-keppel: #2BBAA5;
-  --color-delphi-celadon: #93D3AE;
-  --color-delphi-vanilla: #FAECB6;
-  --color-delphi-orange: #F9A822;
-  --color-delphi-giants: #F96635;
+  /* HSL-based Premium Palette */
+  --color-delphi-keppel: hsl(171, 62%, 45%);
+  --color-delphi-celadon: hsl(145, 41%, 70%);
+  --color-delphi-vanilla: hsl(47, 88%, 85%);
+  --color-delphi-orange: hsl(37, 95%, 55%);
+  --color-delphi-giants: hsl(15, 95%, 59%);
+  
+  /* Core Brand Extensions */
+  --color-brand-primary: var(--color-delphi-keppel);
+  --color-brand-secondary: var(--color-delphi-orange);
+  --color-brand-dark: hsl(225, 25%, 9%);
+  --color-brand-surface: hsl(220, 20%, 97%);
 }
 
-body {
-  font-family: var(--font-family-inter);
+@layer base {
+  body {
+    font-family: var(--font-family-inter);
+    @apply bg-slate-50 text-slate-900 antialiased selection:bg-delphi-keppel/20;
+  }
 }
 
+@layer components {
+  /* Glassmorphism Classes */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
+  }
+  
+  .glass-sidebar {
+    @apply bg-slate-900/90 backdrop-blur-2xl border-r border-white/10;
+  }
+  
+  .glass-navbar {
+    @apply bg-white/60 backdrop-blur-md border-b border-white/30 sticky top-0 z-50;
+  }
+
+  /* Animations */
+  .animate-reveal {
+    animation: reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+.bg-mesh {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(171, 62%, 45%, 0.05) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(37, 95%, 55%, 0.03) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(15, 95%, 59%, 0.05) 0, transparent 50%);
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Gradient brand token */
 .bg-gradient-delphi {
-  background: linear-gradient(135deg, #2BBAA5 0%, #93D3AE 100%);
+  background: linear-gradient(135deg, hsl(171, 62%, 45%), hsl(145, 41%, 70%));
 }

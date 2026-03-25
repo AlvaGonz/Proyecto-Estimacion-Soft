@@ -4,6 +4,7 @@ import { FIBONACCI_SEQUENCE, type FibonacciCard } from '../../types';
 interface PokerCardsProps {
   selectedCard: FibonacciCard | null;
   justification: string;
+  unit: string;
   onChange: (card: FibonacciCard | null, justification: string) => void;
   disabled?: boolean;
 }
@@ -11,6 +12,7 @@ interface PokerCardsProps {
 const PokerCards: React.FC<PokerCardsProps> = ({
   selectedCard,
   justification,
+  unit,
   onChange,
   disabled = false,
 }) => {
@@ -19,10 +21,10 @@ const PokerCards: React.FC<PokerCardsProps> = ({
       <div className="space-y-2">
         {selectedCard !== null && (
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            Seleccionaste: <strong className="text-delphi-keppel">{selectedCard === '?' ? '?' : `${selectedCard} puntos`}</strong>
+            Seleccionaste: <strong className="text-delphi-keppel">{selectedCard === '?' ? '?' : `${selectedCard} ${unit === 'storyPoints' ? 'puntos' : unit === 'hours' ? 'horas' : 'días'}`}</strong>
           </p>
         )}
-        <div className="grid grid-cols-4 sm:grid-cols-9 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2 sm:gap-3">
           {FIBONACCI_SEQUENCE.map((card) => {
             const isSelected = selectedCard === card;
             return (
@@ -31,10 +33,10 @@ const PokerCards: React.FC<PokerCardsProps> = ({
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(isSelected ? null : card, justification)}
-                className={`w-14 h-20 font-black text-lg rounded-2xl border-2 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`min-w-[44px] min-h-[44px] w-full h-16 sm:h-20 font-black text-lg rounded-2xl border-2 transition-all duration-200 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   isSelected
                     ? 'bg-delphi-keppel border-delphi-keppel text-white scale-110 shadow-xl'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-delphi-keppel/50'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-delphi-keppel/50 hover:shadow-md'
                 }`}
               >
                 {card === '?' ? <span className="italic">?</span> : card}

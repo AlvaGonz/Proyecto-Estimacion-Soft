@@ -1,5 +1,5 @@
-
-import { Estimation, RoundStats } from '../types';
+import { notificationService } from '../services/notificationService';
+import { Estimation, Notification, RoundStats } from '../types';
 
 export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
   const values = estimations.map(e => e.value).sort((a, b) => a - b);
@@ -7,7 +7,7 @@ export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
   
   if (n === 0) return {
     mean: 0, median: 0, stdDev: 0, variance: 0, 
-    coefficientOfVariation: 0, range: [0, 0], iqr: 0, outliers: []
+    coefficientOfVariation: 0, range: [0, 0], iqr: 0, outlierEstimationIds: []
   };
 
   const sum = values.reduce((a, b) => a + b, 0);
@@ -28,7 +28,7 @@ export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
   const lowerBound = q1 - 1.5 * iqr;
   const upperBound = q3 + 1.5 * iqr;
 
-  const outliers = estimations
+  const outlierEstimationIds = estimations
     .filter(e => e.value < lowerBound || e.value > upperBound)
     .map(e => e.id);
 
@@ -40,6 +40,6 @@ export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
     coefficientOfVariation: Number(cv.toFixed(2)),
     range: [values[0], values[n - 1]],
     iqr: Number(iqr.toFixed(2)),
-    outliers
+    outlierEstimationIds
   };
 };

@@ -1,12 +1,4 @@
-
-export interface Notification {
-  id: string;
-  type: 'project_invite' | 'round_opened' | 'round_closed' | 'consensus_reached' | 'system';
-  message: string;
-  projectId?: string;
-  createdAt: number;
-  read: boolean;
-}
+import { Notification } from '../types';
 
 class NotificationService {
   private STORAGE_KEY = 'estimapro_notifications';
@@ -48,6 +40,15 @@ class NotificationService {
   markAllAsRead() {
     const notifications = this.getNotifications();
     const updated = notifications.map(n => ({ ...n, read: true }));
+    this.saveNotifications(updated);
+  }
+
+  markAllAsReadForUser(userId: string) {
+    const notifications = this.getNotifications();
+    const updated = notifications.map(n => {
+      const belongsToUser = !n.targetUserId || n.targetUserId === userId;
+      return belongsToUser ? { ...n, read: true } : n;
+    });
     this.saveNotifications(updated);
   }
 
