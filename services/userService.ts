@@ -16,6 +16,10 @@ export const userService = {
     },
 
     async getUserById(id: string): Promise<User> {
+        if (!id || typeof id !== 'string' || id.includes('[object')) {
+            console.error('userService: Invalid user ID provided:', id);
+            throw new Error('Invalid user ID');
+        }
         return await fetchApi<User>(`/users/${id}`);
     },
 
