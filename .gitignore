@@ -43,3 +43,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 **/__pycache__/
+groq_test.py
+autogen_test.py
+crewai_test.py
