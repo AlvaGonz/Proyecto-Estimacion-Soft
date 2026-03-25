@@ -35,11 +35,11 @@ jobs:
     name: Secret Scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo with fetch-depth: 0
+      - name: "Checkout repo with fetch-depth: 0"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Use action: trufflesecurity/trufflehog-actions-scan@v3
+      - name: "Use action: trufflesecurity/trufflehog-actions-scan@v3"
         uses: trufflesecurity/trufflehog-actions-scan@v3
         with:
           base: ${{ github.event.repository.default_branch }}
@@ -53,13 +53,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - name: Use github/codeql-action/init@v3 with languages: ['javascript']
+      - name: "Use github/codeql-action/init@v3 with languages: ['javascript']"
         uses: github/codeql-action/init@v3
         with:
-          languages: ['javascript']
-      - name: Use github/codeql-action/autobuild@v3
+          languages: javascript
+      - name: "Use github/codeql-action/autobuild@v3"
         uses: github/codeql-action/autobuild@v3
-      - name: Use github/codeql-action/analyze@v3
+      - name: "Use github/codeql-action/analyze@v3"
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:javascript"
