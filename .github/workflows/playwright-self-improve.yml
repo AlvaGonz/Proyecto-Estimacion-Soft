@@ -1,0 +1,74 @@
+name: Playwright Self-Improvement Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  self-improve:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Install Node dependencies
+        run: npm install
+
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: 🐍 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: 🧪 Run Playwright & Collect Metrics
+        run: python scripts/pw_report_collector.py
+
+      - name: 🧠 Run Groq Reflexion Agent
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/groq_reflexion_agent.py
+
+      - name: 🛡️ Apply Self-Heal Gate
+        run: python scripts/self_heal_gate.py
+
+      - name: ✍️ Apply Mutation & Commit
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          python scripts/apply_mutation.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔍 Run Critic Audit & Final Fixes
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python scripts/groq_critic_agent.py
+          python scripts/metrics_dashboard.py
+          
+      - name: 🚀 Final Self-Heal Commit
+        run: |
+          if [[ -n $(git status -s .agent/rules/ scripts/ test-results/) ]]; then
+            git add .
+            git commit -m "fix(agent): self-heal from critic audit"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
