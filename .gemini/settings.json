@@ -1,0 +1,20 @@
+{
+  "context": {
+    "fileName": ["GEMINI.md", "AGENTS.md"],
+    "includeDirectoryTree": true,
+    "loadMemoryFromIncludeDirectories": true
+  },
+  "skills": {
+    "enabled": true,
+    "disabled": []
+  },
+  "general": {
+    "defaultApprovalMode": "auto_edit"
+  },
+  "experimental": {
+    "enableAgents": true,
+    "plan": true,
+    "jitContext": true
+  },
+  "useWriteTodos": true
+}
