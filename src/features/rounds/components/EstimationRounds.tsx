@@ -11,7 +11,7 @@ import { useRounds } from '../hooks/useRounds';
 import { useEstimationActions } from '../hooks/useEstimationActions';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
-import { FibonacciCard, EstimationMethod } from '../../../../types';
+import { FibonacciCard, EstimationMethod } from '../../../types';
 
 interface EstimationRoundsProps {
   projectId: string;

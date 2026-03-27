@@ -1,5 +1,5 @@
 import React from 'react';
-import { FIBONACCI_SEQUENCE, type FibonacciCard } from '../../../../../types';
+import { FIBONACCI_SEQUENCE, type FibonacciCard } from '../../../../types';
 
 interface PokerCardsProps {
   selectedCard: FibonacciCard | null;

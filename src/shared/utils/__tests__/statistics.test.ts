@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateRoundStats } from '../statistics';
-import { Estimation } from '../../types';
+import { Estimation } from '../../../types';
 
 describe('calculateRoundStats', () => {
   const baseEstimations: Estimation[] = [

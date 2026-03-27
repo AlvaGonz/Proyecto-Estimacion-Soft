@@ -1,4 +1,4 @@
-import { Estimation } from '../../../../types';
+import { Estimation } from '../../../types';
 import { fetchApi } from '../../../shared/api';
 
 export const estimationService = {

@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { BrainCircuit, Shield, Send, Lock, User as UserIcon, Mail, ArrowLeft } from 'lucide-react';
-import { User, UserRole } from '../../../../types';
+import { User, UserRole } from '../../../types';
 import { registerSchema } from '../../../shared/utils/schemas';
 import { z } from 'zod';
 import { authService } from '../services/authService';

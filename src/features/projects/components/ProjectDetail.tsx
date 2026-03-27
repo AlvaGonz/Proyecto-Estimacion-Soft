@@ -16,7 +16,7 @@ import {
   History,
   ShieldCheck
 } from 'lucide-react';
-import { Task, UserRole, AuditEntry, Project, Round } from '../../../../types';
+import { Task, UserRole, AuditEntry, Project, Round } from '../../../types';
 import EstimationRounds from '../../rounds/components/EstimationRounds';
 import Documentation from '../../../shared/components/Documentation';
 import DiscussionSpace from '../../discussion/components/DiscussionSpace';

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search } from 'lucide-react';
-import { UserRole } from '../../../types';
+import { UserRole } from '../../types';
 
 const MOCK_DOCS = [
   { id: 'd1', name: 'Arquitectura_Referencia.pdf', type: 'PDF', size: '2.4 MB', date: 'Hace 2 días' },

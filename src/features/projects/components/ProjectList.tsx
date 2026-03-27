@@ -1,5 +1,5 @@
 import React from 'react';
-import { Project } from '../../../../types';
+import { Project } from '../../../types';
 import { ChevronRight, Calendar, Users, Target } from 'lucide-react';
 import { EmptyState } from '../../../shared/components/EmptyState';
 

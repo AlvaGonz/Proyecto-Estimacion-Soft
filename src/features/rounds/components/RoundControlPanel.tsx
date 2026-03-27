@@ -1,5 +1,5 @@
 import React from 'react';
-import { Round, Estimation } from '../../../../types';
+import { Round, Estimation } from '../../../types';
 import { Users, Bell, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface RoundControlPanelProps {

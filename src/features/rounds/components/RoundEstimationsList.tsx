@@ -1,5 +1,5 @@
 import React from 'react';
-import { Estimation, Round } from '../../../../types';
+import { Estimation, Round } from '../../../types';
 import { BarChart2, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface RoundEstimationsListProps {

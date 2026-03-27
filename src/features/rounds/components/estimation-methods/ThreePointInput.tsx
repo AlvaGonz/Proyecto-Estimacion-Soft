@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { type ThreePointEstimation } from '../../../../../types';
+import { type ThreePointEstimation } from '../../../../types';
 import { threePointSchema } from '../../../../shared/utils/schemas';
 
 interface ThreePointInputProps {

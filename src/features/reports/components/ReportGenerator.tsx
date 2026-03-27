@@ -18,7 +18,7 @@ import {
 import { PermissionGate } from '../../../shared/components/PermissionGate';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
-import { Project, Task, Round, User, UserRole } from '../../../../types';
+import { Project, Task, Round, User, UserRole } from '../../../types';
 import { loginSchema } from '../../../shared/utils/schemas';
 import { reportService } from '../services/reportService';
 import { taskService } from '../../tasks/services/taskService';

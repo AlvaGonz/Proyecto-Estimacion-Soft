@@ -4,7 +4,7 @@ import {
   BrainCircuit, Layers, BarChart3, Clock, Trash2, ChevronUp, ChevronDown,
   FileText, Info, Sparkles, ListChecks, ClipboardCheck
 } from 'lucide-react';
-import { Project, type EstimationMethod, UserRole, User, METHOD_LABELS } from '../../../../types';
+import { Project, type EstimationMethod, UserRole, User, METHOD_LABELS } from '../../../types';
 import { projectSchemaV2, wizardStep1Schema, wizardStep2Schema, wizardTaskSchema } from '../../../shared/utils/schemas';
 import { userService } from '../../users/services/userService';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';

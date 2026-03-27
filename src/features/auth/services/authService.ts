@@ -1,4 +1,4 @@
-import { UserRole, User } from '../../../../types';
+import { UserRole, User } from '../../../types';
 import { fetchApi } from '../../../shared/api';
 
 // Map frontend role enum to backend role strings

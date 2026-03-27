@@ -1,4 +1,4 @@
-import { Project, Task, Round, Estimation, User } from '../../../types';
+import { Project, Task, Round, Estimation, User } from '../../types';
 
 /**
  * Calculates the participation rate of experts in a project.

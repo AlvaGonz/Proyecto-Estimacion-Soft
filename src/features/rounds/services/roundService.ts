@@ -1,4 +1,4 @@
-import { Round, ConvergenceAnalysis } from '../../../../types';
+import { Round, ConvergenceAnalysis } from '../../../types';
 import { fetchApi } from '../../../shared/api';
 
 export const roundService = {
