@@ -1,11 +1,7 @@
 
 import React from 'react';
 import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search } from 'lucide-react';
-<<<<<<< HEAD:components/Documentation.tsx
-import { UserRole } from '../types';
-=======
 import { UserRole } from '../../types';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/shared/components/Documentation.tsx
 
 const MOCK_DOCS = [
   { id: 'd1', name: 'Arquitectura_Referencia.pdf', type: 'PDF', size: '2.4 MB', date: 'Hace 2 días' },

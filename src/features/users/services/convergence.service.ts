@@ -1,4 +1,4 @@
-import type { Estimation, ConvergenceAnalysis, ConvergenceConfig } from '../types';
+import type { Estimation, ConvergenceAnalysis, ConvergenceConfig } from '../../../types';
 
 export interface ConvergenceResult {
   converged: boolean;

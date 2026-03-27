@@ -1,8 +1,4 @@
-<<<<<<< HEAD:utils/performanceMetrics.ts
-import { Project, Task, Round, Estimation, User } from '../types';
-=======
 import { Project, Task, Round, Estimation, User } from '../../types';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/shared/utils/performanceMetrics.ts
 
 /**
  * Calculates the participation rate of experts in a project.

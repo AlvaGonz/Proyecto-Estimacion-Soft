@@ -1,4 +1,4 @@
-import { Notification } from '../types';
+import { Notification, Task, Project } from '../../../types';
 
 class NotificationService {
   private STORAGE_KEY = 'estimapro_notifications';

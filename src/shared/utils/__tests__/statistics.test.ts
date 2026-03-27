@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateRoundStats } from '../statistics';
-<<<<<<< HEAD:utils/__tests__/statistics.test.ts
-import { Estimation } from '../../types';
-=======
 import { Estimation } from '../../../types';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/shared/utils/__tests__/statistics.test.ts
 
 describe('calculateRoundStats', () => {
   const baseEstimations: Estimation[] = [

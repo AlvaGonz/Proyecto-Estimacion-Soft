@@ -1,7 +1,4 @@
-<<<<<<< HEAD:utils/__tests__/schemas.test.ts
-=======
 import { calculateRoundStats } from '../statistics';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/shared/utils/__tests__/schemas.test.ts
 import { describe, it, expect } from 'vitest';
 import { projectSchemaV2, threePointSchema, estimationMethodSchema } from '../schemas';
 

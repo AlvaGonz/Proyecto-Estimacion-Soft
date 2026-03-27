@@ -1,13 +1,8 @@
 
 import React, { useState } from 'react';
 import { BrainCircuit, Shield, Send, Lock, User as UserIcon, Mail } from 'lucide-react';
-<<<<<<< HEAD:components/Login.tsx
-import { User, UserRole } from '../types';
-import { loginSchema } from '../utils/schemas';
-=======
 import { User, UserRole } from '../../../types';
 import { loginSchema } from '../../../shared/utils/schemas';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/features/auth/components/Login.tsx
 import { z } from 'zod';
 
 import { authService } from '../services/authService';

@@ -20,16 +20,6 @@ import {
    RotateCcw,
    Trash2
 } from 'lucide-react';
-<<<<<<< HEAD:components/AdminPanel.tsx
-import { UserRole, User as AppUser, Round, Task, Project } from '../types';
-import { LoadingSpinner } from './ui/LoadingSpinner';
-import { adminService, AdminUser } from '../services/adminService';
-import { projectService } from '../services/projectService';
-import { notificationService } from '../services/notificationService';
-import { taskService } from '../services/taskService';
-import { roundService } from '../services/roundService';
-import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds } from '../utils/performanceMetrics';
-=======
 import { UserRole, User as AppUser, Round, Task, Project } from '../../../types';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { adminService, AdminUser } from '../services/adminService';
@@ -38,7 +28,6 @@ import { notificationService } from '../../notifications/services/notificationSe
 import { taskService } from '../../tasks/services/taskService';
 import { roundService } from '../../rounds/services/roundService';
 import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds } from '../../../shared/utils/performanceMetrics';
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9:src/features/users/components/AdminPanel.tsx
 
 // Role badge colors matching existing design tokens
 const roleBadgeClass = (role: string) => {
