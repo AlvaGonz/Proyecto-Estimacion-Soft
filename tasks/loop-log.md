@@ -72,3 +72,9 @@ _Format: Score | Verdict | Issues | Approved Mutations_
 ## [2026-03-27 18:19] chore(toolchain): Épica 4 — toolchain hygiene. Fix vite.config.ts test include t
 **Score:** 100/100 | **Verdict:** NO_ISSUES
 **Summary:** The task has been completed successfully with all toolchain gate commands exiting with a status of 0, indicating a clean and properly configured development environment.
+
+
+---
+## [2026-03-27 18:27] chore(docs): Épica 5 — update README.md (Setup, docker-compose steps, env setup,
+**Score:** 100/100 | **Verdict:** NO_ISSUES
+**Summary:** The task of updating documentation has been completed with high accuracy and attention to detail, passing all validation gates and ensuring consistency across README, AGENTS, and ADR documents.
