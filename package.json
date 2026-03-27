@@ -21,18 +21,18 @@
     "e2e:fresh": "npm run e2e:reset-auth && npm run e2e"
   },
   "dependencies": {
-    "@google/genai": "^1.42.0",
-    "date-fns": "^4.1.0",
-    "jspdf": "^4.2.0",
-    "jspdf-autotable": "^5.0.7",
-    "lucide-react": "^0.575.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-error-boundary": "^6.1.1",
-    "react-hot-toast": "^2.6.0",
-    "recharts": "^3.7.0",
-    "xlsx": "^0.18.5",
-    "zod": "^4.3.6"
+    "@google/genai": "1.44.0",
+    "date-fns": "4.1.0",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.7",
+    "lucide-react": "0.575.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-error-boundary": "6.1.1",
+    "react-hot-toast": "2.6.0",
+    "recharts": "3.7.0",
+    "xlsx": "0.18.5",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -41,15 +41,15 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
-    "autoprefixer": "^10.4.27",
+    "autoprefixer": "10.4.20",
     "concurrently": "^9.2.1",
     "jsdom": "^28.1.0",
-    "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.1",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0",
+    "postcss": "8.5.3",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.8.3",
+    "vite": "6.4.1",
     "vitest": "^4.0.18"
   }
 }
