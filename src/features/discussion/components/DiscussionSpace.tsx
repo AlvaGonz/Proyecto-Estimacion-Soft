@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { EmptyState } from '../../../shared/components/EmptyState';
 import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
 import { discussionService } from '../services/discussionService';
-import { Comment } from '../../../../types';
+import { Comment } from '../../../types';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 
 interface DiscussionSpaceProps {

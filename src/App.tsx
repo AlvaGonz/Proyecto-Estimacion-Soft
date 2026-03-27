@@ -18,19 +18,19 @@ import {
   X
 } from 'lucide-react';
 import { User, UserRole, Project } from './types';
-import ProjectList from './src/features/projects/components/ProjectList';
-import ProjectDetail from './src/features/projects/components/ProjectDetail';
-import ReportGenerator from './src/features/reports/components/ReportGenerator';
-import ProjectForm from './src/features/projects/components/ProjectForm';
-import AdminPanel from './src/features/users/components/AdminPanel';
-import NotificationCenter from './src/features/notifications/components/NotificationCenter';
-import { OnboardingTour } from './src/shared/components/OnboardingTour';
-import { AppErrorBoundary } from './src/shared/components/AppErrorBoundary';
-import { projectService } from './src/features/projects/services/projectService';
-import { EmptyState } from './src/shared/components/EmptyState';
-import { LoadingSpinner } from './src/shared/components/LoadingSpinner';
-import { notificationService } from './src/features/notifications/services/notificationService';
-import { Login, RegisterPage, useAuth } from './src/features/auth';
+import ProjectList from './features/projects/components/ProjectList';
+import ProjectDetail from './features/projects/components/ProjectDetail';
+import ReportGenerator from './features/reports/components/ReportGenerator';
+import ProjectForm from './features/projects/components/ProjectForm';
+import AdminPanel from './features/users/components/AdminPanel';
+import NotificationCenter from './features/notifications/components/NotificationCenter';
+import { OnboardingTour } from './shared/components/OnboardingTour';
+import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
+import { projectService } from './features/projects/services/projectService';
+import { EmptyState } from './shared/components/EmptyState';
+import { LoadingSpinner } from './shared/components/LoadingSpinner';
+import { notificationService } from './features/notifications/services/notificationService';
+import { Login, RegisterPage, useAuth } from './features/auth';
 
 const STATUS_LABELS = {
   'preparation': 'Preparación',

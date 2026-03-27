@@ -1,5 +1,5 @@
 import React from 'react';
-import { Round } from '../../../../types';
+import { Round } from '../../../types';
 import { Target, Activity, Calendar, LayoutGrid, BarChart2 } from 'lucide-react';
 
 interface RoundHeaderProps {

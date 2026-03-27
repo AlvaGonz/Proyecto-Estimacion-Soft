@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Estimation, RoundStats } from "../types";
+import { Estimation, RoundStats } from "../../../types";
 
 export const analyzeConsensus = async (
   estimations: Estimation[],

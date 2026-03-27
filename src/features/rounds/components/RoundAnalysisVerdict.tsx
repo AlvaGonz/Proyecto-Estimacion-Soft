@@ -1,5 +1,5 @@
 import React from 'react';
-import { Round, ConvergenceAnalysis } from '../../../../types';
+import { Round, ConvergenceAnalysis } from '../../../types';
 import { 
   ShieldAlert, Sparkles, Target, Calculator, BrainCircuit, BarChart3 
 } from 'lucide-react';

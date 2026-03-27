@@ -1,4 +1,4 @@
-import { Task } from '../../../../types';
+import { Task } from '../../../types';
 import { fetchApi } from '../../../shared/api';
 
 export const taskService = {

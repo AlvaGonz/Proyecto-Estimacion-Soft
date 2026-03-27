@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Award, Zap, Clock, MessageSquare, CheckCircle2, TrendingUp, BarChart3, Star, ShieldCheck } from 'lucide-react';
 import { userService, User } from '../services/userService';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
-import { Project, Task, Round, Estimation, UserRole } from '../../../../types';
+import { Project, Task, Round, Estimation, UserRole } from '../../../types';
 import { calculateExpertAccuracy } from '../../../shared/utils/performanceMetrics';
 
 interface TeamPanelProps {

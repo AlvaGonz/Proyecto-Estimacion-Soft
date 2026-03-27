@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, UserRole } from '../../../../types';
+import { User, UserRole } from '../../../types';
 import { authService } from '../services/authService';
 
 export const useAuth = () => {

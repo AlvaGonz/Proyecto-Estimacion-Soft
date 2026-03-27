@@ -1,5 +1,5 @@
 import { fetchApi } from '../../../shared/api';
-import { UserRole } from '../../../../types';
+import { UserRole } from '../../../types';
 
 export interface User {
     id: string;

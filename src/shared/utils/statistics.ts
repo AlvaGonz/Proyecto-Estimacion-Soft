@@ -1,5 +1,5 @@
 import { notificationService } from '../../features/notifications/services/notificationService';
-import { Estimation, Notification, RoundStats } from '../../../types';
+import { Estimation, Notification, RoundStats } from '../../types';
 
 export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
   const values = estimations.map(e => e.value).sort((a, b) => a - b);

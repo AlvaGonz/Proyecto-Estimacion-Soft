@@ -1,3 +1,4 @@
+import { calculateRoundStats } from '../statistics';
 import { describe, it, expect } from 'vitest';
 import { projectSchemaV2, threePointSchema, estimationMethodSchema } from '../schemas';
 

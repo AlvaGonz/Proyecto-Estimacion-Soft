@@ -20,7 +20,7 @@ import {
    RotateCcw,
    Trash2
 } from 'lucide-react';
-import { UserRole, User as AppUser, Round, Task, Project } from '../../../../types';
+import { UserRole, User as AppUser, Round, Task, Project } from '../../../types';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { adminService, AdminUser } from '../services/adminService';
 import { projectService } from '../../projects/services/projectService';

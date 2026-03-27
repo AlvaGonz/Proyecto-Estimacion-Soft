@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AuditEntry } from '../../../../types';
+import { AuditEntry } from '../../../types';
 // Added ShieldCheck to the imports to fix the error: Cannot find name 'ShieldCheck'
 import { History, User, Clock, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
 

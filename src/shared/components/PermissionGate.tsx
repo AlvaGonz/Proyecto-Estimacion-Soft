@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { hasPermission, Permission, Role } from '../utils/rbac';
-import { UserRole } from '../../../types';
+import { UserRole } from '../../types';
 
 interface PermissionGateProps {
   userRole: UserRole;

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { Project, Task, Round } from '../types';
+import { Project, Task, Round } from '../../../types';
 
 interface ReportOptions {
   includeStats: boolean;

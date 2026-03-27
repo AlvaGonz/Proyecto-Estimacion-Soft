@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
-import { Estimation, Round, ConvergenceAnalysis, EstimationMethod } from '../../../../types';
+import { Estimation, Round, ConvergenceAnalysis, EstimationMethod } from '../../../types';
 import { estimationService } from '../../estimations/services/estimationService';
 import { roundService } from '../services/roundService';
 import { convergenceService, type ConvergenceResult } from '../../convergence/services/convergenceService';
