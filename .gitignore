@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies and Build
 node_modules
 dist
 dist-ssr
@@ -41,6 +42,8 @@ e2e/.auth/
 .env.staging
 .env.production
 .env.test
+
+# Agent and Skill artifacts
 agent-skills/
 requirements.txt
 tasks/lessons.md
@@ -52,5 +55,3 @@ __pycache__/
 groq_test.py
 autogen_test.py
 crewai_test.py
-
-

@@ -43,3 +43,9 @@ _Format: Score | Verdict | Issues | Approved Mutations_
 ## [2026-03-27 15:48] Epica 1: Consolidation of core source into src/, restructuring, and root cleanup
 **Score:** 100/100 | **Verdict:** NO_ISSUES
 **Summary:** The task was completed successfully with all changes properly implemented, tested, and verified, resulting in a well-structured and cleaned-up codebase.
+
+
+---
+## [2026-03-27 16:21] chore(security): Épica 2  harden .gitignore (.env* wildcard), create .env.docker
+**Score:** 100/100 | **Verdict:** NO_ISSUES
+**Summary:** The task to harden security configurations and purge sensitive data from the repository history has been successfully completed with all checks passing and security best practices implemented.
