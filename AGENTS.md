@@ -19,16 +19,16 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + TypeScript 5 (strict) + Vite + Tailwind |
+| Frontend | React 19 + TypeScript 5 (strict) + Vite 6 + Tailwind 4 |
 | Backend | Node.js + Express + TypeScript |
 | Database | MongoDB (Mongoose) |
 | Auth | JWT + RBAC (Roles: Admin, Facilitador, Experto) |
 | Containerization | Docker + Docker Compose (3 containers: frontend, backend, DB) |
 | Testing (frontend) | Vitest + Playwright |
-| Testing (backend) | Jest |
+| Testing (backend) | Vitest |
 | CI/CD | GitHub Actions (`.github/workflows/`) |
 | Package manager | npm |
-| Linter | ESLint + Prettier |
+| Linter | TypeScript (noEmit) |
 | Agent LLM | Groq Cloud — `llama-3.3-70b-versatile` / `llama-3.1-8b-instant` |
 
 ---
@@ -175,7 +175,7 @@ GROQ_API_KEY=                          # Groq free tier key
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL_PRIMARY=llama-3.3-70b-versatile
 GROQ_MODEL_FAST=llama-3.1-8b-instant
-VITE_API_URL=http://localhost:3001/api  # Replaced with secret in CI
+VITE_API_URL=http://localhost:4000/api  # Corrected to Backend Port
 MONGO_URI=                             # Local only
 JWT_SECRET=                            # Local only — rotate before any public deploy
 SMTP_HOST=                             # Local only
@@ -245,35 +245,22 @@ When Antigravity generates an **Implementation Plan** artifact:
 
 ---
 
-## 15. Evolution Engine — Groq Self-Improvement Dimensions
+## 16. AI Agent Loop
 
-The agent runs the following evolution loops automatically.
-Groq (llama-3.3-70b-versatile / llama-3.1-8b-instant) is the inference engine for all loops.
-All evolution output is written to the `tasks/` directory.
+This project uses a Groq-powered post-task evaluation loop.
 
-| Dimension | Skill | Trigger | Output File |
-|---|---|---|---|
-| Prompt Evolution | `prompt-evolution` | After BLOCKED/REVERTED outcome | AGENTS.md (inline) |
-| Workflow Evolution | `workflow-evolution` | After any slash command finishes | `.agent/workflows/*.md` |
-| Skill Fitness | `skill-fitness` | Session end | `tasks/skill-fitness-log.md` |
-| Error Pattern Mining | `error-pattern-mining` | After any bug fix **AND after every `post_task_loop.py` run** | `tasks/error-patterns.md` |
-| Coverage Gap Tracking | `coverage-evolution` | After test report | `tasks/test-backlog.md` |
-| Cross-Session Memory | `cross-session-memory` | Session start + end | `tasks/session-memory.md` |
-| CI Failure Loop | `deployment-pipeline-design` + `error-pattern-mining` | On: GitHub MCP detects failed run | `tasks/error-patterns.md` + auto-fix PR |
-| **Post-Task Self-Evolution** | `post-task-loop` | **After EVERY completed task (mandatory — Rule 11)** | `tasks/loop-log.md` · `tasks/lessons.md` · `tasks/error-patterns.md` · `~/.agent-loop/lessons.md` |
+After each completed task, activate the loop:
+```bash
+python scripts/post_task_loop.py --task "{{task description}}" --output "{{what was done}}"
+```
 
-### Groq Token Budget (100k/day)
-| Task | Model | Est. tokens/call | Max calls/session |
-|---|---|---|---|
-| Prompt rewrite | PRIMARY | ~800 | 10 |
-| Workflow evolution | PRIMARY | ~600 | 3 |
-| Skill fitness rewrite | FAST | ~400 | 5 |
-| Error pattern extraction | FAST | ~300 | 20 |
-| Coverage spec generation | FAST | ~500 | 5 |
-| Session memory summary | PRIMARY | ~700 | 1 |
-| **Post-task loop (5 agents)** | PRIMARY + FAST | ~2,200 | ~45/day |
-| **Session total (max)** | | **~19,000** | **< 19% of daily budget** |
+The loop scores the output and writes LESSON: and PATTERN: entries to:
+- `tasks/loop-log.md` — scored task history with verdict and issues.
+- `tasks/lessons.md` — persistent lessons learned (loaded at session start).
+- `tasks/error-patterns.md` — recurring error patterns for auto-healing.
+
+**Target score: ≥ 85.** Iterate if score < 85 or `high_issues > 0`.
 
 ---
 
-*Last updated: 2026-03-27 — Added: EvoAgentX post-task loop (Rule 11), post-task-hook workflow, loop-log.md, post_task_loop.py orchestrator*
+*Last updated: 2026-03-27 — Audited tech stack (React 19, Vite 6, Tailwind 4), ports (4000), and AI loop scripts.*
