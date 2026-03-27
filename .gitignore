@@ -32,10 +32,15 @@ e2e/.auth/
 *.sw?
 
 # Agentic Orchestration (Local-Only)
-.env
-.env.local
+# Environment — all variants (must cover all possible .env filenames)
+.env*
+!.env*.example
+*.local
 .env.docker
-.env.example
+.env.docker.local
+.env.staging
+.env.production
+.env.test
 agent-skills/
 requirements.txt
 tasks/lessons.md
