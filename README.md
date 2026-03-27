@@ -59,6 +59,31 @@ Los equipos de desarrollo enfrentan múltiples obstáculos al realizar estimacio
 - Intervalos de confianza y análisis de riesgo
 - Distribución probabilística de resultados
 
+## Directorio scripts/
+
+El directorio `scripts/` contiene utilidades de automatización para el flujo de trabajo de desarrollo asistido por IA (EvoAgentX).
+
+| Archivo | Propósito |
+|---------|-----------|
+| `post_task_loop.py` | Loop de evaluación post-tarea basado en Groq. Califica tareas, genera lecciones (`LESSON:`) y mutaciones sugeridas. |
+| `apply_mutation.py` | Aplica mutaciones aprobadas a las reglas del agente y realiza el commit automático. |
+| `groq_critic_agent.py` | Agente auditor de implementación. Identifica anti-patrones en el pipeline de mejora continua. |
+| `metrics_dashboard.py` | Genera el dashboard `METRICS.md` a partir de los logs de mutaciones. |
+| `pw_report_collector.py` | Ejecuta pruebas de Playwright y recolecta métricas de calidad (pass rate, duración). |
+| `self_heal_gate.py` | Compuerta de validación (Pass Rate >= 80%, Confidence >= 70%) para mutaciones automáticas. |
+
+### Ejecución del Loop Post-Tarea
+
+```bash
+# Requiere entorno con Groq API configurada
+python scripts/post_task_loop.py --task "Descripción de la tarea" --output "Archivos modificados"
+```
+
+Los resultados se persisten en:
+- `tasks/loop-log.md`: Historial de ejecuciones y puntajes.
+- `tasks/lessons.md`: Lecciones aprendidas persistentes.
+- `tasks/error-patterns.md`: Patrones de error recurrentes.
+
 ## Arquitectura del Sistema
 
 ### Patrón de Diseño Principal: Strategy Pattern
@@ -84,32 +109,30 @@ interface IBaseEstimationMethod {
 
 ## Tecnologías Utilizadas
 
-### Frontend
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| React | 18.x | Biblioteca UI |
-| TypeScript | 5.x | Seguridad de tipos |
-| Vite | Latest | Build tool |
-| Tailwind CSS | 3.x | Estilos |
-| Chart.js | 4.x | Visualizaciones estadísticas |
+### Core Stack
 
-### Backend
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| Node.js | 18+ LTS | Runtime |
-| Express.js | 4.x | Framework REST |
-| TypeScript | 5.x | Seguridad de tipos |
-| Mongoose | 7.x | ODM para MongoDB |
-| JWT | Latest | Autenticación |
-| bcrypt | 12 rounds | Hashing de contraseñas |
-| Zod | Latest | Validación de entradas |
+| Capa | Tecnología | Versión |
+|-------|-----------|---------|
+| **Frontend** | React + Vite | React 19.2.4 + Vite 6.4.1 |
+| **Estilos** | Tailwind CSS | 4.2.1 |
+| **Backend** | Node.js + Express | Express 4.19.0 |
+| **Base de Datos** | MongoDB | 7 (Docker Image) |
+| **Autenticación** | JWT (Access + Refresh) | jsonwebtoken 9.0.2 |
+| **Pruebas** | Vitest + Playwright | Vitest 4.0.18 + Playwright 1.58.2 |
+| **Reportes** | jspdf + jspdf-autotable | jspdf 4.2.1 + autotable 5.0.7 |
+| **Contenedores** | Docker + Compose | 3.8 |
 
-### Infraestructura
-| Tecnología | Propósito |
-|------------|-----------|
-| Docker | Containerización |
-| Docker Compose | Orquestación multi-contenedor |
-| Nginx | Servidor frontend/proxy inverso |
+## Requisitos Previos
+
+- **Node.js**: ≥ 18 (LTS recomendada)
+- **Docker Desktop**: Para MongoDB y servicios containerizados
+- **Git**: Para control de versiones
+
+Verifica la instalación:
+```bash
+node --version
+docker --version
+```
 
 ## Estructura del Proyecto
 
@@ -141,99 +164,71 @@ Proyecto-Estimacion-Soft/
 └── README.md              # Este documento
 ```
 
-## Guía de Instalación
+## Guía de Instalación y Configuración
 
-### Requisitos Previos
-- Node.js 18+ LTS
-- Docker y Docker Compose
-- Git
+### 1. Clonar e Instalar
 
-### Desarrollo Local
-
-#### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/AlvaGonz/Proyecto-Estimacion-Soft.git
 cd Proyecto-Estimacion-Soft
-```
-
-#### 2. Instalar dependencias
-```bash
-# Frontend
 npm install
-
-# Backend
-cd server && npm install
 ```
 
-#### 3. Configurar variables de entorno
+### 2. Configurar el Entorno
+
 ```bash
-# Crear archivo .env.local en la raíz
-echo "GEMINI_API_KEY=tu_api_key_aqui" > .env.local
+cp .env.docker.example .env.docker
 ```
 
-#### 4. Iniciar desarrollo
-```bash
-# Terminal 1 - Backend
-cd server && npm run dev
+Abre `.env.docker` y completa las variables requeridas. **No utilices secretos reales en producción local.**
 
-# Terminal 2 - Frontend
+| Variable | Descripción |
+|----------|-------------|
+| MONGO_ROOT_USER | Usuario administrador de MongoDB |
+| MONGO_ROOT_PASS | Contraseña de administrador |
+| MONGODB_URI | URI de conexión completa: `mongodb://${USER}:${PASS}@mongo:27017/estimacion-dev` |
+| JWT_ACCESS_SECRET | String aleatorio (mínimo 32 caracteres) |
+| JWT_REFRESH_SECRET | String aleatorio diferente para refresh tokens |
+| ALLOWED_ORIGINS | Orígenes permitidos (ej: `http://localhost:3000,http://localhost:4000`) |
+
+### 3. Despliegue con Docker (Recomendado)
+
+```bash
+docker-compose up -d
+```
+
+| Servicio | URL / Acceso | Puerto |
+|---------|-----|---|
+| **Frontend** | http://localhost:3000 | 3000 |
+| **Backend API** | http://localhost:4000/api | 4000 |
+| **MongoDB** | localhost:27017 | 27017 |
+
+> [!NOTE]
+> El despliegue de Docker utiliza Nginx para servir el frontend y una instancia aislada del backend y base de datos.
+
+### 4. Modo Desarrollo (Sin Docker)
+
+```bash
+# Iniciar servicios en el puerto local definido
 npm run dev
 ```
 
-#### 5. Sembrar datos de prueba
-```bash
-cd server && npm run seed
-```
+## Referencia de Scripts (package.json)
 
-### Comandos Disponibles
+Todos los comandos se ejecutan desde la raíz del repositorio.
 
-#### Frontend
-```bash
-npm run dev          # Iniciar desarrollo
-npm run build        # Construir para producción
-npm run preview      # Previsualizar build
-npm run lint         # Linting y typecheck
-npm run test         # Pruebas unitarias con cobertura
-npm run test:watch   # Pruebas en modo observación
-```
-
-#### Backend
-```bash
-npm run dev          # Iniciar desarrollo con nodemon
-npm run build        # Compilar TypeScript
-npm run start        # Iniciar producción
-npm run lint         # ESLint
-npm run test         # Pruebas unitarias
-npm run seed         # Sembrar datos de prueba
-```
-
-#### E2E Tests
-```bash
-npm run e2e              # Pruebas E2E headless
-npm run e2e:ui           # Pruebas E2E con UI
-npm run e2e:headed       # Ver navegador
-npm run e2e:debug        # Modo debug paso a paso
-npm run e2e:safe         # Verificar servidores antes de ejecutar
-npm run e2e:fresh        # Limpiar auth y ejecutar tests
-```
-
-## Configuración del Entorno
-
-### Variables de Entorno Frontend
-```bash
-VITE_API_URL=http://localhost:4000/api
-GEMINI_API_KEY=tu_clave_api_aqui
-```
-
-### Variables de Entorno Backend (.env.docker)
-```bash
-NODE_ENV=development
-PORT=4000
-MONGODB_URI=mongodb://admin:secret123@mongo:27017/estimacion-dev
-JWT_ACCESS_SECRET=dev-access-secret-min-32-characters-long-ok
-JWT_REFRESH_SECRET=dev-refresh-secret-min-32-characters-long-ok
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4001
-```
+| Script | Comando | Descripción |
+|--------|---------|-------------|
+| `npm run dev` | `vite` | Iniciar servidor de desarrollo frontend |
+| `npm run build` | `vite build` | Construir para producción |
+| `npm run lint` | `tsc --noEmit` | Verificación estática con TypeScript |
+| `npm run typecheck` | `tsc --noEmit` | Verificación de tipos |
+| `npm run test` | `vitest run --config vite.config.ts` | Ejecutar pruebas unitarias |
+| `npm run test:watch` | `vitest` | Pruebas unitarias en modo observación |
+| `npm run e2e` | `playwright test` | Pruebas End-to-End (Headless) |
+| `npm run e2e:ui` | `playwright test --ui` | Pruebas E2E con interfaz visual |
+| `npm run e2e:safe` | `tsx e2e/check-servers.ts && playwright test` | Ejecutar E2E validando servidores primero |
+| `npm run preview` | `vite preview` | Previsualizar build de producción |
 
 ## Despliegue con Docker
 
