@@ -116,6 +116,7 @@ Workflows are stored in `.agent/workflows/`. Invoke with a slash command in the 
 | `/coverage-backlog` | `.agent/workflows/coverage-backlog.md` | Generate test specs for all domains < 20% coverage |
 | `/error-digest` | `.agent/workflows/error-digest.md` | Summarize error-patterns.md and surface top 3 recurring patterns |
 | `/ci-autofix` | `.agent/workflows/ci-autofix.md` | CI failed — read logs via GitHub MCP, fix, critic-gate push |
+| `/post-task-hook` | `.agent/workflows/post-task-hook.md` | Run EvoAgentX post-task loop (eval→critic→mutate→validate→archive) |
 
 > Workflows run in **Planning mode** by default unless explicitly stated otherwise.
 
@@ -201,6 +202,12 @@ These rules are loaded on every session and apply to all agents.
 
 10. SENIOR APPROVAL TEST. Before finalizing any implementation, ask:
     "Would a senior engineer approve this?" If the answer is uncertain, simplify.
+
+11. POST-TASK LOOP IS MANDATORY. After every completed task — before committing —
+    run: python scripts/post_task_loop.py --task "{{description}}" --output "{{what changed}}"
+    Read tasks/loop-log.md if high_issues > 0. Use /.post-task-hook workflow for full protocol.
+    This loop is non-blocking. It writes lessons to tasks/lessons.md automatically.
+    If GROQ_API_KEY is absent, the script exits 0 silently — it never stalls the agent.
 ```
 
 ---
@@ -213,6 +220,7 @@ These rules are loaded on every session and apply to all agents.
 - **Branch naming:** `feature/`, `fix/`, `chore/`, `refactor/`, `ci/`, `docs/`
 - **No force-push to `main` or `develop`**
 - **Commit after each checkpoint**, not at the end of the entire task
+- **Post-task loop result in commit body:** `loop: score={{score}} verdict={{verdict}} issues={{issues}}`
 
 ---
 
@@ -299,14 +307,15 @@ Every session runs these loops in order:
 5. `error-pattern-mining` — fires after every bug fix.
 6. `prompt-evolution` — fires after every BLOCKED or REVERTED outcome.
 7. `skill-fitness` — records activation events in background.
+8. `post-task-loop` — fires after EVERY completed task (Rule 11). Chains: Evaluate → Critic → Mutate → Validate → Archive.
 
 **Session End:**
-8. `workflow-evolution` — runs after each completed slash command.
-9. `skill-fitness` — computes scores, flags LOW-FITNESS skills, triggers Groq rewrite.
-10. `agentic-eval` — appends LESSON: entries to tasks/lessons.md.
-11. `coverage-evolution` — generates test specs for top 5 coverage gaps.
-12. `cross-session-memory` — Groq generates session summary, appends to tasks/session-memory.md.
-13. `self-improvement` — Groq synthesizes RULE/PATTERN/GAP lessons, updates AGENTS.md.
+9. `workflow-evolution` — runs after each completed slash command.
+10. `skill-fitness` — computes scores, flags LOW-FITNESS skills, triggers Groq rewrite.
+11. `agentic-eval` — appends LESSON: entries to tasks/lessons.md.
+12. `coverage-evolution` — generates test specs for top 5 coverage gaps.
+13. `cross-session-memory` — Groq generates session summary, appends to tasks/session-memory.md.
+14. `self-improvement` — Groq synthesizes RULE/PATTERN/GAP lessons, updates AGENTS.md.
 
 Global memory: ~/.agent-loop/lessons.md (cross-project)
 Import: from bootstrap import SelfImprovementCrew
@@ -342,10 +351,11 @@ All evolution output is written to the `tasks/` directory.
 | Prompt Evolution | `prompt-evolution` | After BLOCKED/REVERTED outcome | AGENTS.md (inline) |
 | Workflow Evolution | `workflow-evolution` | After any slash command finishes | `.agent/workflows/*.md` |
 | Skill Fitness | `skill-fitness` | Session end | `tasks/skill-fitness-log.md` |
-| Error Pattern Mining | `error-pattern-mining` | After any bug fix | `tasks/error-patterns.md` |
+| Error Pattern Mining | `error-pattern-mining` | After any bug fix **AND after every `post_task_loop.py` run** | `tasks/error-patterns.md` |
 | Coverage Gap Tracking | `coverage-evolution` | After test report | `tasks/test-backlog.md` |
 | Cross-Session Memory | `cross-session-memory` | Session start + end | `tasks/session-memory.md` |
 | CI Failure Loop | `deployment-pipeline-design` + `error-pattern-mining` | On: GitHub MCP detects failed run | `tasks/error-patterns.md` + auto-fix PR |
+| **Post-Task Self-Evolution** | `post-task-loop` | **After EVERY completed task (mandatory — Rule 11)** | `tasks/loop-log.md` · `tasks/lessons.md` · `tasks/error-patterns.md` · `~/.agent-loop/lessons.md` |
 
 ### Groq Token Budget (100k/day)
 | Task | Model | Est. tokens/call | Max calls/session |
@@ -356,8 +366,9 @@ All evolution output is written to the `tasks/` directory.
 | Error pattern extraction | FAST | ~300 | 20 |
 | Coverage spec generation | FAST | ~500 | 5 |
 | Session memory summary | PRIMARY | ~700 | 1 |
-| **Session total (max)** | | **~16,800** | **< 17% of daily budget** |
+| **Post-task loop (5 agents)** | PRIMARY + FAST | ~2,200 | ~45/day |
+| **Session total (max)** | | **~19,000** | **< 19% of daily budget** |
 
 ---
 
-*Last updated: 2026-03-25 — Added: ci-autofix workflow, CI Failure Loop evolution dimension, .github/AGENTS.md, replication bootstrap*
+*Last updated: 2026-03-27 — Added: EvoAgentX post-task loop (Rule 11), post-task-hook workflow, loop-log.md, post_task_loop.py orchestrator*
