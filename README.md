@@ -59,6 +59,34 @@ Los equipos de desarrollo enfrentan múltiples obstáculos al realizar estimacio
 - Intervalos de confianza y análisis de riesgo
 - Distribución probabilística de resultados
 
+<<<<<<< HEAD
+=======
+## Directorio scripts/
+
+El directorio `scripts/` contiene utilidades de automatización para el flujo de trabajo de desarrollo asistido por IA (EvoAgentX).
+
+| Archivo | Propósito |
+|---------|-----------|
+| `post_task_loop.py` | Loop de evaluación post-tarea basado en Groq. Califica tareas, genera lecciones (`LESSON:`) y mutaciones sugeridas. |
+| `apply_mutation.py` | Aplica mutaciones aprobadas a las reglas del agente y realiza el commit automático. |
+| `groq_critic_agent.py` | Agente auditor de implementación. Identifica anti-patrones en el pipeline de mejora continua. |
+| `metrics_dashboard.py` | Genera el dashboard `METRICS.md` a partir de los logs de mutaciones. |
+| `pw_report_collector.py` | Ejecuta pruebas de Playwright y recolecta métricas de calidad (pass rate, duración). |
+| `self_heal_gate.py` | Compuerta de validación (Pass Rate >= 80%, Confidence >= 70%) para mutaciones automáticas. |
+
+### Ejecución del Loop Post-Tarea
+
+```bash
+# Requiere entorno con Groq API configurada
+python scripts/post_task_loop.py --task "Descripción de la tarea" --output "Archivos modificados"
+```
+
+Los resultados se persisten en:
+- `tasks/loop-log.md`: Historial de ejecuciones y puntajes.
+- `tasks/lessons.md`: Lecciones aprendidas persistentes.
+- `tasks/error-patterns.md`: Patrones de error recurrentes.
+
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 ## Arquitectura del Sistema
 
 ### Patrón de Diseño Principal: Strategy Pattern
@@ -84,6 +112,7 @@ interface IBaseEstimationMethod {
 
 ## Tecnologías Utilizadas
 
+<<<<<<< HEAD
 ### Frontend
 | Tecnología | Versión | Propósito |
 |------------|---------|-----------|
@@ -110,6 +139,32 @@ interface IBaseEstimationMethod {
 | Docker | Containerización |
 | Docker Compose | Orquestación multi-contenedor |
 | Nginx | Servidor frontend/proxy inverso |
+=======
+### Core Stack
+
+| Capa | Tecnología | Versión |
+|-------|-----------|---------|
+| **Frontend** | React + Vite | React 19.2.4 + Vite 6.4.1 |
+| **Estilos** | Tailwind CSS | 4.2.1 |
+| **Backend** | Node.js + Express | Express 4.19.0 |
+| **Base de Datos** | MongoDB | 7 (Docker Image) |
+| **Autenticación** | JWT (Access + Refresh) | jsonwebtoken 9.0.2 |
+| **Pruebas** | Vitest + Playwright | Vitest 4.0.18 + Playwright 1.58.2 |
+| **Reportes** | jspdf + jspdf-autotable | jspdf 4.2.1 + autotable 5.0.7 |
+| **Contenedores** | Docker + Compose | 3.8 |
+
+## Requisitos Previos
+
+- **Node.js**: ≥ 18 (LTS recomendada)
+- **Docker Desktop**: Para MongoDB y servicios containerizados
+- **Git**: Para control de versiones
+
+Verifica la instalación:
+```bash
+node --version
+docker --version
+```
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 ## Estructura del Proyecto
 
@@ -141,6 +196,7 @@ Proyecto-Estimacion-Soft/
 └── README.md              # Este documento
 ```
 
+<<<<<<< HEAD
 ## Guía de Instalación
 
 ### Requisitos Previos
@@ -234,6 +290,73 @@ JWT_ACCESS_SECRET=dev-access-secret-min-32-characters-long-ok
 JWT_REFRESH_SECRET=dev-refresh-secret-min-32-characters-long-ok
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4001
 ```
+=======
+## Guía de Instalación y Configuración
+
+### 1. Clonar e Instalar
+
+```bash
+git clone https://github.com/AlvaGonz/Proyecto-Estimacion-Soft.git
+cd Proyecto-Estimacion-Soft
+npm install
+```
+
+### 2. Configurar el Entorno
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+Abre `.env.docker` y completa las variables requeridas. **No utilices secretos reales en producción local.**
+
+| Variable | Descripción |
+|----------|-------------|
+| MONGO_ROOT_USER | Usuario administrador de MongoDB |
+| MONGO_ROOT_PASS | Contraseña de administrador |
+| MONGODB_URI | URI de conexión completa: `mongodb://${USER}:${PASS}@mongo:27017/estimacion-dev` |
+| JWT_ACCESS_SECRET | String aleatorio (mínimo 32 caracteres) |
+| JWT_REFRESH_SECRET | String aleatorio diferente para refresh tokens |
+| ALLOWED_ORIGINS | Orígenes permitidos (ej: `http://localhost:3000,http://localhost:4000`) |
+
+### 3. Despliegue con Docker (Recomendado)
+
+```bash
+docker-compose up -d
+```
+
+| Servicio | URL / Acceso | Puerto |
+|---------|-----|---|
+| **Frontend** | http://localhost:3000 | 3000 |
+| **Backend API** | http://localhost:4000/api | 4000 |
+| **MongoDB** | localhost:27017 | 27017 |
+
+> [!NOTE]
+> El despliegue de Docker utiliza Nginx para servir el frontend y una instancia aislada del backend y base de datos.
+
+### 4. Modo Desarrollo (Sin Docker)
+
+```bash
+# Iniciar servicios en el puerto local definido
+npm run dev
+```
+
+## Referencia de Scripts (package.json)
+
+Todos los comandos se ejecutan desde la raíz del repositorio.
+
+| Script | Comando | Descripción |
+|--------|---------|-------------|
+| `npm run dev` | `vite` | Iniciar servidor de desarrollo frontend |
+| `npm run build` | `vite build` | Construir para producción |
+| `npm run lint` | `tsc --noEmit` | Verificación estática con TypeScript |
+| `npm run typecheck` | `tsc --noEmit` | Verificación de tipos |
+| `npm run test` | `vitest run --config vite.config.ts` | Ejecutar pruebas unitarias |
+| `npm run test:watch` | `vitest` | Pruebas unitarias en modo observación |
+| `npm run e2e` | `playwright test` | Pruebas End-to-End (Headless) |
+| `npm run e2e:ui` | `playwright test --ui` | Pruebas E2E con interfaz visual |
+| `npm run e2e:safe` | `tsx e2e/check-servers.ts && playwright test` | Ejecutar E2E validando servidores primero |
+| `npm run preview` | `vite preview` | Previsualizar build de producción |
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 ## Despliegue con Docker
 

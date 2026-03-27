@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './vitest.setup.ts',
-      include: ['**/*.test.{ts,tsx}'],
-      exclude: ['**/node_modules/**', '**/server/**', '**/dist/**'],
+      include: ['src/**/*.{test,spec}.{ts,tsx}'],
+      exclude: ['node_modules', 'dist', 'src/**/*.e2e.{ts,tsx}'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'lcov', 'html'],
@@ -29,6 +29,12 @@ export default defineConfig(({ mode }) => {
       hmr: {
         port: 3001,
       },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        }
+      }
     },
     plugins: [react()],
     define: {
@@ -37,7 +43,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, 'src'),
       }
     }
   };

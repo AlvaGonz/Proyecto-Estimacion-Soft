@@ -1,0 +1,30 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - img [ref=e10]
+      - heading "EstimaPro" [level=1] [ref=e24]
+      - paragraph [ref=e25]: Sistema de Estimación UCE
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - text: Correo Electrónico
+          - textbox "Correo Electrónico" [ref=e33]:
+            - /placeholder: nombre@empresa.com
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - text: Contraseña
+          - textbox "Contraseña" [ref=e39]:
+            - /placeholder: ••••••••
+      - button "Ingresar al Sistema" [ref=e40]:
+        - text: Ingresar al Sistema
+        - img [ref=e41]
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - img [ref=e46]
+        - text: Auth UCE
+      - button "Olvidé mi clave" [ref=e49]
+    - button "¿No tienes cuenta? Regístrate" [ref=e51]
+  - paragraph [ref=e52]: Escuela de Ingeniería de Software © 2026

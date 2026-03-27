@@ -19,16 +19,27 @@
 
 | Layer | Technology |
 |---|---|
+<<<<<<< HEAD
 | Frontend | React 18 + TypeScript 5 (strict) + Vite + Tailwind |
+=======
+| Frontend | React 19 + TypeScript 5 (strict) + Vite 6 + Tailwind 4 |
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 | Backend | Node.js + Express + TypeScript |
 | Database | MongoDB (Mongoose) |
 | Auth | JWT + RBAC (Roles: Admin, Facilitador, Experto) |
 | Containerization | Docker + Docker Compose (3 containers: frontend, backend, DB) |
 | Testing (frontend) | Vitest + Playwright |
+<<<<<<< HEAD
 | Testing (backend) | Jest |
 | CI/CD | GitHub Actions (`.github/workflows/`) |
 | Package manager | npm |
 | Linter | ESLint + Prettier |
+=======
+| Testing (backend) | Vitest |
+| CI/CD | GitHub Actions (`.github/workflows/`) |
+| Package manager | npm |
+| Linter | TypeScript (noEmit) |
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 | Agent LLM | Groq Cloud — `llama-3.3-70b-versatile` / `llama-3.1-8b-instant` |
 
 ---
@@ -57,6 +68,7 @@ Skills live in `.agent/skills/`. The agent reads the skill name and description 
 
 > ⚡ Activation is **keyword-triggered and task-triggered**. The keywords below are the primary triggers.
 
+<<<<<<< HEAD
 ### 4.1 — `lint-and-validate`
 - **Source:** `.agent/skills/awesome-agent-skills/lint-and-validate/SKILL.md`
 - **Activate on:** lint · format · validate · typecheck · static analysis · after any code edit
@@ -94,6 +106,8 @@ Skills live in `.agent/skills/`. The agent reads the skill name and description 
 - **Activate on:** CI · CD · workflow · pipeline · github actions · deploy · security.yml · notify.yml
 - **Behavior:** When designing or modifying GitHub Actions workflows, enforce multi-stage design with lint → test → build → security → deploy gates.
 
+=======
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 ---
 
 ## 5. Workflows (Slash Commands)
@@ -116,6 +130,10 @@ Workflows are stored in `.agent/workflows/`. Invoke with a slash command in the 
 | `/coverage-backlog` | `.agent/workflows/coverage-backlog.md` | Generate test specs for all domains < 20% coverage |
 | `/error-digest` | `.agent/workflows/error-digest.md` | Summarize error-patterns.md and surface top 3 recurring patterns |
 | `/ci-autofix` | `.agent/workflows/ci-autofix.md` | CI failed — read logs via GitHub MCP, fix, critic-gate push |
+<<<<<<< HEAD
+=======
+| `/post-task-hook` | `.agent/workflows/post-task-hook.md` | Run EvoAgentX post-task loop (eval→critic→mutate→validate→archive) |
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 > Workflows run in **Planning mode** by default unless explicitly stated otherwise.
 
@@ -167,6 +185,7 @@ Access in Antigravity via: **`...` menu → MCP Servers → Manage MCP Servers �
 
 ---
 
+<<<<<<< HEAD
 ## 8. Agent Behavior Rules (Always Active)
 
 These rules are loaded on every session and apply to all agents.
@@ -217,6 +236,9 @@ These rules are loaded on every session and apply to all agents.
 ---
 
 ## 10. Code Quality Targets
+=======
+## 8. Code Quality Targets
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 | Rule | Limit |
 |---|---|
@@ -230,7 +252,11 @@ These rules are loaded on every session and apply to all agents.
 
 ---
 
+<<<<<<< HEAD
 ## 11. LDR Domain Coverage (Required Modules)
+=======
+## 9. LDR Domain Coverage (Required Modules)
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 These modules must exist in both frontend features and backend modules.
 Flag as `[MISSING]` in any audit if absent.
@@ -252,7 +278,11 @@ Flag as `[MISSING]` in any audit if absent.
 
 ---
 
+<<<<<<< HEAD
 ## 12. Env & Secrets Policy
+=======
+## 10. Env & Secrets Policy
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 ```
 # .env — LOCAL ONLY. Never committed.
@@ -260,7 +290,11 @@ GROQ_API_KEY=                          # Groq free tier key
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL_PRIMARY=llama-3.3-70b-versatile
 GROQ_MODEL_FAST=llama-3.1-8b-instant
+<<<<<<< HEAD
 VITE_API_URL=http://localhost:3001/api  # Replaced with secret in CI
+=======
+VITE_API_URL=http://localhost:4000/api  # Corrected to Backend Port
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 MONGO_URI=                             # Local only
 JWT_SECRET=                            # Local only — rotate before any public deploy
 SMTP_HOST=                             # Local only
@@ -273,7 +307,11 @@ See `docs/security/secrets.md` for rotation policy.
 
 ---
 
+<<<<<<< HEAD
 ## 13. Nested AGENTS.md (Subdirectory Rules)
+=======
+## 11. Nested AGENTS.md (Subdirectory Rules)
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 Enable in: **Settings → Agent → Load nested AGENTS.md files**
 
@@ -285,7 +323,11 @@ Enable in: **Settings → Agent → Load nested AGENTS.md files**
 
 ---
 
+<<<<<<< HEAD
 ## 14. Self-Improvement Loop (Expanded)
+=======
+## 12. Self-Improvement Loop (Expanded)
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 Every session runs these loops in order:
 
@@ -299,6 +341,7 @@ Every session runs these loops in order:
 5. `error-pattern-mining` — fires after every bug fix.
 6. `prompt-evolution` — fires after every BLOCKED or REVERTED outcome.
 7. `skill-fitness` — records activation events in background.
+<<<<<<< HEAD
 
 **Session End:**
 8. `workflow-evolution` — runs after each completed slash command.
@@ -307,24 +350,46 @@ Every session runs these loops in order:
 11. `coverage-evolution` — generates test specs for top 5 coverage gaps.
 12. `cross-session-memory` — Groq generates session summary, appends to tasks/session-memory.md.
 13. `self-improvement` — Groq synthesizes RULE/PATTERN/GAP lessons, updates AGENTS.md.
+=======
+8. `post-task-loop` — fires after EVERY completed task (Rule 11). Chains: Evaluate → Critic → Mutate → Validate → Archive.
+
+**Session End:**
+9. `workflow-evolution` — runs after each completed slash command.
+10. `skill-fitness` — computes scores, flags LOW-FITNESS skills, triggers Groq rewrite.
+11. `agentic-eval` — appends LESSON: entries to tasks/lessons.md.
+12. `coverage-evolution` — generates test specs for top 5 coverage gaps.
+13. `cross-session-memory` — Groq generates session summary, appends to tasks/session-memory.md.
+14. `self-improvement` — Groq synthesizes RULE/PATTERN/GAP lessons, updates AGENTS.md.
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 Global memory: ~/.agent-loop/lessons.md (cross-project)
 Import: from bootstrap import SelfImprovementCrew
 
 ---
 
+<<<<<<< HEAD
 ## 15. Implementation Plan Protocol
+=======
+## 13. Implementation Plan Protocol
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 When Antigravity generates an **Implementation Plan** artifact:
 - Review it before approving execution.
 - Reject plans that touch more than one domain in a single agent run.
 - Require a Walkthrough artifact after completion confirming what changed.
 
+<<<<<<< HEAD
 ## 16. Antigravity-Native Repo Constitution
+=======
+---
+
+## 14. Antigravity-Native Repo Constitution
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 - **Planning-First Rule:** Every major refactor must start with an implementation plan. 
 - **Validation-Before-Done Rule:** Prove passing tests, lint, and build step outputs before claiming a task is done. 
 - **One-Goal-Per-Agent Rule:** Agents cannot be tasked to operate outside of a single feature scope simultaneously.
 
+<<<<<<< HEAD
 ## 17. Session Delta — 2026-03-25
 
 - **Test Report Generated:** Validated all frontend and backend tests. `20` frontend tests and `21` backend tests passed successfully with 0 failures out of the box.
@@ -361,3 +426,26 @@ All evolution output is written to the `tasks/` directory.
 ---
 
 *Last updated: 2026-03-25 — Added: ci-autofix workflow, CI Failure Loop evolution dimension, .github/AGENTS.md, replication bootstrap*
+=======
+---
+
+## 16. AI Agent Loop
+
+This project uses a Groq-powered post-task evaluation loop.
+
+After each completed task, activate the loop:
+```bash
+python scripts/post_task_loop.py --task "{{task description}}" --output "{{what was done}}"
+```
+
+The loop scores the output and writes LESSON: and PATTERN: entries to:
+- `tasks/loop-log.md` — scored task history with verdict and issues.
+- `tasks/lessons.md` — persistent lessons learned (loaded at session start).
+- `tasks/error-patterns.md` — recurring error patterns for auto-healing.
+
+**Target score: ≥ 85.** Iterate if score < 85 or `high_issues > 0`.
+
+---
+
+*Last updated: 2026-03-27 — Audited tech stack (React 19, Vite 6, Tailwind 4), ports (4000), and AI loop scripts.*
+>>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9

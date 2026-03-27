@@ -119,7 +119,7 @@ export const roundService = {
         await round.save();
 
         const result = {
-            round: round.toJSON(),
+            round: round,
             convergence: {
                 ...convergence,
                 recommendation: convergence.recommendation,
@@ -144,7 +144,7 @@ export const roundService = {
             }
         });
 
-        return result;
+        return result as { round: IRound; convergence: ConvergenceResult };
     },
 
     async findByTask(taskId: string): Promise<IRound[]> {
