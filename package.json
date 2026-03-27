@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --config vite.config.ts",
     "test:watch": "vitest",
     "e2e": "playwright test",
