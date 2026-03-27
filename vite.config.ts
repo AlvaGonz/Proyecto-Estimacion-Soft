@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './vitest.setup.ts',
-      include: ['**/*.test.{ts,tsx}'],
-      exclude: ['**/node_modules/**', '**/server/**', '**/dist/**'],
+      include: ['src/**/*.{test,spec}.{ts,tsx}'],
+      exclude: ['node_modules', 'dist', 'src/**/*.e2e.{ts,tsx}'],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'lcov', 'html'],
