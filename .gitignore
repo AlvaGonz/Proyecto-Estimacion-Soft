@@ -14,10 +14,11 @@ dist-ssr
 
 # Testing
 coverage
-playwright-report
+playwright-report/
 test-results
 *.txt
 e2e/.auth/
+.playwright-cli/
 
 # Editor directories and files
 .vscode/*
@@ -46,3 +47,5 @@ __pycache__/
 groq_test.py
 autogen_test.py
 crewai_test.py
+
+
