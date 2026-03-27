@@ -128,51 +128,36 @@ def agent_validator(mutations: list, task: str) -> dict:
         return {"approved": [], "rejected": [], "verdict": "FAIL"}
 
 
+def _append_to_file(path: Path, lines: list[str]):
+    """Helper to append lines to a file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        for line in lines:
+            f.write(f"\n- {line}")
+
 def agent_archivist(task: str, issues: list, mutations: list, score: int, verdict: str):
     """Agent 5: Persist lessons, errors, patterns."""
     if not issues and score >= 85:
-        return  # Nothing meaningful to archive
-
-    system = (
-        "You are an archivist agent. Extract durable rules from this task review. "
-        "Respond ONLY in JSON: {\"lessons\": [str], \"patterns\": [str]}"
-    )
-    user = (
-        f"Task: {task}\nScore: {score}\nIssues: {json.dumps(issues)}\nVerdict: {verdict}\n\n"
-        "Write max 3 LESSON: rules and 1 PATTERN: rule. Be concise."
-    )
+        return
+    system = "Archivist agent. JSON: {\"lessons\": [str], \"patterns\": [str]}"
+    user = f"Task: {task}\nScore: {score}\nIssues: {json.dumps(issues)}\nVerdict: {verdict}"
     raw = call_groq(PRIMARY, system, user, 400)
     try:
         data = json.loads(raw)
     except Exception:
         data = {"lessons": [raw], "patterns": []}
-
+    
     timestamp = datetime.now().strftime("%Y-%m-%d")
-
-    # Append to local tasks/lessons.md
-    LESSONS_LOCAL.parent.mkdir(exist_ok=True)
-    with open(LESSONS_LOCAL, "a") as f:
-        for lesson in data.get("lessons", []):
-            f.write(f"\n- [{timestamp}] LESSON: {lesson}")
-        for pattern in data.get("patterns", []):
-            f.write(f"\n- [{timestamp}] PATTERN: {pattern}")
-
-    # Append to global ~/.agent-loop/lessons.md
-    LESSONS_GLOBAL.parent.mkdir(parents=True, exist_ok=True)
-    with open(LESSONS_GLOBAL, "a") as f:
-        for lesson in data.get("lessons", []):
-            f.write(f"\n- [{timestamp}][EstimaPro] LESSON: {lesson}")
-
-    # Append HIGH issues to error-patterns.md
-    ERRORS_LOCAL.parent.mkdir(exist_ok=True)
+    lessons = [f"[{timestamp}] LESSON: {l}" for l in data.get("lessons", [])]
+    patterns = [f"[{timestamp}] PATTERN: {p}" for p in data.get("patterns", [])]
+    
+    _append_to_file(LESSONS_LOCAL, lessons + patterns)
+    _append_to_file(LESSONS_GLOBAL, [f"[{timestamp}][EstimaPro] LESSON: {l}" for l in data.get("lessons", [])])
+    
     high_issues = [i for i in issues if i.get("severity") == "HIGH"]
     if high_issues:
-        with open(ERRORS_LOCAL, "a") as f:
-            for issue in high_issues:
-                f.write(
-                    f"\n| `{issue['issue'][:60]}` | {issue.get('file', '?')} "
-                    f"| auto-detected | {timestamp} |"
-                )
+        error_lines = [f"| `{i['issue'][:60]}` | {i.get('file', '?')} | auto | {timestamp} |" for i in high_issues]
+        _append_to_file(ERRORS_LOCAL, error_lines)
 
 
 def write_log(task: str, score: int, issues: list, mutations: list, verdict: str, summary: str):
@@ -197,61 +182,34 @@ def run_loop(task: str, output: str) -> int:
     if not GROQ_API_KEY:
         console.print("[yellow]⚠️  GROQ_API_KEY not set — post-task loop skipped.[/yellow]")
         return 0
-
-    console.print(Panel(
-        f"[bold cyan]🔄 Post-Task Loop — EvoAgentX Style[/bold cyan]\n{task[:100]}"
-    ))
-
-    # Agent 1 — Evaluate
+    console.print(Panel(f"[bold cyan]🔄 Post-Task Loop[/bold cyan]\n{task[:100]}"))
+    
+    # 1. Evaluate
     console.print("[dim]Agent 1/5: Evaluating...[/dim]")
-    eval_result = agent_evaluator(task, output)
-    score   = eval_result.get("score", 0)
-    summary = eval_result.get("summary", "")
-    console.print(f"  Score: [bold]{score}/100[/bold] — {summary}")
+    eval_res = agent_evaluator(task, output)
+    score, summ = eval_res.get("score", 0), eval_res.get("summary", "")
+    console.print(f"  Score: [bold]{score}/100[/bold] — {summ}")
 
-    # Agent 2 — Critique
+    # 2. Critique
     console.print("[dim]Agent 2/5: Critiquing...[/dim]")
     issues = agent_critic(task, output, score)
-    high   = [i for i in issues if i.get("severity") == "HIGH"]
-    console.print(f"  Issues: {len(issues)} total, {len(high)} HIGH severity")
+    high = [i for i in issues if i.get("severity") == "HIGH"]
+    console.print(f"  Issues: {len(issues)} total, {len(high)} HIGH")
 
-    # Agent 3 — Mutate
-    console.print("[dim]Agent 3/5: Generating mutations...[/dim]")
-    mutations = agent_mutator(issues, output)
-    console.print(f"  Mutations proposed: {len(mutations)}")
-
-    # Agent 4 — Validate
-    console.print("[dim]Agent 4/5: Validating mutations...[/dim]")
-    validation = agent_validator(mutations, task)
-    verdict    = validation.get("verdict", "UNKNOWN")
-    approved   = validation.get("approved", [])
+    # 3. Mutate & Validate
+    console.print("[dim]Agent 3/5 & 4/5: Mutating & Validating...[/dim]")
+    muts = agent_mutator(issues, output)
+    val = agent_validator(muts, task)
+    verdict, approved = val.get("verdict", "UNKNOWN"), val.get("approved", [])
     console.print(f"  Verdict: [bold]{verdict}[/bold] | Approved: {len(approved)}")
 
-    # Agent 5 — Archive
-    console.print("[dim]Agent 5/5: Archiving lessons...[/dim]")
+    # 4. Archive & Log
+    console.print("[dim]Agent 5/5: Archiving...[/dim]")
     agent_archivist(task, issues, approved, score, verdict)
+    write_log(task, score, issues, muts, verdict, summ)
 
-    # Write human-readable log
-    write_log(task, score, issues, mutations, verdict, summary)
-
-    # JSON output to stdout for agent consumption
-    result = {
-        "score": score,
-        "verdict": verdict,
-        "issues": len(issues),
-        "high_issues": len(high),
-        "mutations_approved": len(approved)
-    }
-    print(json.dumps(result))
-
-    if len(high) > 0:
-        console.print(
-            f"[bold red]⚠️  {len(high)} HIGH severity issues found — review tasks/loop-log.md[/bold red]"
-        )
-        return 1  # Non-blocking warning (agent can still proceed)
-
-    console.print("[bold green]✅ Post-task loop complete.[/bold green]")
-    return 0
+    print(json.dumps({"score": score, "verdict": verdict, "issues": len(issues), "high_issues": len(high)}))
+    return 1 if high else 0
 
 
 if __name__ == "__main__":
