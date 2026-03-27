@@ -18,21 +18,19 @@ import {
   X
 } from 'lucide-react';
 import { User, UserRole, Project } from './types';
-import ProjectList from './components/ProjectList';
-import ProjectDetail from './components/ProjectDetail';
-import ReportGenerator from './components/ReportGenerator';
-import Login from './components/Login';
-import RegisterPage from './components/RegisterPage';
-import ProjectForm from './components/ProjectForm';
-import AdminPanel from './components/AdminPanel';
-import NotificationCenter from './components/NotificationCenter';
-import { OnboardingTour } from './components/ui/OnboardingTour';
-import { AppErrorBoundary } from './components/ui/AppErrorBoundary';
-import { authService } from './services/authService';
-import { projectService } from './services/projectService';
-import { EmptyState } from './components/ui/EmptyState';
-import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import { notificationService } from './services/notificationService';
+import ProjectList from './src/features/projects/components/ProjectList';
+import ProjectDetail from './src/features/projects/components/ProjectDetail';
+import ReportGenerator from './src/features/reports/components/ReportGenerator';
+import ProjectForm from './src/features/projects/components/ProjectForm';
+import AdminPanel from './src/features/users/components/AdminPanel';
+import NotificationCenter from './src/features/notifications/components/NotificationCenter';
+import { OnboardingTour } from './src/shared/components/OnboardingTour';
+import { AppErrorBoundary } from './src/shared/components/AppErrorBoundary';
+import { projectService } from './src/features/projects/services/projectService';
+import { EmptyState } from './src/shared/components/EmptyState';
+import { LoadingSpinner } from './src/shared/components/LoadingSpinner';
+import { notificationService } from './src/features/notifications/services/notificationService';
+import { Login, RegisterPage, useAuth } from './src/features/auth';
 
 const STATUS_LABELS = {
   'preparation': 'Preparación',
@@ -43,80 +41,29 @@ const STATUS_LABELS = {
 } as const;
 
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const { 
+    currentUser, 
+    isInitializing, 
+    authView, 
+    setAuthView, 
+    login, 
+    logout 
+  } = useAuth();
+  
   const [view, setView] = useState<'dashboard' | 'projects' | 'project-detail' | 'reports' | 'create-project' | 'admin'>('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    console.log("App: Initializing auth check...");
-    const checkAuth = async () => {
-      try {
-        // Check if auth flag exists in localStorage (set on successful login)
-        // If missing, the session was invalidated client-side (e.g., token expiry simulation)
-        const authFlag = localStorage.getItem('estimapro_auth');
-        if (!authFlag) {
-          console.log("App: No auth flag found in localStorage, clearing session");
-          // Clear httpOnly cookies via server logout endpoint
-          try {
-            await authService.logout();
-          } catch (logoutErr) {
-            // Ignore errors — cookies may already be cleared
-            console.log("App: Logout during init returned error (expected if no session):", logoutErr);
-          }
-          setCurrentUser(null);
-          setIsInitializing(false);
-          return;
-        }
-
-        const user = await authService.getMe();
-        console.log("App: Auth user:", user);
-        if (user) {
-          setCurrentUser(user);
-          const userProjects = await projectService.getProjects();
-          console.log("App: Projects loaded:", userProjects.length);
-          setProjects(userProjects);
-        } else {
-          // API returned null user — clear stale auth flag
-          localStorage.removeItem('estimapro_auth');
-        }
-      } catch (err) {
-        console.error("App: Auth initialization failed:", err);
-        // Clear stale auth flag on error
-        localStorage.removeItem('estimapro_auth');
-      } finally {
-        console.log("App: Auth initialization complete, setting isInitializing to false");
-        setIsInitializing(false);
-      }
-    };
-    checkAuth();
-
-    const handleUnauthorized = async () => {
-      await authService.logout().catch(() => { });
-      setCurrentUser(null);
-    };
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await authService.logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      // Siempre limpiar el estado local aunque el API falle
-      localStorage.removeItem('estimapro_auth');
-      setCurrentUser(null);
+    if (currentUser) {
+      projectService.getProjects().then(setProjects);
     }
-  };
+  }, [currentUser]);
   useEffect(() => {
     if (!currentUser) return;
 
@@ -148,27 +95,13 @@ const App: React.FC = () => {
     if (authView === 'register') {
       return <RegisterPage
         onRegister={async (u) => {
-          setCurrentUser(u);
-          setIsInitializing(true);
-          try {
-            const p = await projectService.getProjects();
-            setProjects(p);
-          } finally {
-            setIsInitializing(false);
-          }
+          login(u);
         }}
         onGoToLogin={() => setAuthView('login')}
       />;
     }
     return <Login onGoToRegister={() => setAuthView('register')} onLogin={async (u) => {
-      setCurrentUser(u);
-      setIsInitializing(true);
-      try {
-        const p = await projectService.getProjects();
-        setProjects(p);
-      } finally {
-        setIsInitializing(false);
-      }
+      login(u);
     }} />;
   }
 
@@ -321,7 +254,7 @@ const App: React.FC = () => {
                 Perfil
               </button>
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="p-2.5 rounded-xl bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants hover:text-white transition-all border border-delphi-giants/20"
                 title="Cerrar Sesión"
                 aria-label="Cerrar sesión"
@@ -589,7 +522,7 @@ const App: React.FC = () => {
                   <button className="w-full py-3.5 sm:py-4 rounded-2xl bg-delphi-keppel/10 text-delphi-keppel font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-keppel hover:text-white transition-all duration-300 border border-delphi-keppel/20">
                     Cambiar Contraseña
                   </button>
-                  <button onClick={handleLogout} className="w-full py-3.5 sm:py-4 rounded-2xl bg-white text-delphi-giants font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all duration-300 border-2 border-delphi-giants/20">
+                  <button onClick={logout} className="w-full py-3.5 sm:py-4 rounded-2xl bg-white text-delphi-giants font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all duration-300 border-2 border-delphi-giants/20">
                     Cerrar Sesión
                   </button>
                 </div>

@@ -29,6 +29,12 @@ export default defineConfig(({ mode }) => {
       hmr: {
         port: 3001,
       },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        }
+      }
     },
     plugins: [react()],
     define: {
