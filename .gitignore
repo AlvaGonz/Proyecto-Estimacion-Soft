@@ -16,8 +16,8 @@ dist-ssr
 # Testing
 coverage
 playwright-report/
-test-results
-*.txt
+test-results/
+test-results/**/*.txt
 e2e/.auth/
 .playwright-cli/
 
@@ -36,7 +36,7 @@ e2e/.auth/
 # Environment — all variants (must cover all possible .env filenames)
 .env*
 !.env*.example
-*.local
+.env.local
 .env.docker
 .env.docker.local
 .env.staging
@@ -44,9 +44,6 @@ e2e/.auth/
 .env.test
 
 # Agent and Skill artifacts
-agent-skills/
-requirements.txt
-tasks/lessons.md
 .cache/
 __pycache__/
 *.py[cod]

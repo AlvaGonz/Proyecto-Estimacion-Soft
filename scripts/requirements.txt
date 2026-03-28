@@ -1,0 +1,7 @@
+pydantic>=2.0.0
+crewai>=0.10.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+GitPython>=3.1.0
+groq>=0.4.0
+rich>=13.0.0

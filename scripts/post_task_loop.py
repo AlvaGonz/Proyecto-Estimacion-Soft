@@ -3,7 +3,7 @@ post_task_loop.py — EstimaPro EvoAgentX-style Post-Task Loop
 Runs automatically after every agent task. Chains 5 Groq agents.
 Usage: python scripts/post_task_loop.py --task "description" --output "what was produced"
 """
-import os, sys, json, argparse
+import os, sys, json, argparse, difflib
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -26,18 +26,20 @@ LESSONS_GLOBAL = Path.home() / ".agent-loop" / "lessons.md"
 # --- Project grounding rules (loaded into every agent's context) ---
 PROJECT_RULES = """
 EstimaPro — Plataforma de Estimacion de Software Colaborativa
-Stack: React 18 + TypeScript 5 + Node.js + Express + MongoDB + Docker
+Stack: React 19 + TypeScript 5.8 + Vite 6 + Tailwind 4 + Node.js + MongoDB + Docker
+Architecture: SPA + REST API (3-tier boundary)
 Rules (non-negotiable):
 1. 3-tier boundary: Frontend=presentation, Backend=business logic, DB=data only
-2. JWT on every protected route
+2. JWT on every protected API route
 3. RBAC enforced at controller level (Admin/Facilitador/Experto)
-4. LOGAUDITORIA written on every state-changing operation
+4. LOGAUDITORIA written on every state-changing operation in backend
 5. Estimation rounds are immutable once closed
 6. Method lock after Round 1 starts
 7. Max file: 300 lines | Max function: 30 lines | Cyclomatic complexity <= 10
 8. Test coverage new code >= 80%
 9. No console.log in production — use structured logger
 10. All commits: type(scope): message (Conventional Commits)
+11. No secrets in git (.env* ignored)
 """
 
 
@@ -55,7 +57,7 @@ def get_session_memory() -> str:
     return memory if memory else "No previous session memory found."
 
 
-def call_groq(model: str, system: str, user: str, max_tokens: int = 800) -> str:
+def call_groq(model: str, system: str, user: str, max_tokens: int = 800, json_mode: bool = False) -> str:
     if not GROQ_API_KEY:
         return "SKIP: No GROQ_API_KEY set."
     
@@ -64,15 +66,20 @@ def call_groq(model: str, system: str, user: str, max_tokens: int = 800) -> str:
     enriched_system = f"{system}\n\n[SESSION_MEMORY_INSIGHTS]\n{memory_context}"
     
     client = Groq(api_key=GROQ_API_KEY)
-    resp = client.chat.completions.create(
-        model=model,
-        messages=[
+    kwargs = {
+        "model": model,
+        "messages": [
             {"role": "system", "content": enriched_system},
             {"role": "user",   "content": user}
         ],
-        max_tokens=max_tokens,
-        temperature=0.1
-    )
+        "max_tokens": max_tokens,
+        "temperature": 0.1
+    }
+    
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    resp = client.chat.completions.create(**kwargs)
     return resp.choices[0].message.content.strip()
 
 
@@ -89,7 +96,7 @@ def agent_evaluator(task: str, output: str) -> dict:
         "2. protocol_score: Compliance with folder structure, naming, RBAC rules, and LDR constraints.\n"
         "Score both 0-100 and give a 1-sentence summary."
     )
-    raw = call_groq(PRIMARY, system, user, 300)
+    raw = call_groq(PRIMARY, system, user, 300, json_mode=True)
     try:
         data = json.loads(raw)
         # Weighting: Output (60%) + Protocol (40%)
@@ -109,7 +116,7 @@ def agent_critic(task: str, output: str, score: int) -> list:
         f"Task: {task}\nOutput: {output}\nEvaluator score: {score}/100\n\n"
         "List ALL issues. If none, return []."
     )
-    raw = call_groq(PRIMARY, system, user, 600)
+    raw = call_groq(PRIMARY, system, user, 600, json_mode=True)
     try:
         return json.loads(raw)
     except Exception:
@@ -128,7 +135,7 @@ def agent_mutator(issues: list, output: str) -> list:
         f"Issues found:\n{json.dumps(issues, indent=2)}\n\n"
         "Propose minimal, surgical mutations to fix each HIGH and MEDIUM issue. Max 5 mutations."
     )
-    raw = call_groq(FAST, system, user, 600)
+    raw = call_groq(FAST, system, user, 600, json_mode=True)
     try:
         return json.loads(raw)
     except Exception:
@@ -147,7 +154,7 @@ def agent_validator(mutations: list, task: str) -> dict:
         f"Task: {task}\nProposed mutations:\n{json.dumps(mutations, indent=2)}\n\n"
         "Approve mutations that are safe and minimal. Reject scope-creep mutations."
     )
-    raw = call_groq(FAST, system, user, 400)
+    raw = call_groq(FAST, system, user, 400, json_mode=True)
     try:
         return json.loads(raw)
     except Exception:
@@ -206,8 +213,28 @@ def evolve_skill_prompt(skill_name: str, issues: list, task: str):
     )
     mutated = call_groq(FAST, system, user, 2000)
     if mutated and not mutated.startswith("SKIP"):
+        # Generate diff for transparency (Requirement: WOW the user)
+        diff = difflib.unified_diff(
+            original_content.splitlines(),
+            mutated.splitlines(),
+            fromfile="original",
+            tofile="evolved",
+            lineterm=""
+        )
+        diff_str = "\n".join(diff)
+        
         skill_path.write_text(mutated, encoding="utf-8")
         console.print(f"  [bold green]EVOLVED:[/bold green] {skill_name}")
+        
+        # Log the evolution event
+        evolve_log = [
+            f"### [EVOLUTION] Skill: {skill_name}",
+            f"**Issues addressed:** {len(issues)}",
+            "```diff",
+            f"{diff_str}",
+            "```"
+        ]
+        _append_to_file(LOG_FILE, evolve_log)
 
 def update_fitness_log(skill_name: str, score: int):
     """Log skill performance to tasks/skill-fitness-log.md (Requirement 6)."""
@@ -261,7 +288,7 @@ def agent_archivist(task: str, issues: list, mutations: list, score: int, verdic
     # 2. Persist Lessons
     system = "Archivist agent. JSON: {\"lessons\": [str], \"patterns\": [str]}"
     user = f"Task: {task}\nScore: {score}\nIssues: {json.dumps(issues)}\nVerdict: {verdict}"
-    raw = call_groq(PRIMARY, system, user, 400)
+    raw = call_groq(PRIMARY, system, user, 400, json_mode=True)
     try:
         data = json.loads(raw)
     except Exception:
