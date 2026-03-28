@@ -48,6 +48,9 @@ MODEL_FALLBACK_CHAIN = {
     "fast": ["llama-3.1-8b-instant"]
 }
 
+TOP_K_LESSONS = 5
+MAX_CONTEXT_LESSONS = 10
+
 def groq_call_with_fallback(client, messages: list, role: str = "primary", **kwargs) -> object:
     """Execute Groq call with tiered fallback and telemetry logging."""
     models = MODEL_FALLBACK_CHAIN.get(role, MODEL_FALLBACK_CHAIN["fast"])
@@ -124,10 +127,58 @@ def get_session_memory() -> str:
     return "\n\n".join(memory_blocks)
 
 
-def call_groq(role: str, system: str, user: str, max_tokens: int = 800, json_mode: bool = False) -> str:
-    """Wrapper for groq_call_with_fallback with memory injection."""
+def parse_lessons_from_file(path: Path) -> list[dict]:
+    """Extract LESSON: blocks as structured dicts (SEA Step 3)."""
+    if not path.exists(): return []
+    content = path.read_text(encoding="utf-8")
+    blocks = re.findall(r'---\nLESSON:\n(.*?)\n---', content, re.DOTALL)
+    parsed = []
+    for b in blocks:
+        entry = {}
+        for line in b.splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                entry[k.strip()] = v.strip()
+        if entry: parsed.append({"raw": f"---\nLESSON:\n{b.strip()}\n---", "data": entry})
+    return parsed
+
+def retrieve_relevant_lessons(query: str, top_k: int = TOP_K_LESSONS) -> str:
+    """Keyword-based Top-K retrieval of lessons (SEA Step 3)."""
+    all_lessons = []
+    for path in [LESSONS_GLOBAL, LESSONS_LOCAL]:
+        all_lessons.extend(parse_lessons_from_file(path))
+    
+    if not all_lessons: return "No relevant lessons found."
+    
+    query_words = set(re.findall(r"\w+", query.lower()))
+    scored = []
+    for lesson in all_lessons:
+        pattern = lesson["data"].get("pattern", "").lower()
+        lesson_words = set(re.findall(r"\w+", pattern))
+        overlap = len(query_words.intersection(lesson_words))
+        # Boost HIGH severity
+        if lesson["data"].get("severity") == "HIGH": overlap += 2
+        scored.append((overlap, lesson["raw"]))
+    
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top_lessons = [x[1] for x in scored[:top_k] if x[0] > 0]
+    
+    if not top_lessons:
+        # Fallback to recent HIGH/MED if no keyword overlap
+        fallback = [l["raw"] for l in all_lessons if l["data"].get("severity") in ["HIGH", "MED"]]
+        top_lessons = fallback[:top_k]
+
+    return "\n\n".join(top_lessons) if top_lessons else "No relevant lessons found."
+
+def call_groq(role: str, system: str, user: str, max_tokens: int = 800, json_mode: bool = False, query: str = None) -> str:
+    """Wrapper for groq_call_with_fallback with semantic memory injection."""
     if not GROQ_API_KEY: return "SKIP: No GROQ_API_KEY set."
-    memory_context = get_session_memory()
+    
+    if query:
+        memory_context = retrieve_relevant_lessons(query)
+    else:
+        memory_context = get_session_memory()
+        
     enriched_system = f"{system}\n\n[SESSION_MEMORY_INSIGHTS]\n{memory_context}"
     client = Groq(api_key=GROQ_API_KEY)
     kwargs = {"max_tokens": max_tokens, "temperature": 0.1}
@@ -159,7 +210,7 @@ def agent_evaluator(task: str, output: str) -> dict:
         "2. protocol_score: Compliance with folder structure, naming, RBAC rules, and LDR constraints.\n"
         "Score both 0-100 and give a 1-sentence summary."
     )
-    raw = call_groq("primary", system, user, 300, json_mode=True)
+    raw = call_groq("primary", system, user, 300, json_mode=True, query=task)
     try:
         data = json.loads(raw)
         # Weighting: Output (60%) + Protocol (40%)
@@ -179,7 +230,7 @@ def agent_critic(task: str, output: str, score: int) -> list:
         f"Task: {task}\nOutput: {output}\nEvaluator score: {score}/100\n\n"
         "List ALL issues. If none, return []."
     )
-    raw = call_groq("primary", system, user, 600, json_mode=True)
+    raw = call_groq("primary", system, user, 600, json_mode=True, query=task)
     try:
         res = json.loads(raw)
         if isinstance(res, dict) and "issues" in res: return res["issues"]
@@ -188,7 +239,7 @@ def agent_critic(task: str, output: str, score: int) -> list:
         return []
 
 
-def agent_mutator(issues: list, output: str) -> list:
+def agent_mutator(issues: list, output: str, task: str = "general") -> list:
     """Agent 3: Propose minimal fix mutations."""
     if not issues:
         return []
@@ -200,7 +251,7 @@ def agent_mutator(issues: list, output: str) -> list:
         f"Issues found:\n{json.dumps(issues, indent=2)}\n\n"
         "Propose minimal, surgical mutations to fix each HIGH and MEDIUM issue. Max 5 mutations."
     )
-    raw = call_groq("fast", system, user, 600, json_mode=True)
+    raw = call_groq("fast", system, user, 600, json_mode=True, query=task)
     try:
         return json.loads(raw)
     except Exception:
@@ -219,7 +270,7 @@ def agent_validator(mutations: list, task: str) -> dict:
         f"Task: {task}\nProposed mutations:\n{json.dumps(mutations, indent=2)}\n\n"
         "Approve mutations that are safe and minimal. Reject scope-creep mutations."
     )
-    raw = call_groq("fast", system, user, 400, json_mode=True)
+    raw = call_groq("fast", system, user, 400, json_mode=True, query=task)
     try:
         return json.loads(raw)
     except Exception:
@@ -247,7 +298,7 @@ def identify_responsible_skill(task: str, issues: list) -> str | None:
         f"Available skills: {available_skills}\n"
         "Return ONLY the folder name of the most responsible skill or 'NONE'."
     )
-    res = call_groq("fast", system, user, 100).lower()
+    res = call_groq("fast", system, user, 100, query=task).lower()
     found_skill = None
     for s in available_skills:
         # Check for exact match or word-boundary match
@@ -276,7 +327,7 @@ def evolve_skill_prompt(skill_name: str, issues: list, task: str):
         f"Task Context: {task}\n\nOriginal SKILL.md:\n{original_content}\n\n"
         "Output ONLY the complete updated SKILL.md file."
     )
-    mutated = call_groq("fast", system, user, 2000)
+    mutated = call_groq("fast", system, user, 2000, query=task)
     if mutated and not mutated.startswith("SKIP"):
         # Step 4: Human-in-the-Loop Gate
         if any(i.get("severity") == HUMAN_GATE_SEVERITY for i in issues):
@@ -843,6 +894,10 @@ def maybe_emit_telemetry_report(telemetry_path: Path):
         tele_data = compute_telemetry_data(str(telemetry_path), count)
         alerts = evaluate_alert_rules(tele_data)
         write_loop_alerts(alerts)
+        
+        # Log Memory Index (SEA Step 3)
+        lesson_count = len(parse_lessons_from_file(LESSONS_GLOBAL)) + len(parse_lessons_from_file(LESSONS_LOCAL))
+        _append_to_file(telemetry_path, [f"MEMORY_INDEX: total_lessons={lesson_count} date={datetime.now().isoformat()}"])
 
     if count % 30 == 0:
         suggestions = analyze_workflow_fitness(Path("tasks/workflow-fitness-log.md"))
@@ -976,7 +1031,7 @@ def agent_archivist(task: str, issues: list, mutations: list, score: int, verdic
         evolve_skill_prompt(s, issues if s == skill_name else [], task)
 
     # Persist structured YAML (Step 2)
-    raw_yaml = call_groq("primary", system, user, 800)
+    raw_yaml = call_groq("primary", system, user, 800, query=task)
     if raw_yaml and "LESSON:" in raw_yaml:
         _append_to_file(LESSONS_LOCAL, [raw_yaml])
         # Also append to global context for cross-project learning
@@ -1068,7 +1123,7 @@ def run_loop(task: str, output: str) -> int:
         if score < 80 and issues:
             chain = "evaluate→critic→mutate→validate→archive"
             console.print("[dim]Agent 3/5 & 4/5: Mutating & Validating...[/dim]")
-            muts = agent_mutator(issues, output)
+            muts = agent_mutator(issues, output, task=task)
             val = agent_validator(muts, task)
             verdict, approved = val.get("verdict", "UNKNOWN"), val.get("approved", [])
             console.print(f"  Verdict: [bold]{verdict}[/bold] | Approved: {len(approved)}")
