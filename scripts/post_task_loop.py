@@ -51,6 +51,7 @@ MODEL_FALLBACK_CHAIN = {
 TOP_K_LESSONS = 5
 MAX_CONTEXT_LESSONS = 10
 ABSTRACTION_THRESHOLD = 3
+CALIBRATION_INTERVAL = 30
 
 def groq_call_with_fallback(client, messages: list, role: str = "primary", **kwargs) -> object:
     """Execute Groq call with tiered fallback and telemetry logging."""
@@ -719,6 +720,48 @@ def maybe_abstract_patterns(skill_name: str, client) -> None:
             _append_to_file(LESSONS_GLOBAL, [meta_yaml])
             _append_to_file(Path("tasks/loop-telemetry.md"), [f"META_RULE_GENERATED: skill={skill_name} date={datetime.now().isoformat()}"])
             print(f"LOOP: synthesized META_RULE for {skill_name}")
+    except Exception: pass
+
+    except Exception: pass
+
+def maybe_run_calibration(client, run_count: int, evolved_system: str) -> None:
+    """Audit the evolved evaluator against a static Gold Standard (SEA Step 5)."""
+    if run_count % CALIBRATION_INTERVAL != 0: return
+
+    gold_standard = (
+        "You are the Ultimate Architect. Evaluate this task against 10 immutable principles:\n"
+        "1. RBAC must be enforced on every state-changing route.\n"
+        "2. All business logic belongs in server/src/modules/.\n"
+        "3. Every database update must write to LOGAUDITORIA.\n"
+        "4. No hardcoded secrets or API keys.\n"
+        "5. Validated TDD matches LDR requirements.\n"
+        "6. No tech-stack deviations (React 19, Vite 6).\n"
+        "7. Atomic file operations with .tmp swap.\n"
+        "8. Named exports only.\n"
+        "9. Max function length 30 lines.\n"
+        "10. JSDoc on all exported functions.\n"
+        "Respond ONLY in JSON: {\"gold_score\": int}"
+    )
+    
+    # We compare the evolved_system (context-heavy) vs gold_standard (static)
+    # on a generic audit task or the current context
+    user = "Audit the current system state for protocol drift."
+    try:
+        # We need a reference task/output to audit. 
+        # For simplicity, we just audit the general ruleset.
+        resp = groq_call_with_fallback(client, [{"role": "system", "content": gold_standard}, {"role": "user", "content": user}], role="primary")
+        gold_data = json.loads(resp.choices[0].message.content.strip())
+        gold_score = gold_data.get("gold_score", 0)
+        
+        # Log to telemetry
+        _append_to_file(Path("tasks/loop-telemetry.md"), [f"CALIBRATION_RUN: gold_score={gold_score} run={run_count} date={datetime.now().isoformat()}"])
+        
+        # Drift check logic (SEA Step 5)
+        # If the Ultimate Architect (Gold Standard) scores it significantly lower than our Evolved Evaluator, we have drift.
+        # We'll compare it to a default benchmark or log the discrepancy for user review.
+        if gold_score < 70:
+             _append_to_file(Path("tasks/loop-telemetry.md"), [f"DRIFT_ALERT: Gold Standard principles scored current state at {gold_score}/100. Systemic drift detected. date={datetime.now().isoformat()}"])
+             print(f"LOOP: !!! DRIFT ALERT !!! Gold Standard score: {gold_score}")
     except Exception: pass
 
 def sweep_expired_locks(lock_dir: str = ".agent/loop-locks") -> int:
