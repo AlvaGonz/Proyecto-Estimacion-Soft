@@ -59,8 +59,6 @@ Los equipos de desarrollo enfrentan múltiples obstáculos al realizar estimacio
 - Intervalos de confianza y análisis de riesgo
 - Distribución probabilística de resultados
 
-<<<<<<< HEAD
-=======
 ## Directorio scripts/
 
 El directorio `scripts/` contiene utilidades de automatización para el flujo de trabajo de desarrollo asistido por IA (EvoAgentX).
@@ -86,7 +84,6 @@ Los resultados se persisten en:
 - `tasks/lessons.md`: Lecciones aprendidas persistentes.
 - `tasks/error-patterns.md`: Patrones de error recurrentes.
 
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 ## Arquitectura del Sistema
 
 ### Patrón de Diseño Principal: Strategy Pattern
@@ -112,34 +109,6 @@ interface IBaseEstimationMethod {
 
 ## Tecnologías Utilizadas
 
-<<<<<<< HEAD
-### Frontend
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| React | 18.x | Biblioteca UI |
-| TypeScript | 5.x | Seguridad de tipos |
-| Vite | Latest | Build tool |
-| Tailwind CSS | 3.x | Estilos |
-| Chart.js | 4.x | Visualizaciones estadísticas |
-
-### Backend
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| Node.js | 18+ LTS | Runtime |
-| Express.js | 4.x | Framework REST |
-| TypeScript | 5.x | Seguridad de tipos |
-| Mongoose | 7.x | ODM para MongoDB |
-| JWT | Latest | Autenticación |
-| bcrypt | 12 rounds | Hashing de contraseñas |
-| Zod | Latest | Validación de entradas |
-
-### Infraestructura
-| Tecnología | Propósito |
-|------------|-----------|
-| Docker | Containerización |
-| Docker Compose | Orquestación multi-contenedor |
-| Nginx | Servidor frontend/proxy inverso |
-=======
 ### Core Stack
 
 | Capa | Tecnología | Versión |
@@ -164,7 +133,6 @@ Verifica la instalación:
 node --version
 docker --version
 ```
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 ## Estructura del Proyecto
 
@@ -196,101 +164,6 @@ Proyecto-Estimacion-Soft/
 └── README.md              # Este documento
 ```
 
-<<<<<<< HEAD
-## Guía de Instalación
-
-### Requisitos Previos
-- Node.js 18+ LTS
-- Docker y Docker Compose
-- Git
-
-### Desarrollo Local
-
-#### 1. Clonar el repositorio
-```bash
-git clone https://github.com/AlvaGonz/Proyecto-Estimacion-Soft.git
-cd Proyecto-Estimacion-Soft
-```
-
-#### 2. Instalar dependencias
-```bash
-# Frontend
-npm install
-
-# Backend
-cd server && npm install
-```
-
-#### 3. Configurar variables de entorno
-```bash
-# Crear archivo .env.local en la raíz
-echo "GEMINI_API_KEY=tu_api_key_aqui" > .env.local
-```
-
-#### 4. Iniciar desarrollo
-```bash
-# Terminal 1 - Backend
-cd server && npm run dev
-
-# Terminal 2 - Frontend
-npm run dev
-```
-
-#### 5. Sembrar datos de prueba
-```bash
-cd server && npm run seed
-```
-
-### Comandos Disponibles
-
-#### Frontend
-```bash
-npm run dev          # Iniciar desarrollo
-npm run build        # Construir para producción
-npm run preview      # Previsualizar build
-npm run lint         # Linting y typecheck
-npm run test         # Pruebas unitarias con cobertura
-npm run test:watch   # Pruebas en modo observación
-```
-
-#### Backend
-```bash
-npm run dev          # Iniciar desarrollo con nodemon
-npm run build        # Compilar TypeScript
-npm run start        # Iniciar producción
-npm run lint         # ESLint
-npm run test         # Pruebas unitarias
-npm run seed         # Sembrar datos de prueba
-```
-
-#### E2E Tests
-```bash
-npm run e2e              # Pruebas E2E headless
-npm run e2e:ui           # Pruebas E2E con UI
-npm run e2e:headed       # Ver navegador
-npm run e2e:debug        # Modo debug paso a paso
-npm run e2e:safe         # Verificar servidores antes de ejecutar
-npm run e2e:fresh        # Limpiar auth y ejecutar tests
-```
-
-## Configuración del Entorno
-
-### Variables de Entorno Frontend
-```bash
-VITE_API_URL=http://localhost:4000/api
-GEMINI_API_KEY=tu_clave_api_aqui
-```
-
-### Variables de Entorno Backend (.env.docker)
-```bash
-NODE_ENV=development
-PORT=4000
-MONGODB_URI=mongodb://admin:secret123@mongo:27017/estimacion-dev
-JWT_ACCESS_SECRET=dev-access-secret-min-32-characters-long-ok
-JWT_REFRESH_SECRET=dev-refresh-secret-min-32-characters-long-ok
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4001
-```
-=======
 ## Guía de Instalación y Configuración
 
 ### 1. Clonar e Instalar
@@ -356,7 +229,6 @@ Todos los comandos se ejecutan desde la raíz del repositorio.
 | `npm run e2e:ui` | `playwright test --ui` | Pruebas E2E con interfaz visual |
 | `npm run e2e:safe` | `tsx e2e/check-servers.ts && playwright test` | Ejecutar E2E validando servidores primero |
 | `npm run preview` | `vite preview` | Previsualizar build de producción |
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 ## Despliegue con Docker
 

@@ -1,66 +1,74 @@
-import { UserRole, User as AppUser, Round, Task, Project } from '../../../types';
 import { fetchApi } from '../../../shared/api';
 
 export interface AdminUser {
-    id?: string;
+    id: string;
     _id?: string;
     name: string;
     email: string;
     role: string;
     isActive: boolean;
-    lastLogin?: string;
+    createdAt?: string;
+}
+
+export interface ListUsersResult {
+    users: AdminUser[];
+    total: number;
+    page: number;
+    pages: number;
+}
+
+interface CreateUserData {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+}
+
+interface UpdateUserData {
+    name?: string;
+    role?: string;
+    isActive?: boolean;
 }
 
 export const adminService = {
-   /**
-    * List all users with optional filters
-    * RF003: Gestión de usuarios
-    */
-   async listUsers(filters: { role?: string; isActive?: boolean } = {}): Promise<{ users: AdminUser[] }> {
-      const params = new URLSearchParams();
-      if (filters.role) params.append('role', filters.role);
-      if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    async listUsers(filters?: { role?: string; isActive?: boolean; page?: number }): Promise<ListUsersResult> {
+        const params = new URLSearchParams();
+        if (filters?.role) params.set('role', filters.role);
+        if (filters?.isActive !== undefined) params.set('isActive', String(filters.isActive));
+        if (filters?.page) params.set('page', String(filters.page));
 
-      const result = await fetchApi<{ users: AdminUser[] }>(`/admin/users?${params.toString()}`);
-      return result || { users: [] };
-   },
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return await fetchApi<ListUsersResult>(`/admin/users${query}`);
+    },
 
-   /**
-    * Create a new user manually
-    * RF003: Gestión de usuarios
-    */
-   async createUser(userData: any): Promise<AdminUser> {
-      const result = await fetchApi<AdminUser>('/admin/users', {
-         method: 'POST',
-         body: JSON.stringify(userData)
-      });
-      return result;
-   },
+    async createUser(data: CreateUserData): Promise<AdminUser> {
+        return await fetchApi<AdminUser>('/admin/users', {
+            method: 'POST',
+            body: data,
+        });
+    },
 
-   /**
-    * Deactivate a user account
-    * RF003: Gestión de usuarios
-    */
-   async deactivateUser(id: string): Promise<void> {
-      await fetchApi<void>(`/admin/users/${id}/deactivate`, {
-         method: 'PATCH'
-      });
-   },
+    async updateUser(id: string, data: UpdateUserData): Promise<AdminUser> {
+        return await fetchApi<AdminUser>(`/admin/users/${id}`, {
+            method: 'PATCH',
+            body: data,
+        });
+    },
 
-   /**
-    * List all projects for administrative oversight
-    */
-   async listProjects(): Promise<any[]> {
-      const result = await fetchApi<any>('/admin/projects');
-      return result.projects || result;
-   },
+    async deactivateUser(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/users/${id}/deactivate`, {
+            method: 'PATCH',
+        });
+    },
 
-   /**
-    * Restore a deleted project
-    */
-   async restoreProject(id: string): Promise<void> {
-      await fetchApi(`/admin/projects/${id}/restore`, {
-         method: 'POST'
-      });
-   }
+    async listProjects(): Promise<any[]> {
+        const result = await fetchApi<any>('/admin/projects');
+        return result.data;
+    },
+
+    async restoreProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}/restore`, {
+            method: 'PATCH',
+        });
+    },
 };

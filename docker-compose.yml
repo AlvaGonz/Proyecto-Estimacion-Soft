@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   nginx:
@@ -41,22 +41,23 @@ services:
     container_name: proyecto-estimacion-soft-mongo-1
     ports:
       - "${MONGO_PORT:-27017}:27017"
+    env_file:
+      - .env.docker
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-secret123}
-      MONGO_INITDB_DATABASE: estimacion-dev
+      # These will be picked up directly from .env.docker via env_file
+      # providing standard MONGO_INITDB_ROOT_* names.
+      - MONGO_INITDB_DATABASE=estimacion-dev
     volumes:
       - mongo-data:/data/db
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mongosh", "--username", "${MONGO_ROOT_USER:-admin}", "--password", "${MONGO_ROOT_PASS:-secret123}", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--username", "${MONGO_INITDB_ROOT_USERNAME:-admin}", "--password", "${MONGO_INITDB_ROOT_PASSWORD:-secret123}", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
 
-  # Servicio seed — se ejecuta UNA vez y termina
   seeder:
     build:
       context: ./server
@@ -70,7 +71,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
-    restart: "no"   # Solo corre una vez
+    restart: "no"
 
 volumes:
   mongo-data:

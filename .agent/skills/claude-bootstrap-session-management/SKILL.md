@@ -5,11 +5,7 @@ description: Context preservation, tiered summarization, resumability
 
 # Session Management Skill
 
-<<<<<<< HEAD
-*Load with: base.md*
-=======
 *Load with: AGENTS.md*
->>>>>>> 4e67803f0d3febe54d51e7aedb2ef04496ea19c9
 
 For maintaining context across long development sessions and enabling seamless resume after breaks.
 

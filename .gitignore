@@ -15,7 +15,7 @@ dist-ssr
 
 # Testing
 coverage
-playwright-report
+playwright-report/
 test-results
 *.txt
 e2e/.auth/
@@ -33,6 +33,7 @@ e2e/.auth/
 *.sw?
 
 # Agentic Orchestration (Local-Only)
+# Environment — all variants (must cover all possible .env filenames)
 .env*
 !.env*.example
 *.local
@@ -41,6 +42,8 @@ e2e/.auth/
 .env.staging
 .env.production
 .env.test
+
+# Agent and Skill artifacts
 agent-skills/
 requirements.txt
 tasks/lessons.md
