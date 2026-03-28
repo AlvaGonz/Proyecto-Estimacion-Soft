@@ -50,6 +50,7 @@ MODEL_FALLBACK_CHAIN = {
 
 TOP_K_LESSONS = 5
 MAX_CONTEXT_LESSONS = 10
+ABSTRACTION_THRESHOLD = 3
 
 def groq_call_with_fallback(client, messages: list, role: str = "primary", **kwargs) -> object:
     """Execute Groq call with tiered fallback and telemetry logging."""
@@ -128,18 +129,19 @@ def get_session_memory() -> str:
 
 
 def parse_lessons_from_file(path: Path) -> list[dict]:
-    """Extract LESSON: blocks as structured dicts (SEA Step 3)."""
+    """Extract LESSON: and META_RULE: blocks as structured dicts (SEA Step 3 & 4)."""
     if not path.exists(): return []
     content = path.read_text(encoding="utf-8")
-    blocks = re.findall(r'---\nLESSON:\n(.*?)\n---', content, re.DOTALL)
+    # Match both LESSON: and META_RULE:
+    blocks = re.findall(r'---\n(LESSON|META_RULE):\n(.*?)\n---', content, re.DOTALL)
     parsed = []
-    for b in blocks:
-        entry = {}
+    for type_name, b in blocks:
+        entry = {"type": type_name}
         for line in b.splitlines():
             if ":" in line:
                 k, v = line.split(":", 1)
                 entry[k.strip()] = v.strip()
-        if entry: parsed.append({"raw": f"---\nLESSON:\n{b.strip()}\n---", "data": entry})
+        if entry: parsed.append({"raw": f"---\n{type_name}:\n{b.strip()}\n---", "data": entry})
     return parsed
 
 def retrieve_relevant_lessons(query: str, top_k: int = TOP_K_LESSONS) -> str:
@@ -153,11 +155,16 @@ def retrieve_relevant_lessons(query: str, top_k: int = TOP_K_LESSONS) -> str:
     query_words = set(re.findall(r"\w+", query.lower()))
     scored = []
     for lesson in all_lessons:
-        pattern = lesson["data"].get("pattern", "").lower()
-        lesson_words = set(re.findall(r"\w+", pattern))
+        # Match against pattern (LESSON) or rule (META_RULE)
+        text_to_match = lesson["data"].get("pattern", "") or lesson["data"].get("rule", "")
+        lesson_words = set(re.findall(r"\w+", text_to_match.lower()))
         overlap = len(query_words.intersection(lesson_words))
+        
         # Boost HIGH severity
         if lesson["data"].get("severity") == "HIGH": overlap += 2
+        # SEA Step 4: Prioritize META_RULEs
+        if lesson["data"].get("type") == "META_RULE": overlap += 5
+        
         scored.append((overlap, lesson["raw"]))
     
     scored.sort(key=lambda x: x[0], reverse=True)
@@ -668,6 +675,52 @@ def analyze_workflow_fitness(log_path: Path, min_runs: int = 30) -> list[str]:
     
     return suggestions
 
+def count_lessons_in_file(path: Path, keyword: str) -> int:
+    """Count lessons matching a skill or keyword (SEA Step 4)."""
+    lessons = parse_lessons_from_file(path)
+    count = 0
+    k = keyword.lower()
+    for l in lessons:
+        if k in l["data"].get("skill", "").lower() or k in l["data"].get("pattern", "").lower():
+            count += 1
+    return count
+
+def maybe_abstract_patterns(skill_name: str, client) -> None:
+    """Synthesize a META_RULE if lessons plateau or repeat (SEA Step 4)."""
+    count = count_lessons_in_file(LESSONS_LOCAL, skill_name)
+    if count < ABSTRACTION_THRESHOLD: return
+    
+    # Check if already abstracted recently
+    tele_content = Path("tasks/loop-telemetry.md").read_text(encoding="utf-8") if Path("tasks/loop-telemetry.md").exists() else ""
+    if f"META_RULE_GENERATED: skill={skill_name}" in tele_content:
+        # Only abstract every 5 new lessons
+        already_gen = len(re.findall(f"META_RULE_GENERATED: skill={skill_name}", tele_content))
+        if count < (already_gen * 5) + ABSTRACTION_THRESHOLD: return
+
+    # Get the 3 most recent lessons for this skill
+    lessons = [l for l in parse_lessons_from_file(LESSONS_LOCAL) if skill_name.lower() in l["data"].get("skill", "").lower()][-3:]
+    lesson_text = "\n".join([l["raw"] for l in lessons])
+    
+    system = "You are a Meta-Learning Agent. Synthesize a single high-level META_RULE from these repeating patterns."
+    user = (
+        f"Skill: {skill_name}\nRecent Lessons:\n{lesson_text}\n\n"
+        "Output ONLY the new rule as a single block:\n"
+        "---\n"
+        "META_RULE:\n"
+        f"  skill: {skill_name}\n"
+        "  rule: {the synthesized higher-level rule}\n"
+        "  prevention: {how to avoid this across all related tasks}\n"
+        "---\n"
+    )
+    try:
+        resp = groq_call_with_fallback(client, [{"role": "system", "content": system}, {"role": "user", "content": user}], role="fast")
+        meta_yaml = resp.choices[0].message.content.strip()
+        if "META_RULE:" in meta_yaml:
+            _append_to_file(LESSONS_GLOBAL, [meta_yaml])
+            _append_to_file(Path("tasks/loop-telemetry.md"), [f"META_RULE_GENERATED: skill={skill_name} date={datetime.now().isoformat()}"])
+            print(f"LOOP: synthesized META_RULE for {skill_name}")
+    except Exception: pass
+
 def sweep_expired_locks(lock_dir: str = ".agent/loop-locks") -> int:
     """Scan and delete .lock files older than LOCK_TTL_DAYS."""
     path = Path(lock_dir)
@@ -1037,6 +1090,11 @@ def agent_archivist(task: str, issues: list, mutations: list, score: int, verdic
         # Also append to global context for cross-project learning
         global_entry = f"[EstimaPro]\n{raw_yaml}"
         _append_to_file(LESSONS_GLOBAL, [global_entry])
+        
+        # Step 4: Meta-Learning
+        if skill_name:
+            client = Groq(api_key=GROQ_API_KEY)
+            maybe_abstract_patterns(skill_name, client)
     
     if high_issues:
         timestamp = datetime.now().strftime("%Y-%m-%d")
