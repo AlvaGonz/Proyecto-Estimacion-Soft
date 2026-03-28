@@ -2,6 +2,7 @@ import { chromium, FullConfig, request, APIRequestContext } from '@playwright/te
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { APIHelper } from './helpers/api.helper.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,27 +33,6 @@ async function verifyServer(label: string, url: string): Promise<void> {
   const res = await fetch(url, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
   if (!res) throw new Error(`[Setup] ${label} no responde en ${url}`);
   console.log(`   ✅ ${label} activo (${res.status})`);
-}
-
-async function loginViaAPI(
-  apiCtx: APIRequestContext,
-  email: string,
-  password: string
-): Promise<string> {
-  // Rutas SIN slash inicial — Playwright las resuelve contra baseURL con trailing slash
-  const res = await apiCtx.post('auth/login', { data: { email, password } });
-  if (!res.ok()) {
-    throw new Error(
-      `[Setup] Login API falló para ${email}: ${res.status()} ${await res.text()}\n` +
-      'Verificar: cd server && npm run seed'
-    );
-  }
-  const setCookie = res.headers()['set-cookie'] ?? '';
-  return setCookie
-    .split(/,(?=[^ ])|[\r\n]+/)
-    .map(c => c.trim().split(';')[0])
-    .filter(Boolean)
-    .join('; ');
 }
 
 async function dismissOnboarding(page: import('@playwright/test').Page): Promise<void> {
@@ -86,7 +66,8 @@ async function globalSetup(_config: FullConfig) {
   // 2. Crear expertos E2E via Admin API ────────────────────────────────────────
   console.log('\n👥 Preparando expertos E2E...');
   const apiCtx = await request.newContext({ baseURL: BASE_API });
-  const adminCookie = await loginViaAPI(apiCtx, ADMIN.email, ADMIN.password);
+  const api = new APIHelper(apiCtx);
+  const adminCookie = await api.login(ADMIN.email, ADMIN.password);
   console.log('   ✅ Admin autenticado via API');
 
   // Rutas relativas SIN slash inicial

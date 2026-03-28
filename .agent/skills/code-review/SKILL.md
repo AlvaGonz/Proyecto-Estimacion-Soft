@@ -19,6 +19,9 @@ Look for these issues in code changes:
 - **Backwards compatibility**: Breaking API changes without migration path
 - **ORM queries**: Complex Django ORM with unexpected query performance
 - **Security vulnerabilities**: Injection, XSS, access control gaps, secrets exposure
+- **Type errors**: Incorrect or missing type annotations
+- **Code organization**: Poorly structured or over-architected code
+- **Magic numbers**: Hardcoded values without clear explanation
 
 ### Design Assessment
 
@@ -33,6 +36,8 @@ Every PR should have appropriate test coverage:
 - Functional tests for business logic
 - Integration tests for component interactions
 - End-to-end tests for critical user paths
+- Unit tests for individual components
+- Property-based tests for complex logic
 
 Verify tests cover actual requirements and edge cases. Avoid excessive branching or looping in test code.
 
@@ -45,6 +50,7 @@ Flag for senior engineer review when changes involve:
 - New framework or library adoption
 - Performance-critical code paths
 - Security-sensitive functionality
+- Major architectural changes
 
 ## Feedback Guidelines
 
@@ -97,6 +103,21 @@ cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
 cursor.execute("SELECT * FROM users WHERE id = %s", [user_id])
 ```
 
+## Commit Message Guidelines
+
+- Follow Conventional Commits format
+- Be descriptive and concise
+- Include type, scope, and description
+- Use imperative mood (e.g., "Fix bug" instead of "Fixed bug")
+
+Example:
+```
+feat(auth): Add login functionality
+
+Closes #123
+```
+
 ## References
 
 - [Sentry Code Review Guidelines](https://develop.sentry.dev/engineering-practices/code-review/)
+- [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.4/)
