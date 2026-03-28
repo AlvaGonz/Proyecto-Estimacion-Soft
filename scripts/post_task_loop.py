@@ -722,8 +722,6 @@ def maybe_abstract_patterns(skill_name: str, client) -> None:
             print(f"LOOP: synthesized META_RULE for {skill_name}")
     except Exception: pass
 
-    except Exception: pass
-
 def maybe_run_calibration(client, run_count: int, evolved_system: str) -> None:
     """Audit the evolved evaluator against a static Gold Standard (SEA Step 5)."""
     if run_count % CALIBRATION_INTERVAL != 0: return

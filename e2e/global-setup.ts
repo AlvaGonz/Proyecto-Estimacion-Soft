@@ -61,7 +61,7 @@ async function globalSetup(_config: FullConfig) {
   // 1. Verificar servidores ────────────────────────────────────────────────────
   console.log('\n🔍 Verificando servidores...');
   await verifyServer('Backend (Express :4000)', `${BASE_API}health`);
-  await verifyServer('Frontend (Vite :3002)', BASE_URL);
+  await verifyServer('Frontend (Vite :3001)', BASE_URL);
 
   // 2. Crear expertos E2E via Admin API ────────────────────────────────────────
   console.log('\n👥 Preparando expertos E2E...');
@@ -103,8 +103,8 @@ async function globalSetup(_config: FullConfig) {
 
   await page.goto(BASE_URL);
   console.log('   Navegado a:', page.url());
-  await page.waitForLoadState('networkidle');
-  console.log('   Network idle reached. URL:', page.url());
+  await page.waitForLoadState('load');
+  console.log('   Load state reached. URL:', page.url());
 
   // Capturar vista inicial para debug si estamos atrapados en spinner
   const content = await page.content();
