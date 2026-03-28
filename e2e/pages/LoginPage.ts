@@ -25,6 +25,7 @@ export class LoginPage {
   async goto() {
     await this.page.goto('/');
     // In our SPA, Login is the default if not authenticated.
+    await this.emailInput.waitFor({ state: 'visible', timeout: 10000 });
   }
 
   async login(email: string, pass: string) {

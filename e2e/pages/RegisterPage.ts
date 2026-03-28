@@ -31,10 +31,11 @@ export class RegisterPage {
   async goto() {
     await this.page.goto('/');
     // Check if we're on login first by looking for the "Register" trigger
-    const registerLinkVisible = await this.page.getByRole('button', { name: /¿No tienes cuenta\? Regístrate/i }).isVisible();
-    if (registerLinkVisible) {
-      await this.page.getByRole('button', { name: /¿No tienes cuenta\? Regístrate/i }).click();
-    }
+    const registerLink = this.page.getByRole('button', { name: /¿No tienes cuenta\? Regístrate/i });
+    await registerLink.waitFor({ state: 'visible', timeout: 10000 });
+    await registerLink.click();
+    // Wait for register page inputs
+    await this.nameInput.waitFor({ state: 'visible', timeout: 5000 });
   }
 
   async register(data: { name: string, email: string, pass: string, confirmPass: string }) {
