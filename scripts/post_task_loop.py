@@ -26,6 +26,7 @@ CONVERGENCE_STREAK = 5
 LOCK_TTL_DAYS = 7
 HUMAN_GATE_SEVERITY = "HIGH"
 PENDING_APPROVALS_FILE = Path(".agent/pending-approvals.md")
+_SESSION_TOTAL_TOKENS = 0
 
 ALERT_RULES = [
     {"key": "score_drop",      "condition": "avg_delta < -5",    "message": "SCORE DROP: avg fell >5pts over last 10 runs"},
@@ -136,6 +137,9 @@ def call_groq(role: str, system: str, user: str, max_tokens: int = 800, json_mod
             {"role": "system", "content": enriched_system},
             {"role": "user",   "content": user}
         ], role=role, **kwargs)
+        global _SESSION_TOTAL_TOKENS
+        if hasattr(resp, "usage") and resp.usage:
+            _SESSION_TOTAL_TOKENS += resp.usage.total_tokens
         return resp.choices[0].message.content.strip()
     except RuntimeError as e:
         console.print(f"[red]{str(e)}[/red]")
@@ -550,6 +554,69 @@ def elect_champion(skill_name: str, champion_path: str) -> str | None:
             pass
     return None
 
+    return None
+
+def classify_task_type(task: str) -> str:
+    """Categorize task for workflow analysis (SEA Step 2)."""
+    t = task.lower()
+    if any(w in t for w in ["estimate", "vote", "story", "point", "sprint"]): return "estimation"
+    if any(w in t for w in ["login", "jwt", "token", "auth", "session"]): return "auth"
+    if any(w in t for w in ["room", "create", "delete", "manage", "admin"]): return "admin"
+    return "general"
+
+def log_workflow_run(chain: str, task_type: str, score: int, token_count: int) -> None:
+    """Log performance of an agent chain (SEA Step 2)."""
+    log_path = Path("tasks/workflow-fitness-log.md")
+    if not log_path.exists():
+        log_path.write_text("# Workflow Fitness Log\n", encoding="utf-8")
+    
+    date = datetime.now().strftime("%Y-%m-%d")
+    line = f"WORKFLOW_RUN: chain={chain} task_type={task_type} score={score} tokens={token_count} date={date}"
+    _append_to_file(log_path, [line])
+
+def analyze_workflow_fitness(log_path: Path, min_runs: int = 30) -> list[str]:
+    """Identify efficiency opportunities in agent chains (SEA Step 2)."""
+    if not log_path.exists(): return []
+    content = log_path.read_text(encoding="utf-8")
+    runs = []
+    for line in content.splitlines():
+        m = re.search(r"WORKFLOW_RUN: chain=(\S+) task_type=(\w+) score=(\d+) tokens=(\d+)", line)
+        if m:
+            runs.append({"chain": m.group(1), "type": m.group(2), "score": int(m.group(3)), "tokens": int(m.group(4))})
+    
+    if len(runs) < min_runs: return []
+    
+    # stats: {(chain, type): {"scores": [], "tokens": []}}
+    stats = {}
+    for r in runs:
+        key = (r["chain"], r["type"])
+        stats.setdefault(key, {"scores": [], "tokens": []})
+        stats[key]["scores"].append(r["score"])
+        stats[key]["tokens"].append(r["tokens"])
+        
+    suggestions = []
+    # Compare shorter chains to full chain for each type
+    full_chain = "evaluate→critic→mutate→validate→archive"
+    task_types = set(r["type"] for r in runs)
+    
+    for t in task_types:
+        full_key = (full_chain, t)
+        if full_key not in stats: continue
+        
+        f_score = sum(stats[full_key]["scores"]) / len(stats[full_key]["scores"])
+        f_tokens = sum(stats[full_key]["tokens"]) / len(stats[full_key]["tokens"])
+        
+        for (chain, ctype), cdata in stats.items():
+            if ctype == t and chain != full_chain:
+                c_score = sum(cdata["scores"]) / len(cdata["scores"])
+                c_tokens = sum(cdata["tokens"]) / len(cdata["tokens"])
+                
+                if c_score >= f_score - 2 and c_tokens < f_tokens * 0.6:
+                    pct = int((1 - (c_tokens / f_tokens)) * 100)
+                    suggestions.append(f"SUGGEST: For task_type={t}, chain={chain} achieves score={c_score:.1f} vs {full_chain} score={f_score:.1f} using {pct}% fewer tokens")
+    
+    return suggestions
+
 def sweep_expired_locks(lock_dir: str = ".agent/loop-locks") -> int:
     """Scan and delete .lock files older than LOCK_TTL_DAYS."""
     path = Path(lock_dir)
@@ -777,6 +844,13 @@ def maybe_emit_telemetry_report(telemetry_path: Path):
         alerts = evaluate_alert_rules(tele_data)
         write_loop_alerts(alerts)
 
+    if count % 30 == 0:
+        suggestions = analyze_workflow_fitness(Path("tasks/workflow-fitness-log.md"))
+        if suggestions:
+            date = datetime.now().strftime("%Y-%m-%d")
+            lines = [f"WORKFLOW_SUGGESTION: {s} date={date}" for s in suggestions]
+            _append_to_file(telemetry_path, lines)
+
     if count % 50 == 0:
         deleted_count = sweep_expired_locks()
         timestamp = datetime.now().strftime("%Y-%m-%d")
@@ -934,8 +1008,9 @@ def write_log(task: str, score: int, output_score: int, protocol_score: int, iss
 
 def run_loop(task: str, output: str) -> int:
     """Main loop entry point with idempotency guard."""
+    global _SESSION_TOTAL_TOKENS
+    _SESSION_TOTAL_TOKENS = 0
     if not GROQ_API_KEY:
-        # Exit 0 silently on missing key per requirements
         return 0
 
     task_hash = get_task_hash(task, output)
@@ -975,38 +1050,52 @@ def run_loop(task: str, output: str) -> int:
     )
     maybe_run_calibration(client, run_count, evaluator_system)
 
-    # 2. Critique
-    console.print("[dim]Agent 2/5: Critiquing...[/dim]")
-    issues = agent_critic(task, output, score)
-    if not isinstance(issues, list): issues = []
-    issues = [i for i in issues if isinstance(i, dict)]
-    high = [i for i in issues if i.get("severity") == "HIGH"]
-    console.print(f"  Issues: {len(issues)} total, {len(high)} HIGH")
+    chain = "evaluate→archive"
+    issues, muts, val = [], [], {}
+    verdict, approved = "PASS", []
 
-    # 3. Mutate & Validate
-    console.print("[dim]Agent 3/5 & 4/5: Mutating & Validating...[/dim]")
-    muts = agent_mutator(issues, output)
-    val = agent_validator(muts, task)
-    verdict, approved = val.get("verdict", "UNKNOWN"), val.get("approved", [])
-    console.print(f"  Verdict: [bold]{verdict}[/bold] | Approved: {len(approved)}")
+    # 2. Critique
+    if score < 92:
+        chain = "evaluate→critic→archive"
+        console.print("[dim]Agent 2/5: Critiquing...[/dim]")
+        issues = agent_critic(task, output, score)
+        if not isinstance(issues, list): issues = []
+        issues = [i for i in issues if isinstance(i, dict)]
+        high = [i for i in issues if i.get("severity") == "HIGH"]
+        console.print(f"  Issues: {len(issues)} total, {len(high)} HIGH")
+
+        # 3. Mutate & Validate
+        if score < 80 and issues:
+            chain = "evaluate→critic→mutate→validate→archive"
+            console.print("[dim]Agent 3/5 & 4/5: Mutating & Validating...[/dim]")
+            muts = agent_mutator(issues, output)
+            val = agent_validator(muts, task)
+            verdict, approved = val.get("verdict", "UNKNOWN"), val.get("approved", [])
+            console.print(f"  Verdict: [bold]{verdict}[/bold] | Approved: {len(approved)}")
 
     # 4. Archive & Evolve (Agent 5)
     console.print("[dim]Agent 5/5: Archiving & Evolving...[/dim]")
     agent_archivist(task, issues, approved, score, verdict, task_hash=task_hash)
+    
+    # Workflow logging
+    t_type = classify_task_type(task)
+    log_workflow_run(chain, t_type, score, _SESSION_TOTAL_TOKENS)
+
     write_log(task, score, out_s, pro_s, issues, muts, verdict, summ)
 
     # Step 7: Telemetry summary
     maybe_emit_telemetry_report(Path("tasks/loop-telemetry.md"))
 
+    high_count = len([i for i in issues if i.get("severity") == "HIGH"])
     print(json.dumps({
         "score": score, 
         "output_score": out_s,
         "protocol_score": pro_s,
         "verdict": verdict, 
         "issues": len(issues), 
-        "high_issues": len(high)
+        "high_issues": high_count
     }))
-    return 1 if high else 0
+    return 1 if high_count else 0
 
 
 if __name__ == "__main__":
