@@ -10,7 +10,7 @@ const AUTH_FILE = path.join(__dirname, 'e2e', '.auth', 'facilitator.json');
 const storageState = fs.existsSync(AUTH_FILE) ? AUTH_FILE : undefined;
 
 export default defineConfig({
-  // globalSetup: './e2e/global-setup.ts',
+  globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
   testDir: './e2e',
   timeout: 30_000,
@@ -19,7 +19,7 @@ export default defineConfig({
   reporter: [['html', { outputFolder: 'playwright-report' }], ['list']],
 
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: 'http://127.0.0.1:3001',
     storageState,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

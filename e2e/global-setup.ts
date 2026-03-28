@@ -13,8 +13,8 @@ export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
 // ⚠️ TRAILING SLASH obligatorio en baseURL:21
 // Sin slash: 'http://localhost:4000/api' + '/auth/login' → :4000/auth/login  ❌
 // Con slash: 'http://localhost:4000/api/' + 'auth/login' → :4000/api/auth/login ✅
-const BASE_API = 'http://localhost:4000/api/';
-const BASE_URL = 'http://localhost:3001';
+const BASE_API = 'http://127.0.0.1:4000/api/';
+const BASE_URL = 'http://127.0.0.1:3001';
 
 const ADMIN = { email: 'admin@uce.edu.do', password: 'password123' };
 const FACILITATOR = { email: 'aalvarez@uce.edu.do', password: 'password123' };
