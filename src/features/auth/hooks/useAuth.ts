@@ -36,9 +36,10 @@ export const useAuth = () => {
         checkAuth();
 
         const handleUnauthorized = async () => {
-            await authService.logout().catch(() => {});
+            if (!localStorage.getItem('estimapro_auth')) return;
             localStorage.removeItem('estimapro_auth');
             setCurrentUser(null);
+            await authService.logout().catch(() => {});
         };
 
         window.addEventListener('auth:unauthorized', handleUnauthorized);

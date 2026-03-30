@@ -35,7 +35,7 @@ export const test = base.extend<{
     const cookieValue = setCookie.split(';')[0].split('=')[1];
 
     await context.addCookies([{
-      name: 'auth_token', // Asumiendo el nombre de la cookie del backend
+      name: 'accessToken',
       value: cookieValue,
       url: baseURL,
       httpOnly: true,
@@ -44,6 +44,10 @@ export const test = base.extend<{
     }]);
 
     const page = await context.newPage();
+    // Add auth flag to localStorage as the frontend uses it for init check
+    await page.addInitScript(() => {
+      window.localStorage.setItem('estimapro_auth', 'true');
+    });
     await use(page);
     await context.close();
   },
@@ -77,7 +81,7 @@ export const test = base.extend<{
     const cookieValue = setCookie.split(';')[0].split('=')[1];
 
     await context.addCookies([{
-      name: 'auth_token',
+      name: 'accessToken',
       value: cookieValue,
       url: baseURL,
       httpOnly: true,
@@ -86,6 +90,9 @@ export const test = base.extend<{
     }]);
 
     const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.localStorage.setItem('estimapro_auth', 'true');
+    });
     await use(page);
     await context.close();
   },

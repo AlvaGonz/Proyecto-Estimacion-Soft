@@ -1,19 +1,13 @@
 import { Page, Locator } from '@playwright/test';
 
-/**
- * POM for the Register Page.
- * Navigation requires being at login first.
- */
 export class RegisterPage {
   readonly page: Page;
   readonly nameInput: Locator;
   readonly emailInput: Locator;
   readonly passwordInput: Locator;
   readonly confirmPasswordInput: Locator;
-  readonly submitButton: Locator;
-  readonly loginLink: Locator;
-  readonly successMessage: Locator;
-  readonly errorMessage: Locator;
+  readonly registerButton: Locator;
+  readonly backToLoginButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -21,32 +15,15 @@ export class RegisterPage {
     this.emailInput = page.locator('#email');
     this.passwordInput = page.locator('#password');
     this.confirmPasswordInput = page.locator('#confirmPassword');
-    
-    this.submitButton = page.getByRole('button', { name: /crear cuenta/i });
-    this.loginLink = page.getByRole('button', { name: /¿Ya tienes cuenta\? Inicia sesión/i });
-    this.successMessage = page.getByText(/¡Registro exitoso!/i);
-    this.errorMessage = page.getByRole('alert');
+    this.registerButton = page.getByRole('button', { name: /crear cuenta/i });
+    this.backToLoginButton = page.getByRole('button', { name: /inicia sesión/i });
   }
 
-  async goto() {
-    await this.page.goto('/');
-    // Check if we're on login first by looking for the "Register" trigger
-    const registerLink = this.page.getByRole('button', { name: /¿No tienes cuenta\? Regístrate/i });
-    await registerLink.waitFor({ state: 'visible', timeout: 10000 });
-    await registerLink.click();
-    // Wait for register page inputs
-    await this.nameInput.waitFor({ state: 'visible', timeout: 5000 });
-  }
-
-  async register(data: { name: string, email: string, pass: string, confirmPass: string }) {
-    await this.nameInput.fill(data.name);
-    await this.emailInput.fill(data.email);
-    await this.passwordInput.fill(data.pass);
-    await this.confirmPasswordInput.fill(data.confirmPass);
-    await this.submitButton.click();
-  }
-
-  async goToLogin() {
-    await this.loginLink.click();
+  async register(name: string, email: string, pass: string, confirm: string) {
+    await this.nameInput.fill(name);
+    await this.emailInput.fill(email);
+    await this.passwordInput.fill(pass);
+    await this.confirmPasswordInput.fill(confirm);
+    await this.registerButton.click();
   }
 }

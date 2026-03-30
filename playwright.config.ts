@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+dotenv.config();
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';

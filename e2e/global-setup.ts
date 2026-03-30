@@ -130,9 +130,24 @@ async function globalSetup(_config: FullConfig) {
   try {
     // Esperar la respuesta del POST login
     const loginResponsePromise = page.waitForResponse(
-      res => res.url().includes('/auth/login') && res.request().method() === 'POST',
-      { timeout: 10_000 }
+      res => (res.url().includes('/auth/login') || res.url().includes('login')) && res.request().method() === 'POST',
+      { timeout: 15_000 }
     );
+
+    // Logging all requests for debug
+    page.on('request', request => {
+      if (request.url().includes('api')) {
+        console.log(`   📡 Request started: ${request.method()} ${request.url()}`);
+      }
+    });
+
+    page.on('requestfailed', request => {
+      console.log(`   ❌ Request failed: ${request.method()} ${request.url()} | Error: ${request.failure()?.errorText}`);
+    });
+
+    page.on('console', msg => {
+      console.log(`   🖥️ Browser Console [${msg.type()}]: ${msg.text()}`);
+    });
 
     await loginBtn.click();
     console.log('   Click realizado, esperando respuesta...');
