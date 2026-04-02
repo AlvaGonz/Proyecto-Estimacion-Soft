@@ -95,6 +95,7 @@ export const test = base.extend<{
   adminPage: Page;
   facilitadorPage: Page;
   expertPage: Page;
+  expert2Page: Page;
 }>({
   adminPage: async ({ browser, baseURL }, use) => {
     const { page, context } = await createAuthenticatedContext(
@@ -126,6 +127,14 @@ export const test = base.extend<{
   expertPage: async ({ browser, baseURL }, use) => {
     const { page, context } = await createAuthenticatedContext(
       browser, baseURL, TEST_USERS.expert1, 'expert'
+    );
+    await use(page);
+    await context.close();
+  },
+
+  expert2Page: async ({ browser, baseURL }, use) => {
+    const { page, context } = await createAuthenticatedContext(
+      browser, baseURL, { email: 'e2e.expert2@uce.edu.do', password: 'TestPass1' }, 'expert2'
     );
     await use(page);
     await context.close();
