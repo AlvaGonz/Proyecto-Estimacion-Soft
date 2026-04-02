@@ -48,7 +48,7 @@ async function createAuthenticatedContext(
   user: { email: string; password: string },
   role: string
 ): Promise<{ page: Page; context: import('@playwright/test').BrowserContext }> {
-  const apiBaseURL = (baseURL ?? 'http://127.0.0.1:3001').replace('3001', '4000') + BASE_API_SUFFIX;
+  const apiBaseURL = (baseURL ?? 'http://127.0.0.1:3001').replace(/:\d+/, ':4000') + BASE_API_SUFFIX;
   const context = await browser.newContext();
   const apiCtx = await request.newContext({ baseURL: apiBaseURL });
 

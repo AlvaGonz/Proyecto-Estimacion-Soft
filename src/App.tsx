@@ -88,6 +88,7 @@ const App: React.FC = () => {
     window.addEventListener('notifications_updated', updateUnreadCount);
 
     const onUnauthorized = () => {
+      localStorage.removeItem('estimapro_auth');
       toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', {
         id: 'session-expired', // Prevent stacking (amontonados)
         duration: 5000

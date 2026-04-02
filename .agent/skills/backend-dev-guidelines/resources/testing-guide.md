@@ -188,10 +188,10 @@ describe('PermissionService', () => {
 
 ```bash
 # Test authenticated endpoint
-node scripts/test-auth-route.js http://localhost:3002/form/api/users
+node scripts/test-auth-route.js http://localhost:3001/form/api/users
 
 # Test with POST data
-node scripts/test-auth-route.js http://localhost:3002/form/api/users POST '{"email":"test@test.com"}'
+node scripts/test-auth-route.js http://localhost:3001/form/api/users POST '{"email":"test@test.com"}'
 ```
 
 ### Mock Authentication in Tests

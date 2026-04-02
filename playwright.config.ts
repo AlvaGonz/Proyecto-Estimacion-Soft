@@ -22,7 +22,7 @@ export default defineConfig({
   reporter: [['html', { open: 'never', outputFolder: 'playwright-report' }]],
 
   use: {
-    baseURL: 'http://127.0.0.1:3002',
+    baseURL: 'http://127.0.0.1:3001',
     storageState,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

@@ -45,19 +45,19 @@ test.describe('Statistical Engine & AI Convergence Verdict', () => {
     });
 
     // We'll navigate to the project/task detail page
-    // In a real app, this would be http://localhost:3002/project/p1/task/t1
-    await page.goto('http://localhost:3002/'); 
+    // In a real app, this would be http://localhost:3001/project/p1/task/t1
+    await page.goto('http://localhost:3001/');
     // Note: We might need to bypass login or mock the auth session
     await page.evaluate(() => {
       localStorage.setItem('estimapro_auth', 'true');
     });
     // Re-navigamos para que tome el localStorage
-    await page.goto('http://localhost:3002/'); 
+    await page.goto('http://localhost:3001/');
   });
 
   test('RF015/RF016: Verify correct statistical calculations for High Convergence', async ({ page }) => {
     const data = statsData.convergenciaAlta;
-    
+
     // Mock the specific round data for high convergence
     await page.route('**/api/projects/*/tasks/*/rounds/*', async route => {
       await route.fulfill({
@@ -96,7 +96,7 @@ test.describe('Statistical Engine & AI Convergence Verdict', () => {
 
     // Trigger viewing the results (mock navigation or click)
     // For this test, we assume we are already on the results view or navigate to it
-    await page.goto('http://localhost:3002/project/p1/task/t1/results');
+    await page.goto('http://localhost:3001/project/p1/task/t1/results');
 
     // Assertions
     await statsPage.verifyMean(data.expected.mean);
@@ -107,7 +107,7 @@ test.describe('Statistical Engine & AI Convergence Verdict', () => {
 
   test('RF020/RF021: Verify handles Low Convergence and reveals Outliers', async ({ page }) => {
     const data = statsData.convergenciaBaja;
-    
+
     // Mock low convergence data
     await page.route('**/api/projects/*/tasks/*/rounds/*', async route => {
       await route.fulfill({
@@ -145,12 +145,12 @@ test.describe('Statistical Engine & AI Convergence Verdict', () => {
       });
     });
 
-    await page.goto('http://localhost:3002/project/p1/task/t1/results');
+    await page.goto('http://localhost:3001/project/p1/task/t1/results');
 
     // Assertions
     await statsPage.verifyCV(data.expected.cv);
     await statsPage.verifyConvergenceLevel('Baja');
-    
+
     // Check if outlier is marked in the comparison view (visual check or text)
     // As per EstimationCharts.tsx, outliers are marked in AnonymousComparisonView
     await expect(page.locator('text=* Valores atípicos marcados en naranja')).toBeVisible();

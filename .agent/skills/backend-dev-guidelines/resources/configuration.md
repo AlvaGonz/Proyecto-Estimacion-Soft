@@ -134,7 +134,7 @@ export const config: UnifiedConfig = {
         database: iniConfig.database?.database || process.env.DB_NAME || 'blog_dev',
     },
     server: {
-        port: parseInt(iniConfig.server?.port || process.env.PORT || '3002'),
+        port: parseInt(iniConfig.server?.port || process.env.PORT || '3001'),
         sessionSecret: iniConfig.server?.sessionSecret || process.env.SESSION_SECRET || 'dev-secret',
     },
     // ... more configuration
@@ -168,7 +168,7 @@ password = password1
 database = blog_dev
 
 [server]
-port = 3002
+port = 3001
 sessionSecret = your-secret-here
 
 [tokens]

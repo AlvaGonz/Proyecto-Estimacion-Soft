@@ -8,7 +8,7 @@
 ## Error Discoveries
 - **Module Import Error:** [RESOLVED] Fixed `PermissionGate.tsx` import.
 - **Docker Failure:** Missing `.env.docker`. `docker-compose.yml` expects this file for backend and seeder services.
-- **Port Conflict:** App was running on different ports (3001, 3002). User requires persistent 3001.
+- **Port Conflict:** App was running on different ports (3001, 3001). User requires persistent 3001.
 
 ## Proposed Fixes
 - [x] Fix `round.service.ts` build error (Removed unnecessary `.toJSON()` in service layer to avoid IRound/Document type mismatch).

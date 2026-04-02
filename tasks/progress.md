@@ -4,7 +4,7 @@
 
 ### Phase 2: Bug Fixes
 - Fixed import path in `src/shared/components/PermissionGate.tsx` (`../../utils/rbac` -> `../utils/rbac`).
-- Verified application bootstrap on `localhost:3002`.
+- Verified application bootstrap on `localhost:3001`.
 
 ### Phase 3: Code Review
 - Reviewed `ProjectForm`, `ProjectList`, `TeamPanel`, and `api/index.ts`.
