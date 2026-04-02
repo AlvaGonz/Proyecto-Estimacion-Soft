@@ -75,19 +75,27 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-        throw ApiError.unauthorized('No autenticado');
-    }
-
-    await authService.logout(req.user.id);
-
-    // Clear the httpOnly cookie
+    // Clear the httpOnly cookies regardless of auth status
+    res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'strict' as const,
+        path: '/',
+    });
+    
     res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'strict' as const,
         path: '/',
     });
+
+    // Only attempt DB invalidation if we have a user
+    if (req.user) {
+        await authService.logout(req.user.id).catch(err => {
+            console.error('[Logout] Failed to invalidate session in DB:', err.message);
+        });
+    }
 
     res.json({
         success: true,

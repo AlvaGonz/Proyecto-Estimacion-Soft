@@ -22,6 +22,8 @@ const normalizeEndpoint = (endpoint: string) => endpoint.startsWith('/') ? endpo
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
+let lastUnauthorizedEvent = 0;
+const THROTTLE_MS = 2000;
 
 async function fetchWithConfig<T>(endpoint: string, options: RequestInit = {}, retries = 1): Promise<ApiResponse<T>> {
     const baseURL = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000/api';
@@ -50,7 +52,7 @@ async function fetchWithConfig<T>(endpoint: string, options: RequestInit = {}, r
         }
 
         // Handle 401 Unauthorized
-        if (response.status === 401 && retries > 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+        if (response.status === 401 && retries > 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register') && !endpoint.includes('/auth/logout')) {
             if (!isRefreshing) {
                 isRefreshing = true;
                 refreshPromise = fetch(`${baseURL}/auth/refresh`, { method: 'POST', credentials: 'include' })
@@ -67,7 +69,11 @@ async function fetchWithConfig<T>(endpoint: string, options: RequestInit = {}, r
                 return fetchWithConfig<T>(endpoint, options, 0);
             } else {
                 // Global handle 401: emitting event for App.tsx to catch
-                window.dispatchEvent(new Event('auth:unauthorized'));
+                const now = Date.now();
+                if (now - lastUnauthorizedEvent > THROTTLE_MS) {
+                    lastUnauthorizedEvent = now;
+                    window.dispatchEvent(new Event('auth:unauthorized'));
+                }
                 throw new ApiError(401, 'Session expired', responseData);
             }
         }
@@ -85,8 +91,12 @@ async function fetchWithConfig<T>(endpoint: string, options: RequestInit = {}, r
         if (error instanceof ApiError) {
             // Already emitting above if it's the specific refresh failure path,
             // but let's also catch simple 401s if retries were 0
-            if (error.status === 401 && !endpoint.includes('/auth/login')) {
-                window.dispatchEvent(new Event('auth:unauthorized'));
+            if (error.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/logout')) {
+                const now = Date.now();
+                if (now - lastUnauthorizedEvent > THROTTLE_MS) {
+                    lastUnauthorizedEvent = now;
+                    window.dispatchEvent(new Event('auth:unauthorized'));
+                }
             }
             throw error;
         }

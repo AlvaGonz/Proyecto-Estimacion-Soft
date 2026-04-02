@@ -25,5 +25,12 @@ export const roundService = {
                 recommendation: response.convergence.recommendation
             }
         };
+    },
+
+    async saveAnalysis(roundId: string, analysis: ConvergenceAnalysis): Promise<Round> {
+        return fetchApi<Round>(`/rounds/${roundId}/analysis`, {
+            method: 'PUT',
+            body: { analysis }
+        });
     }
 };

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { openRound, closeRound, getRoundsByTask } from '../controllers/round.controller.js';
+import { openRound, closeRound, getRoundsByTask, updateRoundAnalysis } from '../controllers/round.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
@@ -26,6 +26,12 @@ router.post(
     '/:id/close',
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     closeRound
+);
+
+router.put(
+    '/:id/analysis',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    updateRoundAnalysis
 );
 
 // We will export an additional router specifically for nested project requests.

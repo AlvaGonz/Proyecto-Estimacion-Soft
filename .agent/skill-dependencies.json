@@ -1,0 +1,6 @@
+{
+  "estimation-flow":  ["jwt-validation", "room-management"],
+  "vote-reveal":      ["estimation-flow"],
+  "admin-actions":    ["jwt-validation"],
+  "room-management":  ["jwt-validation"]
+}

@@ -198,3 +198,93 @@ LESSON:
   date: 2024-01-01
   evolved_from: null
 ---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Backend Development
+  pattern: Separate frontend and backend logic clearly.
+  severity: HIGH
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Security
+  pattern: Implement JWT on protected API routes.
+  severity: HIGH
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Access Control
+  pattern: Enforce RBAC at controller level.
+  severity: HIGH
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Auditing
+  pattern: Log state-changing operations.
+  severity: MEDIUM
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Data Integrity
+  pattern: Validate estimation rounds immutability.
+  severity: MEDIUM
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Concurrency Control
+  pattern: Implement method lock after Round 1 starts.
+  severity: MEDIUM
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Testing
+  pattern: Provide test coverage and code complexity metrics.
+  severity: MEDIUM
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Code Quality
+  pattern: Remove console.log statements from production code.
+  severity: LOW
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Version Control
+  pattern: Use Conventional Commits and commit message standards.
+  severity: LOW
+  date: 2024-03-16
+  evolved_from: null
+---
+---
+LESSON:
+  task_hash: ab29123d8845
+  skill: Security
+  pattern: Keep secrets out of git repository.
+  severity: LOW
+  date: 2024-03-16
+  evolved_from: null
+---

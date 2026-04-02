@@ -11,7 +11,7 @@ const envSchema = z.object({
     JWT_REFRESH_SECRET: z.string().min(32),
     JWT_ACCESS_EXPIRY: z.string().default('15m'),
     JWT_REFRESH_EXPIRY: z.string().default('7d'),
-    ALLOWED_ORIGINS: z.string().transform((s) => s.split(',')),
+    ALLOWED_ORIGINS: z.string().transform((s) => s.split(',').map(o => o.trim())),
     RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'),
     RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
 });

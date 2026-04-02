@@ -48,7 +48,7 @@ export async function loginAs(page: Page, _user: keyof typeof USERS = 'facilitat
     await page.locator('#email').waitFor({ state: 'visible', timeout: 15_000 });
     await page.locator('#email').fill(creds.email);
     await page.locator('#password').fill(creds.password);
-    await page.getByRole('button', { name: /entrar al sistema|ingresar|acceder/i }).click();
+    await page.getByRole('button', { name: /ingresar al sistema/i }).click();
 
     // SPA: no hay navegación real, esperamos a un indicador de éxito
     await expect(
@@ -90,6 +90,13 @@ export async function dismissOnboardingIfPresent(page: Page): Promise<void> {
 
 export async function loginAndGoTo(page: Page, user: keyof typeof USERS, section: string) {
   await loginAs(page, user);
+
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width < 1024) {
+    await page.getByLabel('Abrir menú').click();
+    await page.locator('aside').first().waitFor({ state: 'visible', timeout: 3_000 });
+  }
+
   if (section === 'proyectos') {
     await page.getByRole('button', { name: /proyectos/i }).click();
   } else if (section === 'dashboard') {

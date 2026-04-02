@@ -26,8 +26,8 @@ router.post(
 // POST /api/auth/refresh — Refresh access token (uses httpOnly cookie, no rate limit)
 router.post('/refresh', refresh);
 
-// POST /api/auth/logout — Logout (requires authentication)
-router.post('/logout', authenticate, logout);
+// POST /api/auth/logout — Logout (requires clear regardless of auth status)
+router.post('/logout', logout);
 
 // GET /api/auth/me — Get current authenticated user
 router.get('/me', authenticate, getMe);

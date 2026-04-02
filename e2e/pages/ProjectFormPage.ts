@@ -1,76 +1,81 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export class ProjectFormPage {
   readonly page: Page;
-  readonly nameInput: Locator;
-  readonly descriptionInput: Locator;
-  readonly nextButton: Locator;
-  readonly prevButton: Locator;
-  readonly submitButton: Locator;
-  readonly addTaskButton: Locator;
+  readonly newSessionBtn: Locator;
+  readonly projectNameInput: Locator;
+  readonly projectDescInput: Locator;
+  readonly nextBtn: Locator;
+  readonly finishBtn: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.nameInput = page.locator('#projectName');
-    this.descriptionInput = page.locator('#projectDesc');
-    // Using regex for Spanish labels
-    this.nextButton = page.getByRole('button', { name: /siguiente/i });
-    this.prevButton = page.getByRole('button', { name: /anterior|revisar/i });
-    this.submitButton = page.getByRole('button', { name: /crear proyecto/i });
-    this.addTaskButton = page.getByRole('button', { name: /agregar tarea/i });
+    this.newSessionBtn = page.getByRole('button', { name: /nueva sesión/i });
+    this.projectNameInput = page.locator('#projectName');
+    this.projectDescInput = page.locator('#projectDesc');
+    this.nextBtn = page.getByRole('button', { name: /siguiente/i });
+    this.finishBtn = page.getByRole('button', { name: /finalizar/i });
   }
 
-  async fillGeneralInfo(name: string, description: string, unit: 'hours' | 'storyPoints' | 'days' = 'hours') {
-    await this.nameInput.fill(name);
-    await this.descriptionInput.fill(description);
-    
-    // Select unit if not default
-    if (unit !== 'hours') {
-      const unitLabel = unit === 'storyPoints' ? 'Puntos' : 'Días';
-      await this.page.click(`button:has-text("${unitLabel}")`);
-    }
-    
-    await this.nextButton.click();
+  async openWizard() {
+    await this.newSessionBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await this.newSessionBtn.first().click();
+    await this.projectNameInput.waitFor({ state: 'visible', timeout: 8000 });
+  }
+
+  async fillIdentity(name: string, description: string) {
+    await this.projectNameInput.fill(name);
+    await this.projectDescInput.fill(description);
+    await this.nextBtn.first().click();
+    await this.page.waitForTimeout(600); // Wait for transition
   }
 
   async selectMethod(method: string) {
-    // Labels in UI: "Wideband Delphi", "Planning Poker", "Tres Puntos (PERT)"
-    await this.page.click(`button:has-text("${method}")`);
-    await this.nextButton.click();
+    // En ProjectForm.tsx, las opciones del método son botones con el label (Wideband Delphi, etc.)
+    const methodBtn = this.page.getByRole('button', { name: new RegExp(method, 'i') });
+    await methodBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await methodBtn.click();
+    await this.nextBtn.first().click();
+    await this.page.waitForTimeout(500);
   }
 
-  async configureMethod() {
-    // Step 3 usually has configuration options. For now we just proceed.
-    await expect(this.page.getByText(/Config/i)).toBeVisible();
-    await this.nextButton.click();
+  async configureParams() {
+    // Paso 3: Config/Parámetros (asumimos valores por defecto del Wideband Delphi)
+    await expect(this.page.getByText(/configuración:/i)).toBeVisible({ timeout: 5000 });
+    await this.nextBtn.first().click();
+    await this.page.waitForTimeout(400);
   }
 
-  async addTasks(tasks: { title: string, description: string }[]) {
-    for (let i = 0; i < tasks.length; i++) {
-      // Target the Nth input/textarea since previous tasks stay in the DOM
-      await this.page.locator('input[placeholder*="Título"]').nth(i).fill(tasks[i].title);
-      await this.page.locator('textarea[placeholder*="Descripción"]').nth(i).fill(tasks[i].description);
-      
-      if (i < tasks.length - 1) {
-        await this.addTaskButton.click();
-      }
-    }
-    await this.nextButton.click();
-  }
-
-  async assignExpertsAndSubmit(expertNames: string[]) {
-    // Wait for experts to load (ensure at least one expert from our list is visible)
-    if (expertNames.length > 0) {
-      await this.page.waitForSelector(`text=${expertNames[0]}`, { state: 'visible' });
-    }
+  async defineInitialTasks(tasks: { title: string; desc: string }[]) {
+    // Paso 4: Tareas
+    await expect(this.page.getByText(/tareas a estimar/i)).toBeVisible({ timeout: 5000 });
     
-    for (const name of expertNames) {
-      await this.page.click(`text=${name}`);
+    for (let i = 0; i < tasks.length; i++) {
+        const taskInputs = this.page.locator('input[placeholder*="Título"]');
+        const taskDescs = this.page.locator('textarea[placeholder*="Descripción"]');
+        
+        await taskInputs.nth(i).waitFor({ state: 'visible', timeout: 5000 });
+        await taskInputs.nth(i).fill(tasks[i].title);
+        await taskDescs.nth(i).fill(tasks[i].desc);
+      
+        if (i < tasks.length - 1) {
+            await this.page.getByRole('button', { name: /agregar tarea/i }).click();
+            await this.page.waitForTimeout(200);
+        }
     }
-    await this.submitButton.click();
+
+    await this.nextBtn.first().click();
+    await this.page.waitForTimeout(600);
   }
 
-  async cancel() {
-    await this.page.getByLabel(/cancelar/i).click();
+  async finishWizard() {
+    // En ProjectForm.tsx, el botón es "Crear Proyecto"
+    const createBtn = this.page.getByRole('button', { name: /crear proyecto/i });
+    await createBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await expect(createBtn).toBeEnabled({ timeout: 5000 });
+    await createBtn.click();
+    
+    // Wait for the wizard to close and back to projects list
+    await expect(this.page.getByText('Sesiones')).toBeVisible({ timeout: 15_000 });
   }
 }

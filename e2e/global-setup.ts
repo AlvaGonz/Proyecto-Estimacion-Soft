@@ -13,8 +13,8 @@ export const AUTH_FILE = path.join(AUTH_DIR, 'facilitator.json');
 // ⚠️ TRAILING SLASH obligatorio en baseURL:21
 // Sin slash: 'http://localhost:4000/api' + '/auth/login' → :4000/auth/login  ❌
 // Con slash: 'http://localhost:4000/api/' + 'auth/login' → :4000/api/auth/login ✅
-const BASE_API = 'http://localhost:4000/api/';
-const BASE_URL = 'http://localhost:3001';
+const BASE_API = 'http://127.0.0.1:4000/api/';
+const BASE_URL = 'http://127.0.0.1:3001';
 
 const ADMIN = { email: 'admin@uce.edu.do', password: 'password123' };
 const FACILITATOR = { email: 'aalvarez@uce.edu.do', password: 'password123' };
@@ -61,7 +61,7 @@ async function globalSetup(_config: FullConfig) {
   // 1. Verificar servidores ────────────────────────────────────────────────────
   console.log('\n🔍 Verificando servidores...');
   await verifyServer('Backend (Express :4000)', `${BASE_API}health`);
-  await verifyServer('Frontend (Vite :3002)', BASE_URL);
+  await verifyServer('Frontend (Vite :3001)', BASE_URL);
 
   // 2. Crear expertos E2E via Admin API ────────────────────────────────────────
   console.log('\n👥 Preparando expertos E2E...');
@@ -103,8 +103,8 @@ async function globalSetup(_config: FullConfig) {
 
   await page.goto(BASE_URL);
   console.log('   Navegado a:', page.url());
-  await page.waitForLoadState('networkidle');
-  console.log('   Network idle reached. URL:', page.url());
+  await page.waitForLoadState('load');
+  console.log('   Load state reached. URL:', page.url());
 
   // Capturar vista inicial para debug si estamos atrapados en spinner
   const content = await page.content();
@@ -130,9 +130,24 @@ async function globalSetup(_config: FullConfig) {
   try {
     // Esperar la respuesta del POST login
     const loginResponsePromise = page.waitForResponse(
-      res => res.url().includes('/auth/login') && res.request().method() === 'POST',
-      { timeout: 10_000 }
+      res => (res.url().includes('/auth/login') || res.url().includes('login')) && res.request().method() === 'POST',
+      { timeout: 15_000 }
     );
+
+    // Logging all requests for debug
+    page.on('request', request => {
+      if (request.url().includes('api')) {
+        console.log(`   📡 Request started: ${request.method()} ${request.url()}`);
+      }
+    });
+
+    page.on('requestfailed', request => {
+      console.log(`   ❌ Request failed: ${request.method()} ${request.url()} | Error: ${request.failure()?.errorText}`);
+    });
+
+    page.on('console', msg => {
+      console.log(`   🖥️ Browser Console [${msg.type()}]: ${msg.text()}`);
+    });
 
     await loginBtn.click();
     console.log('   Click realizado, esperando respuesta...');

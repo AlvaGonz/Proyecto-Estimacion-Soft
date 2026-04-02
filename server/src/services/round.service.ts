@@ -152,5 +152,25 @@ export const roundService = {
             throw ApiError.badRequest('ID de tarea inválido');
         }
         return await Round.find({ taskId }).sort({ roundNumber: 1 });
+    },
+
+    async updateAnalysis(roundId: string, analysis: any, requesterId: string): Promise<IRound> {
+        const round = await Round.findById(roundId);
+        if (!round) {
+            throw ApiError.notFound('Ronda no encontrada');
+        }
+
+        round.analysis = analysis;
+        await round.save();
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'round:analysis:update',
+            resource: 'Round',
+            resourceId: round.id,
+            details: { analysis }
+        });
+
+        return round;
     }
 };

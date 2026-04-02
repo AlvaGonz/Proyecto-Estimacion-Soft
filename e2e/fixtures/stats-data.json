@@ -1,0 +1,31 @@
+{
+  "convergenciaAlta": {
+    "estimations": [
+      { "id": "e1", "value": 10, "label": "Experto A" },
+      { "id": "e2", "value": 11, "label": "Experto B" },
+      { "id": "e3", "value": 10, "label": "Experto C" },
+      { "id": "e4", "value": 10, "label": "Experto D" }
+    ],
+    "expected": {
+      "mean": 10.25,
+      "median": 10.00,
+      "cv": 4.65,
+      "level": "Alta"
+    }
+  },
+  "convergenciaBaja": {
+    "estimations": [
+      { "id": "e1", "value": 5, "label": "Experto A" },
+      { "id": "e2", "value": 10, "label": "Experto B" },
+      { "id": "e3", "value": 20, "label": "Experto C" },
+      { "id": "e4", "value": 100, "label": "Experto D" }
+    ],
+    "expected": {
+      "mean": 33.75,
+      "median": 15.00,
+      "cv": 115.11,
+      "level": "Baja",
+      "outliers": ["e4"]
+    }
+  }
+}

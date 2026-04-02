@@ -41,6 +41,11 @@ const roundSchema = new Schema<IRound>(
         },
         stats: {
             type: roundStatsSchema
+        },
+        analysis: {
+            level: { type: String, enum: ['Alta', 'Media', 'Baja'] },
+            recommendation: { type: String },
+            aiInsights: { type: String }
         }
     },
     {
@@ -62,12 +67,13 @@ roundSchema.index({ taskId: 1, roundNumber: 1 }, { unique: true });
 
 // Immutability Hook: Cannot modify a closed round
 roundSchema.pre('save', function (next) {
-    if (this.isModified() && this.status === ROUND_STATUS.CLOSED && !this.isModified('status') && !this.isModified('endTime') && !this.isModified('stats')) {
+    if (this.isModified() && this.status === ROUND_STATUS.CLOSED && !this.isModified('status') && !this.isModified('endTime') && !this.isModified('stats') && !this.isModified('analysis')) {
         // Allow the transition TO closed (modifying status, endTime, stats simultaneously)
-        // But if it's ALREADY closed and we're trying to modify something else, block it.
+        // Or modifying analysis after it's closed.
+        // But block other changes.
         const originalDoc = this.toObject(); // Just checking logic
         if (originalDoc.status === ROUND_STATUS.CLOSED) {
-            return next(ApiError.forbidden('Una ronda cerrada no puede ser modificada') as any);
+            return next(ApiError.forbidden('Una ronda cerrada no puede ser modificada (excepto el análisis)') as any);
         }
     }
     next();

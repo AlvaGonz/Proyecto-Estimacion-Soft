@@ -110,19 +110,42 @@ export const calculateExpertAccuracy = (
  * Gets a global summary of performance metrics for the admin panel.
  */
 export const getAdminMetricsSummary = (
-  projects: Project[],
-  tasks: Task[],
-  roundsByTask: Record<string, Round[]>
+  projects: Project[] = [],
+  tasks: Task[] = [],
+  roundsByTask: Record<string, Round[]> = {}
 ) => {
-  // Simplification for global view: 
-  // participation = average of all projects
-  // consensus = average of all projects
-  // rounds = average of all tasks
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+  const safeRoundsByTask = roundsByTask || {};
+
+  const activeProjects = safeProjects.filter(p => p && !p.isDeleted);
+
   
+  // 1. Participation Rate
+  const participationRates = activeProjects
+    .map(p => {
+      const projectTasks = safeTasks.filter(t => t && t.projectId === p.id);
+      const projectRounds = projectTasks.flatMap(t => safeRoundsByTask[t.id] || []);
+      return projectRounds.length > 0 ? calculateParticipationRate(p, projectRounds) : null;
+    })
+    .filter((rate): rate is number => rate !== null);
+  
+  const avgParticipation = participationRates.length > 0
+    ? participationRates.reduce((a, b) => a + b, 0) / participationRates.length
+    : 0;
+
+  // 2. Consensus Index
+  const allRounds = Object.values(safeRoundsByTask).flat();
+  const consensusIndex = calculateConsensusIndex(allRounds);
+
+  // 3. Average Rounds
+  const avgRounds = calculateAverageRounds(safeTasks, safeRoundsByTask);
+
+
   return {
-    participationRate: 85.5, // Mock until we have all projects data if needed
-    consensusIndex: 92.1,
-    avgRounds: 2.4,
-    activeSessions: projects.filter(p => p.status === 'active').length
+    participationRate: parseFloat(avgParticipation.toFixed(1)),
+    consensusIndex,
+    avgRounds,
+    activeSessions: activeProjects.filter(p => p.status === 'active' || p.status === 'kickoff').length
   };
 };

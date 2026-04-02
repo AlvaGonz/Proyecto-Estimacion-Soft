@@ -52,3 +52,12 @@ __pycache__/
 groq_test.py
 autogen_test.py
 crewai_test.py
+.agent/loop-locks
+.agent/loop-run-counter.txt
+.agent/pending-approvals.md
+.agent/loop-telemetry.md
+.agent/lessons.md
+.agent/error-patterns.md
+.agent/skill-fitness-log.md
+.agent/loop-log.md
+tasks/golden-fixtures

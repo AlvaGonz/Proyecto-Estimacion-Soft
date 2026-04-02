@@ -111,7 +111,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
           )}
 
           {/* Register Form */}
-          <form onSubmit={handleRegister} className="space-y-6">
+          <form onSubmit={handleRegister} className="space-y-6" noValidate>
             <div className="space-y-5">
               {/* Name Field */}
               <div className="space-y-2">
