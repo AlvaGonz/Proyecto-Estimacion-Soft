@@ -29,9 +29,15 @@ export const useRounds = (projectId: string, taskId: string): UseRoundsResult =>
   }, []);
 
   useEffect(() => {
-    projectService.getProject(projectId).then(p => {
-      if (isMounted.current) setTotalExperts(p.expertIds?.length || 0);
-    });
+    projectService.getProject(projectId)
+      .then(p => {
+        if (isMounted.current) setTotalExperts(p.expertIds?.length || 0);
+      })
+      .catch(err => {
+        if (err.status !== 401) {
+          console.error("Error loading project in useRounds", err);
+        }
+      });
   }, [projectId]);
 
   const loadRounds = useCallback(async (showSpinner = true) => {

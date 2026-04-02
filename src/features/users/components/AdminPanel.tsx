@@ -18,7 +18,11 @@ import {
    Calendar,
    FolderArchive,
    RotateCcw,
-   Trash2
+   Trash2,
+   Edit,
+   Mail,
+   User as UserIcon,
+   History as HistoryIcon
 } from 'lucide-react';
 import { UserRole, User as AppUser, Round, Task, Project } from '../../../types';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
@@ -27,7 +31,7 @@ import { projectService } from '../../projects/services/projectService';
 import { notificationService } from '../../notifications/services/notificationService';
 import { taskService } from '../../tasks/services/taskService';
 import { roundService } from '../../rounds/services/roundService';
-import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds } from '../../../shared/utils/performanceMetrics';
+import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds, getAdminMetricsSummary } from '../../../shared/utils/performanceMetrics';
 
 // Role badge colors matching existing design tokens
 const roleBadgeClass = (role: string) => {
@@ -115,7 +119,114 @@ const CreateUserModal: React.FC<UserModalProps> = ({ onClose, onSave, isLoading,
    );
 };
 
+interface EditUserModalProps {
+  user: AdminUser;
+  onClose: () => void;
+  onSave: (data: { name: string; role: string; isActive: boolean }) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave, isLoading, error }) => {
+  const [form, setForm] = useState({
+    name: user.name,
+    role: user.role,
+    isActive: user.isActive,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSave(form);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-user-title"
+    >
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 id="edit-user-title" className="text-2xl font-black text-slate-900">Editar Usuario</h3>
+          <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+            <X className="w-5 h-5 text-slate-400" />
+          </button>
+        </div>
+        <p className="text-slate-400 text-sm font-bold">Actualice la información del perfil y rol.</p>
+
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-bold">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="edit-user-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre</label>
+            <input
+              id="edit-user-name"
+              type="text"
+              required
+              minLength={2}
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-delphi-keppel/30 outline-none transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email</label>
+            <input
+              type="email"
+              value={user.email}
+              disabled
+              className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-sm text-slate-400 cursor-not-allowed"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="edit-user-role" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rol</label>
+            <select
+              id="edit-user-role"
+              value={form.role}
+              onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-delphi-keppel/30 outline-none transition-all"
+            >
+              <option value="experto">Experto</option>
+              <option value="facilitador">Facilitador</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="edit-user-status" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estado</label>
+            <select
+              id="edit-user-status"
+              value={form.isActive ? 'activo' : 'inactivo'}
+              onChange={e => setForm(f => ({ ...f, isActive: e.target.value === 'activo' }))}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-delphi-keppel/30 outline-none transition-all"
+            >
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-3 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all">
+              Cancelar
+            </button>
+            <button type="submit" disabled={isLoading}
+              className="flex-1 py-3 rounded-2xl bg-delphi-keppel text-white text-sm font-black shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+              {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Component ---
+
 interface AdminPanelProps {
    currentUser?: AppUser | null;
 }
@@ -128,8 +239,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    const [error, setError] = useState<string | null>(null);
    const [roleFilter, setRoleFilter] = useState<string>('');
    const [showInactive, setShowInactive] = useState(false);
-   const [showCreateModal, setShowCreateModal] = useState(false);
-   const [modalLoading, setModalLoading] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+    const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     
@@ -162,32 +274,56 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    }, [activeTab, roleFilter, showInactive]);
 
    const loadProjects = useCallback(async () => {
-      if (activeTab !== 'projects' && activeTab !== 'users') return;
       try {
          setIsLoading(true);
          setError(null);
          const data = await adminService.listProjects();
-         setProjects(data);
+         setProjects(Array.isArray(data) ? data : []);
 
-         // Summary metrics based on projects data
-         const activeProj = data.filter(p => !p.isDeleted && p.status === 'active');
-         const finishedProj = data.filter(p => !p.isDeleted && p.status === 'finished');
-         
-         // We'll use more efficient metrics calculation if needed, 
-         // but for now, let's keep it simple and fix the infinite loops or heavy processing
-         setMetrics(prev => ({
-            ...prev,
-            activeSessions: activeProj.length,
-            // These would ideally come from a simplified stats endpoint or be calculated once
-            // Consensus and Participation require fetching tasks/rounds which is heavy in a loop
-         }));
+         if (activeTab === 'users' || activeTab === 'projects') {
+            const activeProj = (Array.isArray(data) ? data : []).filter(p => p && !p.isDeleted);
+            
+            if (activeProj.length === 0) {
+               setMetrics(getAdminMetricsSummary([], [], {}));
+               return;
+            }
 
+            const allTasksPromises = activeProj.map(p => 
+               taskService.getTasks(p.id).catch(e => {
+                  console.error(`Error loading tasks for project ${p.id}`, e);
+                  return [];
+               })
+            );
+            const tasksArrays = await Promise.all(allTasksPromises);
+            const allTasks = tasksArrays.flat();
+            setTasks(allTasks);
+
+            const roundsMap: Record<string, Round[]> = {};
+            const roundPromises = allTasks.map(async (task) => {
+               try {
+                  const rounds = await roundService.getRoundsByTask(task.projectId, task.id);
+                  roundsMap[task.id] = rounds || [];
+               } catch (e) {
+                  console.error(`Error loading rounds for task ${task.id}`, e);
+                  roundsMap[task.id] = [];
+               }
+            });
+            
+            await Promise.all(roundPromises);
+            setRoundsByTask(roundsMap);
+
+            const summary = getAdminMetricsSummary(data, allTasks, roundsMap);
+            setMetrics(summary);
+         }
       } catch (err: any) {
+         console.error('AdminPanel: Error loading projects or metrics', err);
          setError(err.message || 'Error al cargar proyectos');
+         setMetrics(getAdminMetricsSummary([], [], {}));
       } finally {
          setIsLoading(false);
       }
    }, [activeTab]);
+
 
    useEffect(() => {
       if (activeTab === 'users') {
@@ -198,6 +334,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       if (activeTab === 'projects') loadProjects();
       if (activeTab === 'settings') setIsLoading(false);
    }, [activeTab, loadUsers, loadProjects]);
+
+   const handleEditUser = async (data: { name: string; role: string; isActive: boolean }) => {
+      if (!editingUser) return;
+      setModalLoading(true);
+      setModalError(null);
+      try {
+         await adminService.updateUser(editingUser.id || editingUser._id || '', data);
+         setEditingUser(null);
+         setSuccessMessage(`Usuario ${data.name} actualizado exitosamente.`);
+         setTimeout(() => setSuccessMessage(null), 4000);
+         await loadUsers();
+      } catch (err: any) {
+         setModalError(err.message || 'Error al actualizar usuario');
+      } finally {
+         setModalLoading(false);
+      }
+   };
 
    const handleCreateUser = async (data: { name: string; email: string; password: string; role: string }) => {
       setModalLoading(true);
@@ -284,6 +437,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             />
          )}
 
+         {editingUser && (
+            <EditUserModal
+               user={editingUser}
+               onClose={() => { setEditingUser(null); setModalError(null); }}
+               onSave={handleEditUser}
+               isLoading={modalLoading}
+               error={modalError}
+            />
+         )}
+
          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
             <div className="flex items-center gap-8">
                <div className="bg-delphi-giants p-4 rounded-3xl shadow-xl shadow-delphi-giants/20">
@@ -347,7 +510,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden relative group">
                <div className="flex items-center gap-4 relative z-10">
                   <div className="bg-delphi-orange/10 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                     <History className="w-6 h-6 text-delphi-orange" />
+                     <HistoryIcon className="w-6 h-6 text-delphi-orange" />
                   </div>
                   <div>
                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promedio Rondas</p>
@@ -371,7 +534,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                   </div>
                </div>
                <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-white/60 bg-white/10 px-3 py-1 rounded-full w-fit">
-                  <LoadingSpinner size="sm" /> Monitoreo en Tiempo Real
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  Monitoreo en Tiempo Real
                </div>
                <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/5 rounded-tl-full -mr-16 -mb-16 transition-all group-hover:scale-150" />
             </div>
@@ -404,7 +568,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                   <button id="btn-nuevo-usuario" onClick={() => setShowCreateModal(true)}
                      className="flex items-center gap-3 px-6 py-3 bg-delphi-giants text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-delphi-giants/20 hover:scale-[1.02] active:scale-95 transition-all">
                      <UserPlus className="w-4 h-4" />
-                     Nuevo Usuario
+                     Crear Nuevo Usuario
                   </button>
                </div>
  
@@ -446,7 +610,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                            {users.map(user => {
                               const isSelf = currentUser?.id === (user.id || user._id);
                               return (
-                                 <tr key={user.id || user._id} className="hover:bg-slate-50 transition-colors group">
+                                 <tr key={user.id || user._id} className="user-row hover:bg-slate-50 transition-colors group">
                                     <td className="px-8 py-6">
                                        <div className="flex items-center gap-4">
                                           <div className="w-12 h-12 rounded-2xl bg-gradient-delphi flex items-center justify-center font-black text-white text-lg shadow-inner">
@@ -470,7 +634,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                        </div>
                                     </td>
                                     <td className="px-8 py-6 text-right">
-                                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       <div className="flex items-center justify-end gap-2 group-hover:bg-slate-100/50 p-1 rounded-xl transition-all">
+                                          <button
+                                             aria-label={`editar ${user.name}`}
+                                             title="Editar usuario"
+                                             onClick={() => setEditingUser(user)}
+                                             className="p-2.5 rounded-xl bg-slate-100 text-slate-400 hover:text-delphi-keppel transition-all focus:opacity-100 outline-none">
+                                             <UserCheck className="w-4 h-4" />
+                                          </button>
                                           {user.isActive && (
                                              <button
                                                 aria-label={`Desactivar ${user.name}`}

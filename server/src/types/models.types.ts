@@ -85,6 +85,11 @@ export interface IRound extends Document {
     startTime: Date;
     endTime?: Date;
     stats?: IRoundStats;
+    analysis?: {
+        level: 'Alta' | 'Media' | 'Baja';
+        recommendation: string;
+        aiInsights?: string;
+    };
     createdAt: Date;
     updatedAt: Date;
 }

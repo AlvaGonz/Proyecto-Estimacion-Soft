@@ -22,7 +22,6 @@
     "e2e:fresh": "npm run e2e:reset-auth && npm run e2e"
   },
   "dependencies": {
-    "@google/genai": "1.44.0",
     "date-fns": "4.1.0",
     "jspdf": "4.2.1",
     "jspdf-autotable": "5.0.7",

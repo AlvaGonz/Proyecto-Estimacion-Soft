@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 
 export class LoginPage {
   readonly page: Page;
@@ -12,7 +12,7 @@ export class LoginPage {
     this.page = page;
     this.emailInput = page.locator('#email');
     this.passwordInput = page.locator('#password');
-    this.loginButton = page.getByRole('button', { name: /ingresar al sistema|entrar/i });
+    this.loginButton = page.getByRole('button', { name: /ingresar al sistema/i });
     this.emailError = page.locator('#email-error');
     this.passwordError = page.locator('#password-error');
   }

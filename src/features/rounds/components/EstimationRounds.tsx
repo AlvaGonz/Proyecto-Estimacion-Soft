@@ -129,7 +129,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
             
             <RoundAnalysisVerdict 
               isAnalyzing={isAnalyzing} 
-              analysis={analysis} 
+              analysis={analysis || viewedRound?.analysis || null} 
               displayedStats={viewedRound?.stats} 
               isFacilitator={isFacilitator} 
               rounds={rounds} 
@@ -175,7 +175,10 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         <CloseRoundModal 
           isOpen={showCloseConfirmModal} 
           onClose={() => setShowCloseConfirmModal(false)} 
-          onConfirm={() => handleCloseRound(activeRound?.id || '', currentRoundEstimations).then(() => loadRounds(false))} 
+          onConfirm={() => handleCloseRound(activeRound?.id || '', currentRoundEstimations)
+            .then(() => loadRounds(false))
+            .catch(() => { /* handled by alert in hook, but need to catch here to prevent console error */ })
+          } 
           roundNumber={activeRound?.roundNumber || 0} 
           missingExperts={totalExperts - currentRoundEstimations.length} 
         />

@@ -4,6 +4,7 @@ import { Estimation, Round, ConvergenceAnalysis, EstimationMethod } from '../../
 import { estimationService } from '../../estimations/services/estimationService';
 import { roundService } from '../services/roundService';
 import { convergenceService, type ConvergenceResult } from '../../convergence/services/convergenceService';
+import { analyzeConsensus } from '../../convergence/services/aiService';
 import { notificationService } from '../../notifications/services/notificationService';
 import { projectService } from '../../projects/services/projectService';
 import { taskService } from '../../tasks/services/taskService';
@@ -126,13 +127,30 @@ export const useEstimationActions = (
     }
   }, [activeRound, currentUserId, isFacilitator, projectId, taskId, taskTitle, userActiveEstimation]);
 
-  const handleCloseRound = useCallback(async (activeRoundId: string, currentRoundEsts: Estimation[]) => {
+    const handleCloseRound = useCallback(async (activeRoundId: string, currentRoundEsts: Estimation[]) => {
     try {
       setIsAnalyzing(true);
-      const { round, analysis: analysisResult } = await roundService.closeRound(activeRoundId);
+      const { round } = await roundService.closeRound(activeRoundId);
       
+      let aiAnalysisResult: ConvergenceAnalysis | null = null;
+      if (round.stats) {
+        try {
+          aiAnalysisResult = await analyzeConsensus(currentRoundEsts, round.stats, unit);
+          // Save the AI analysis to the server so it's persistent for everyone
+          await roundService.saveAnalysis(activeRoundId, aiAnalysisResult);
+        } catch (aiErr) {
+          console.error("AI Analysis failed:", aiErr);
+          // Fallback to basic convergence analysis handled by roundService.closeRound but refined
+          aiAnalysisResult = {
+            level: round.stats.coefficientOfVariation < 0.15 ? 'Alta' : round.stats.coefficientOfVariation < 0.30 ? 'Media' : 'Baja',
+            recommendation: round.stats.coefficientOfVariation < 0.20 ? 'Consenso alcanzado. Finalice la tarea' : 'Abra una nueva ronda',
+            aiInsights: 'Basado en análisis estadístico local (Falló Gemini)'
+          };
+        }
+      }
+
       if (isMounted.current) {
-        setAnalysis(analysisResult);
+        setAnalysis(aiAnalysisResult);
         const cv = convergenceService.calculateCV(currentRoundEsts);
         const outlierIds = round.stats?.outlierEstimationIds || [];
         const convResult = convergenceService.evaluateConvergence(cv, currentRoundEsts.length, outlierIds.length);
@@ -152,7 +170,7 @@ export const useEstimationActions = (
         });
       } catch (notifErr) { console.warn(notifErr); }
 
-      return { round, analysis: analysisResult };
+      return { round, analysis: aiAnalysisResult };
     } catch (err: any) {
       setErrors({ submit: err.message || 'Failed to close round.' });
       return null;

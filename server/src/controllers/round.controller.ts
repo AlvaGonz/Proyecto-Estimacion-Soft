@@ -47,3 +47,17 @@ export const getRoundsByTask = asyncHandler(async (req: Request, res: Response) 
         data: rounds
     });
 });
+
+export const updateRoundAnalysis = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { analysis } = req.body;
+    const requesterId = req.user?.id as string;
+
+    const round = await roundService.updateAnalysis(id, analysis, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Análisis de ronda guardado exitosamente',
+        data: round
+    });
+});

@@ -43,3 +43,25 @@ export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
     outlierEstimationIds
   };
 };
+
+export const analyzeConvergence = (cv: number) => {
+    if (cv <= 15) {
+        return {
+            level: 'Alta' as const,
+            recommendation: 'Finalizar tarea - Consenso alcanzado',
+            aiInsights: 'La desviación es mínima. El grupo está alineado.'
+        };
+    } else if (cv <= 35) {
+        return {
+            level: 'Media' as const,
+            recommendation: 'Continuar a siguiente ronda si es necesario',
+            aiInsights: 'Hay un consenso moderado, pero persisten discrepancias menores.'
+        };
+    } else {
+        return {
+            level: 'Baja' as const,
+            recommendation: 'Revisar discrepancias - Nueva ronda sugerida',
+            aiInsights: 'Alta dispersión en las estimaciones. Se recomienda discusión abierta.'
+        };
+    }
+};

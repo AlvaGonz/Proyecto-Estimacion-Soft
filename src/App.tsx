@@ -30,6 +30,7 @@ import { projectService } from './features/projects/services/projectService';
 import { EmptyState } from './shared/components/EmptyState';
 import { LoadingSpinner } from './shared/components/LoadingSpinner';
 import { notificationService } from './features/notifications/services/notificationService';
+import { Toaster, toast } from 'react-hot-toast';
 import { Login, RegisterPage, useAuth } from './features/auth';
 
 const STATUS_LABELS = {
@@ -61,7 +62,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      projectService.getProjects().then(setProjects);
+      projectService.getProjects()
+        .then(setProjects)
+        .catch(err => {
+          console.error("Error loading projects on init:", err);
+          if (err.status !== 401) {
+            toast.error('Error al cargar proyectos');
+          }
+        });
     }
   }, [currentUser]);
   useEffect(() => {
@@ -78,8 +86,20 @@ const App: React.FC = () => {
 
     updateUnreadCount();
     window.addEventListener('notifications_updated', updateUnreadCount);
+
+    const onUnauthorized = () => {
+      toast.error('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', {
+        id: 'session-expired', // Prevent stacking (amontonados)
+        duration: 5000
+      });
+      setView('dashboard'); // Reset view to home
+    };
+
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+
     return () => {
       window.removeEventListener('notifications_updated', updateUnreadCount);
+      window.removeEventListener('auth:unauthorized', onUnauthorized);
     };
   }, [currentUser]);
 
@@ -91,18 +111,52 @@ const App: React.FC = () => {
     );
   }
 
+  // Common wrapper for Toaster and global UI elements
+  const AppWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="min-h-screen bg-slate-50 font-inter">
+      <Toaster position="top-right" toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#fff',
+          color: '#334155',
+          borderRadius: '1.5rem',
+          padding: '1rem 1.5rem',
+          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+          fontWeight: '600',
+          border: '1px solid #f1f5f9',
+          zIndex: 9999
+        },
+        success: {
+          iconTheme: { primary: 'hsl(171, 62%, 45%)', secondary: '#fff' }
+        },
+        error: {
+          iconTheme: { primary: 'hsl(15, 95%, 59%)', secondary: '#fff' }
+        }
+      }} />
+      {children}
+    </div>
+  );
+
   if (!currentUser) {
     if (authView === 'register') {
-      return <RegisterPage
-        onRegister={async (u) => {
-          login(u);
-        }}
-        onGoToLogin={() => setAuthView('login')}
-      />;
+      return (
+        <AppWrapper>
+          <RegisterPage
+            onRegister={async (u) => {
+              login(u);
+            }}
+            onGoToLogin={() => setAuthView('login')}
+          />
+        </AppWrapper>
+      );
     }
-    return <Login onGoToRegister={() => setAuthView('register')} onLogin={async (u) => {
-      login(u);
-    }} />;
+    return (
+      <AppWrapper>
+        <Login onGoToRegister={() => setAuthView('register')} onLogin={async (u) => {
+          login(u);
+        }} />
+      </AppWrapper>
+    );
   }
 
   const navigateToProject = (id: string) => {
@@ -197,6 +251,24 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-mesh overflow-hidden text-slate-800 relative font-inter">
+      <Toaster position="top-right" toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#fff',
+          color: '#334155',
+          borderRadius: '1.5rem',
+          padding: '1rem 1.5rem',
+          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+          fontWeight: '600',
+          border: '1px solid #f1f5f9'
+        },
+        success: {
+          iconTheme: { primary: 'hsl(171, 62%, 45%)', secondary: '#fff' }
+        },
+        error: {
+          iconTheme: { primary: 'hsl(15, 95%, 59%)', secondary: '#fff' }
+        }
+      }} />
       {/* Overlay para móvil */}
       {isSidebarOpen && (
         <div

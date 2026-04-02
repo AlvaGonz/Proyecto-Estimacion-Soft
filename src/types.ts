@@ -80,9 +80,10 @@ export interface Round {
   taskId: string;
   roundNumber: number;
   status: 'open' | 'closed';
-  startTime: number;
-  endTime?: number;
+  startTime: Date;
+  endTime?: Date;
   stats?: RoundStats;
+  analysis?: ConvergenceAnalysis;
   maxRounds?: number;
   sprints?: number;
   estimations: Estimation[];
