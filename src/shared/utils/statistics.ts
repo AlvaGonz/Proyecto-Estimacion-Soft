@@ -19,14 +19,15 @@ export const calculateRoundStats = (estimations: Estimation[]): RoundStats => {
 
   const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / n;
   const stdDev = Math.sqrt(variance);
-  const cv = (stdDev / mean) * 100;
+  const cv = mean !== 0 ? (stdDev / mean) * 100 : 0;
 
   // IQR Outlier Detection
   const q1 = values[Math.floor(n * 0.25)];
   const q3 = values[Math.floor(n * 0.75)];
   const iqr = q3 - q1;
-  const lowerBound = q1 - 1.5 * iqr;
-  const upperBound = q3 + 1.5 * iqr;
+  // B-003: Increased sensitivity to 2.0 * IQR for small Delphi samples
+  const lowerBound = q1 - 2.0 * iqr;
+  const upperBound = q3 + 2.0 * iqr;
 
   const outlierEstimationIds = estimations
     .filter(e => e.value < lowerBound || e.value > upperBound)

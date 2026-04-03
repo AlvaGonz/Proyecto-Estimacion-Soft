@@ -1,6 +1,7 @@
 import React from 'react';
 import { Estimation, Round } from '../../../types';
 import { BarChart2, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { sanitizeInput } from '../../../shared/utils/security';
 
 interface RoundEstimationsListProps {
   viewedRound: Round | null;
@@ -103,11 +104,11 @@ export const RoundEstimationsList: React.FC<RoundEstimationsListProps> = ({
                   )}
 
                   {(showValue || est.expertId === currentUserId) && (
-                    <div className="mt-2 pt-2 border-t border-slate-200/50">
-                      <p className="text-[11px] text-slate-600 italic">
-                        "{est.justification || 'Sin comentario.'}"
-                      </p>
-                    </div>
+                    <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 flex-1 min-w-0">
+                    <p className="text-slate-600 font-medium leading-relaxed italic text-sm">
+                      "{sanitizeInput(est.justification || 'Sin comentario.')}"
+                    </p>
+                  </div>
                   )}
                 </div>
               );

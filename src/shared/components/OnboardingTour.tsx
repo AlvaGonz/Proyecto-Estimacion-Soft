@@ -31,11 +31,19 @@ export const OnboardingTour: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
+    // Check if user has completed onboarding
     const hasCompletedOnboarding = localStorage.getItem('onboarding_complete');
-    // Only show if not completed (we assume the parent component checks if role is FACILITATOR)
     if (!hasCompletedOnboarding) {
       setIsOpen(true);
     }
+
+    const handleOpenTour = () => {
+      setIsOpen(true);
+      setCurrentStep(0);
+    };
+
+    window.addEventListener('delphi:open-tour', handleOpenTour);
+    return () => window.removeEventListener('delphi:open-tour', handleOpenTour);
   }, []);
 
   useEffect(() => {

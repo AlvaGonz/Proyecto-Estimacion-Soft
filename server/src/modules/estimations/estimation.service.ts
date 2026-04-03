@@ -47,13 +47,24 @@ export const estimationService = {
         }
 
         // 2. If round is OPEN:
-        //    - Experts ONLY see their OWN estimations. This enforces anonymity during the estimation phase.
+        // Experts ONLY see their OWN estimations. This enforces anonymity during the estimation phase.
         if (requesterRole === ROLES.EXPERTO) {
             return await Estimation.find({ roundId, expertId: requesterId }).populate('expertId', 'name');
         }
 
-        //    - Facilitators/Admins can see ALL estimations to monitor progress.
-        return await Estimation.find({ roundId }).populate('expertId', 'name').sort({ createdAt: 1 });
+        // ⚠️ B-012 FIX: Facilitators/Admins can see participation but NOT values/justifications while OPEN
+        const rawEstimations = await Estimation.find({ roundId }).populate('expertId', 'name').sort({ createdAt: 1 });
+        
+        return rawEstimations.map(est => {
+            const e = est.toObject() as IEstimation;
+            // Mask sensitive data if round is still open
+            return {
+                ...e,
+                value: 0,
+                justification: 'Hidden until round is closed',
+                metodoData: {}
+            };
+        }) as any;
     },
 
     async update(estimationId: string, expertId: string, data: Partial<IEstimation>): Promise<IEstimation> {

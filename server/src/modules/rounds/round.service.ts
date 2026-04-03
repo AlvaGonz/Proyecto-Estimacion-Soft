@@ -5,9 +5,8 @@ import { Estimation } from '../estimations/estimation.model.js';
 import { IRound, IRoundStats, IConvergenceConfig } from '../../types/models.types.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { ROUND_STATUS, TASK_STATUS, PROJECT_STATUS } from '../../config/constants.js';
-import { statisticsService, MetricInput } from '../metrics/statistics.service.js';
-import { convergenceService, ConvergenceResult } from '../convergence/convergence.service.js';
 import { auditService } from '../audit-log/audit.service.js';
+import { convergenceService, ConvergenceResult } from '../convergence/convergence.service.js';
 import { DelphiMethod } from '../../strategies/DelphiMethod.js';
 import { PlanningPokerMethod } from '../../strategies/PlanningPokerMethod.js';
 import { ThreePointMethod } from '../../strategies/ThreePointMethod.js';
@@ -52,99 +51,107 @@ export const roundService = {
     },
 
     async close(roundId: string, requesterId: string): Promise<{ round: IRound; convergence: ConvergenceResult }> {
-        const round = await Round.findById(roundId);
+        try {
+            const round = await Round.findById(roundId);
 
-        if (!round) {
-            throw ApiError.notFound('Ronda no encontrada');
-        }
+            if (!round) {
+                throw ApiError.notFound('Ronda no encontrada');
+            }
 
-        if (round.status === ROUND_STATUS.CLOSED) {
-            throw ApiError.conflict('La ronda ya está cerrada');
-        }
+            if (round.status === ROUND_STATUS.CLOSED) {
+                throw ApiError.conflict('La ronda ya está cerrada');
+            }
 
-        const task = await Task.findById(round.taskId);
-        if (!task) {
-            throw ApiError.internal('Tarea asociada no encontrada');
-        }
+            const task = await Task.findById(round.taskId);
+            if (!task) {
+                throw ApiError.internal('Tarea asociada no encontrada');
+            }
 
-        const project = await Project.findById(task.projectId);
-        if (!project) {
-            throw ApiError.internal('Proyecto asociado no encontrado');
-        }
+            const project = await Project.findById(task.projectId);
+            if (!project) {
+                throw ApiError.internal('Proyecto asociado no encontrado');
+            }
 
-        // Get all estimations for this round
-        const estimations = await Estimation.find({ roundId });
+            // Get all estimations for this round
+            const estimations = await Estimation.find({ roundId });
 
-        // Calculate statistics based on project method
-        let strategy: IBaseEstimationMethod;
-        switch (project.estimationMethod) {
-            case 'planning-poker':
-                strategy = new PlanningPokerMethod();
-                break;
-            case 'three-point':
-                strategy = new ThreePointMethod();
-                break;
-            default:
-                strategy = new DelphiMethod();
-                break;
-        }
+            // Calculate statistics based on project method
+            let strategy: IBaseEstimationMethod;
+            switch (project.estimationMethod) {
+                case 'planning-poker':
+                    strategy = new PlanningPokerMethod();
+                    break;
+                case 'three-point':
+                    strategy = new ThreePointMethod();
+                    break;
+                default:
+                    strategy = new DelphiMethod();
+                    break;
+            }
 
-        const statsResult = strategy.calculate(estimations);
-        const config = project.convergenceConfig as IConvergenceConfig;
+            const statsResult = strategy.calculate(estimations);
+            const config = project.convergenceConfig as IConvergenceConfig;
 
-        // Evaluate convergence
-        const convergence = convergenceService.evaluateConsensus(
-            statsResult.cv,
-            estimations.length,
-            statsResult.outlierEstimationIds.length,
-            config
-        );
+            // Evaluate convergence
+            const convergence = convergenceService.evaluateConsensus(
+                statsResult.cv,
+                estimations.length,
+                statsResult.outlierEstimationIds.length,
+                config
+            );
 
-        // Update round
-        // Note: setting status, endTime, and stats AT ONCE to respect immutability hook behavior
-        round.status = ROUND_STATUS.CLOSED;
-        round.endTime = new Date();
-        round.stats = {
-            mean: statsResult.mean,
-            median: statsResult.median,
-            stdDev: statsResult.stdDev,
-            variance: statsResult.variance,
-            cv: statsResult.cv,
-            range: statsResult.range,
-            iqr: statsResult.iqr,
-            outlierEstimationIds: statsResult.outlierEstimationIds as any,
-            metricaResultados: statsResult.metricaResultados
-        } as unknown as IRoundStats;
+            // Update round
+            round.status = ROUND_STATUS.CLOSED;
+            round.endTime = new Date();
+            round.stats = {
+                mean: statsResult.mean,
+                median: statsResult.median,
+                stdDev: statsResult.stdDev,
+                variance: statsResult.variance,
+                coefficientOfVariation: statsResult.cv,
+                range: statsResult.range,
+                iqr: statsResult.iqr,
+                outliers: statsResult.outlierEstimationIds as any,
+                metricaResultados: statsResult.metricaResultados
+            } as unknown as IRoundStats;
 
-        await round.save();
+            await round.save();
 
-        const result = {
-            round: round,
-            convergence: {
-                ...convergence,
-                recommendation: convergence.recommendation,
-                // Ensure all stats from statisticsService are passed back to the frontend
-                stats: {
-                    ...statsResult,
-                    cv: statsResult.cv,
-                    metricaResultados: statsResult.metricaResultados
+            // (B-012) Audit sanitization: Log only key metrics, not raw stats/outlier details
+            const auditData = {
+                mean: round.stats.mean,
+                median: round.stats.median,
+                cv: round.stats.coefficientOfVariation,
+                converged: convergence.converged,
+                estimatedCount: round.stats.metricaResultados?.totalEstimations || 0
+            };
+
+            await auditService.log({
+                userId: requesterId,
+                action: 'round:close',
+                resource: 'Round',
+                resourceId: round.id,
+                details: { 
+                    taskId: round.taskId, 
+                    roundNumber: round.roundNumber,
+                    summary: auditData 
                 }
-            }
-        };
+            });
 
-        await auditService.log({
-            userId: requesterId,
-            action: 'round:close',
-            resource: 'Round',
-            resourceId: roundId,
-            details: {
-                taskId: String(task._id),
-                stats: round.stats,
-                converged: convergence.converged
+            // (B-004): State Sync — If converged, update Task status and result
+            if (convergence.converged) {
+                await Task.findByIdAndUpdate(round.taskId, {
+                    status: TASK_STATUS.CONSENSUS,
+                    finalEstimate: round.stats.median,
+                    finalJustification: `Estimación consensuada en Ronda ${round.roundNumber} con CV=${round.stats.coefficientOfVariation.toFixed(3)}`
+                });
             }
-        });
 
-        return result as { round: IRound; convergence: ConvergenceResult };
+            return { round, convergence };
+        } catch (error: any) {
+            console.error('[RoundService] Error closing round:', error);
+            throw error;
+        }
     },
 
     async findByTask(taskId: string): Promise<IRound[]> {

@@ -29,6 +29,7 @@ import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import { projectService } from './features/projects/services/projectService';
 import { EmptyState } from './shared/components/EmptyState';
 import { LoadingSpinner } from './shared/components/LoadingSpinner';
+import { FloatingHelpButton } from './shared/components/FloatingHelpButton';
 import { notificationService } from './features/notifications/services/notificationService';
 import { Toaster, toast } from 'react-hot-toast';
 import { Login, RegisterPage, useAuth } from './features/auth';
@@ -205,7 +206,7 @@ const App: React.FC = () => {
       });
     } catch (err) {
       console.error(err);
-      alert('Error creating project');
+      toast.error('Error al crear el proyecto');
     }
   };
 
@@ -603,6 +604,10 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
+        <FloatingHelpButton 
+          onOpenTour={isFacilitator ? () => window.dispatchEvent(new CustomEvent('delphi:open-tour')) : undefined} 
+        />
       </main>
     </div>
   );

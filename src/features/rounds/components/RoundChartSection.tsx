@@ -4,7 +4,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { Round } from '../../../types';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { BarChart3, TrendingUp, Activity } from 'lucide-react';
 
 interface RoundChartSectionProps {
   viewedRound: Round | null;
@@ -133,4 +133,3 @@ export const RoundChartSection: React.FC<RoundChartSectionProps> = ({
   );
 };
 
-import { Activity } from 'lucide-react';

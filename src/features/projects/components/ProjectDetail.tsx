@@ -30,6 +30,7 @@ import { projectService } from '../services/projectService';
 import { taskService } from '../../tasks/services/taskService';
 import { roundService } from '../../rounds/services/roundService';
 import { notificationService } from '../../notifications/services/notificationService';
+import { toast } from 'react-hot-toast';
 
 // TODO: Connect Discussion, Team, and AuditLog to actual endpoints when ready
 const MOCK_AUDIT: AuditEntry[] = [
@@ -283,7 +284,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       setSelectedTaskId(newTask.id);
     } catch (err) {
       console.error("Error", err);
-      alert("Error creando la tarea");
+      toast.error("Error creando la tarea");
     }
   };
 
@@ -336,7 +337,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
 
       setShowFinalizeModal(false);
     } catch (err: any) {
-      alert(err.message || "Error al finalizar el proyecto");
+      toast.error(err.message || "Error al finalizar el proyecto");
     } finally {
       setIsFinalizing(false);
     }
@@ -369,7 +370,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         window.location.reload();
       }, 500); // Pequeño delay para que la transición de onBack sea visible o el storage se procese
     } catch (err: any) {
-      alert(err.message || "Error al eliminar el proyecto");
+      toast.error(err.message || "Error al eliminar el proyecto");
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);

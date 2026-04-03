@@ -13,6 +13,7 @@ interface AuthResult {
 
 interface RefreshResult {
     accessToken: string;
+    refreshToken: string;
 }
 
 export class AuthService {
@@ -115,22 +116,40 @@ export class AuthService {
 
         // Find user and verify the stored refresh token matches
         const user = await User.findById(payload.id).select('+refreshToken');
+        
+        // (B-001): If token mismatch, someone might be reusing an old token (theft attempt)
         if (!user || user.refreshToken !== token) {
-            throw ApiError.unauthorized('Sesión inválida — inicie sesión nuevamente');
+            if (user) {
+                // Invalidate all sessions for this potentially compromised user
+                user.refreshToken = null;
+                await user.save();
+            }
+            throw ApiError.unauthorized('Sesión inválida o expirada — inicie sesión nuevamente');
         }
 
         if (!user.isActive) {
             throw ApiError.forbidden('Cuenta desactivada');
         }
 
-        // Generate new access token only (refresh token stays the same)
+        // (B-001): Generate NEW access token AND NEW refresh token (ROTATION)
         const accessToken = tokenService.generateAccessToken({
             id: user.id as string,
             email: user.email,
             role: user.role,
         });
 
-        return { accessToken };
+        const newRefreshToken = tokenService.generateRefreshToken({
+            id: user.id as string,
+        });
+
+        // Store NEW refresh token for rotation
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        return { 
+            accessToken,
+            refreshToken: newRefreshToken
+        };
     }
 
     async logout(userId: string): Promise<void> {

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { Project, Task, Round } from '../../../types';
+import { sanitizeInput } from '../../../shared/utils/security';
 
 interface ReportOptions {
   includeStats: boolean;
@@ -120,7 +121,7 @@ export const reportService = {
             return [
               `Experto ${String.fromCharCode(65 + idx)}`,
               valText,
-              options.includeJustifications ? (est.justification || '-') : 'Omitido'
+              options.includeJustifications ? sanitizeInput(est.justification || '-') : 'Omitido'
             ];
           }) : [];
 
@@ -183,7 +184,7 @@ export const reportService = {
                r.roundNumber.toString(),
                `Experto ${String.fromCharCode(65 + idx)}`,
                valText,
-               e.justification || ''
+               sanitizeInput(e.justification || '')
              ]);
            });
         }

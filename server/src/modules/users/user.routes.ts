@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, deactivateUser } from './user.controller.js';
+import { getUsers, createUser, updateUser, deactivateUser, deleteUser } from './user.controller.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { requireRole, requirePermission } from '../../middleware/rbac.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
@@ -37,6 +37,13 @@ router.patch(
     requireRole(ROLES.ADMIN),
     requirePermission(PERMISSIONS.MANAGE_USERS),
     deactivateUser
+);
+
+router.delete(
+    '/:id',
+    requireRole(ROLES.ADMIN),
+    requirePermission(PERMISSIONS.MANAGE_USERS),
+    deleteUser
 );
 
 export default router;

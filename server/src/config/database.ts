@@ -20,3 +20,12 @@ export const connectDatabase = async (): Promise<void> => {
     process.exit(1);
   }
 };
+
+export const disconnectDatabase = async (): Promise<void> => {
+  try {
+    await mongoose.connection.close();
+    console.log('✅ MongoDB connection closed gracefully');
+  } catch (error) {
+    console.error('❌ Error closing MongoDB connection:', error);
+  }
+};

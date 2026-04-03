@@ -9,6 +9,7 @@ import { projectSchemaV2, wizardStep1Schema, wizardStep2Schema, wizardTaskSchema
 import { userService } from '../../users/services/userService';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { z } from 'zod';
+import { useModal } from '../../../shared/components/ModalProvider';
 
 // ─── Types ─────────────────────────────────────────────────────
 interface ProjectFormProps {
@@ -86,6 +87,7 @@ const UNIT_LABELS: Record<string, string> = {
 
 // ─── Component ─────────────────────────────────────────────────
 const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingProject }) => {
+  const { confirm } = useModal();
   // Step 1 state
   const [name, setName] = useState(editingProject?.name ?? '');
   const [description, setDescription] = useState(editingProject?.description ?? '');
@@ -200,9 +202,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, onCancel, editingPr
     setWizardTasks(prev => [...prev, { id: crypto.randomUUID(), title: '', description: '', touched: false }]);
   };
 
-  const removeTask = (id: string) => {
+  const removeTask = async (id: string) => {
     const task = wizardTasks.find(t => t.id === id);
-    if (task?.touched && !window.confirm('¿Eliminar esta tarea? Los datos se perderán.')) return;
+    if (task?.touched) {
+      const isConfirmed = await confirm(
+        '¿Eliminar tarea?',
+        '¿Estás seguro de que deseas eliminar esta tarea? Todos los datos ingresados para este elemento se perderán permanentemente.',
+        { type: 'danger', confirmText: 'Eliminar' }
+      );
+      if (!isConfirmed) return;
+    }
     setWizardTasks(prev => prev.filter(t => t.id !== id));
   };
 

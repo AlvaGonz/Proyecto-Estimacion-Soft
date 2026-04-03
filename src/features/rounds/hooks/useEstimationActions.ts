@@ -9,6 +9,7 @@ import { notificationService } from '../../notifications/services/notificationSe
 import { projectService } from '../../projects/services/projectService';
 import { taskService } from '../../tasks/services/taskService';
 import { estimationSchema } from '../../../shared/utils/schemas';
+import { toast } from 'react-hot-toast';
 
 export const useEstimationActions = (
   projectId: string,
@@ -29,10 +30,14 @@ export const useEstimationActions = (
   const [convergenceResult, setConvergenceResult] = useState<ConvergenceResult | null>(null);
   
   const isMounted = useRef(true);
+  const aiAbortController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
-    return () => { isMounted.current = false; };
+    return () => { 
+      isMounted.current = false; 
+      if (aiAbortController.current) aiAbortController.current.abort();
+    };
   }, []);
 
   // Fetch active user estimation when active round changes
@@ -134,11 +139,16 @@ export const useEstimationActions = (
       
       let aiAnalysisResult: ConvergenceAnalysis | null = null;
       if (round.stats) {
+        // B-013: Implementa AbortController para evitar race conditions
+        if (aiAbortController.current) aiAbortController.current.abort();
+        aiAbortController.current = new AbortController();
+
         try {
-          aiAnalysisResult = await analyzeConsensus(currentRoundEsts, round.stats, unit);
+          aiAnalysisResult = await analyzeConsensus(currentRoundEsts, round.stats, unit, aiAbortController.current.signal);
           // Save the AI analysis to the server so it's persistent for everyone
           await roundService.saveAnalysis(activeRoundId, aiAnalysisResult);
-        } catch (aiErr) {
+        } catch (aiErr: any) {
+          if (aiErr.name === 'AbortError') return null;
           console.error("AI Analysis failed:", aiErr);
           // Fallback to basic convergence analysis handled by roundService.closeRound but refined
           aiAnalysisResult = {
@@ -147,6 +157,18 @@ export const useEstimationActions = (
             aiInsights: 'Basado en análisis estadístico local (Falló Gemini)'
           };
         }
+      }
+
+      // B-001: Automatic finalization on High convergence
+      if (aiAnalysisResult?.level === 'Alta') {
+        setTimeout(async () => {
+          try {
+            await taskService.finalizeTask(projectId, taskId);
+            if (onTaskFinalize) onTaskFinalize(taskId);
+          } catch (finalizeErr) {
+            console.error("Auto-finalize failed:", finalizeErr);
+          }
+        }, 1500); // Small delay for UX transition
       }
 
       if (isMounted.current) {
@@ -189,7 +211,7 @@ export const useEstimationActions = (
       }
       return nextRound;
     } catch (err: any) {
-      alert(err.message || 'Failed opening round');
+      toast.error(err.message || 'Failed opening round');
       return null;
     } finally {
       setIsAnalyzing(false);
@@ -202,7 +224,7 @@ export const useEstimationActions = (
       await taskService.finalizeTask(projectId, taskId);
       if (onTaskFinalize) onTaskFinalize(taskId);
     } catch (err: any) {
-      alert(err.message || 'Error al finalizar la tarea');
+      toast.error(err.message || 'Error al finalizar la tarea');
     } finally {
       setIsAnalyzing(false);
     }

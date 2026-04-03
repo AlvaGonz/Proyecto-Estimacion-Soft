@@ -32,6 +32,7 @@ import { notificationService } from '../../notifications/services/notificationSe
 import { taskService } from '../../tasks/services/taskService';
 import { roundService } from '../../rounds/services/roundService';
 import { calculateParticipationRate, calculateConsensusIndex, calculateAverageRounds, getAdminMetricsSummary } from '../../../shared/utils/performanceMetrics';
+import { useModal } from '../../../shared/components/ModalProvider';
 
 // Role badge colors matching existing design tokens
 const roleBadgeClass = (role: string) => {
@@ -232,6 +233,7 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
+   const { confirm } = useModal();
    const [activeTab, setActiveTab] = useState<'users' | 'projects' | 'settings'>('users');
    const [isLoading, setIsLoading] = useState(true);
    const [users, setUsers] = useState<AdminUser[]>([]);
@@ -369,7 +371,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    };
 
    const handleDeactivate = async (user: AdminUser) => {
-      if (!window.confirm(`¿Desactivar a ${user.name}?`)) return;
+      const isConfirmed = await confirm(
+         '¿Desactivar usuario?',
+         `¿Estás seguro de que deseas desactivar a ${user.name}? Este usuario ya no podrá acceder a la plataforma hasta que sea reactivado.`,
+         { type: 'danger', confirmText: 'Desactivar' }
+      );
+      if (!isConfirmed) return;
       try {
          await adminService.deactivateUser(user.id || user._id || '');
          setSuccessMessage(`Usuario ${user.name} desactivado.`);
@@ -381,7 +388,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    };
 
    const handleRestoreProject = async (id: string, name: string) => {
-      if (!window.confirm(`¿Restaurar el proyecto "${name}"?`)) return;
+      const isConfirmed = await confirm(
+         '¿Restaurar proyecto?',
+         `¿Deseas restaurar el proyecto "${name}"? El proyecto volverá a estar disponible para todos sus participantes.`,
+         { type: 'info', confirmText: 'Restaurar' }
+      );
+      if (!isConfirmed) return;
       try {
          await adminService.restoreProject(id);
          setSuccessMessage(`Proyecto "${name}" restaurado exitosamente.`);
@@ -393,7 +405,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    };
 
    const handleDeleteProject = async (id: string, project: any) => {
-      if (!window.confirm(`¿Desea eliminar el proyecto "${project.name}"? Esta acción notificará a los afiliados.`)) return;
+      const isConfirmed = await confirm(
+         '¿Eliminar proyecto?',
+         `¿Desea eliminar permanentemente el proyecto "${project.name}"? Esta acción no se puede deshacer y se notificará a todos los participantes.`,
+         { type: 'danger', confirmText: 'Eliminar Proyecto' }
+      );
+      if (!isConfirmed) return;
       try {
          setIsLoading(true);
          await projectService.deleteProject(id);

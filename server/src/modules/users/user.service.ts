@@ -110,6 +110,27 @@ class UserService {
             details: { email: user.email }
         });
     }
+
+    async deleteUser(userId: string, adminId: string): Promise<void> {
+        if (userId === adminId) {
+            throw ApiError.badRequest('No puedes eliminarte a ti mismo');
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            throw ApiError.notFound('Usuario no encontrado');
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        await auditService.log({
+            userId: adminId,
+            action: 'ADMIN_DELETE_USER',
+            resource: 'User',
+            resourceId: userId,
+            details: { email: user.email, name: user.name }
+        });
+    }
 }
 
 export const userService = new UserService();
