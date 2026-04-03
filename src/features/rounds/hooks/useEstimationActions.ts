@@ -1,13 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { z } from 'zod';
 import { Estimation, Round, ConvergenceAnalysis, EstimationMethod } from '../../../types';
-import { estimationService } from '../../estimations/services/estimationService';
+import { estimationService } from '../../../features/estimations/services/estimationService';
 import { roundService } from '../services/roundService';
-import { convergenceService, type ConvergenceResult } from '../../convergence/services/convergenceService';
-import { analyzeConsensus } from '../../convergence/services/aiService';
-import { notificationService } from '../../notifications/services/notificationService';
-import { projectService } from '../../projects/services/projectService';
-import { taskService } from '../../tasks/services/taskService';
+import { convergenceService, type ConvergenceResult } from '../../../features/convergence/services/convergenceService';
+import { analyzeConsensus } from '../../../features/convergence/services/aiService';
+import { notificationService } from '../../../features/notifications/services/notificationService';
+import { projectService } from '../../../features/projects/services/projectService';
+import { taskService } from '../../../features/tasks/services/taskService';
 import { estimationSchema } from '../../../shared/utils/schemas';
 import { toast } from 'react-hot-toast';
 

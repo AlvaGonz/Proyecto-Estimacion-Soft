@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RoundHeader } from './RoundHeader';
-import { RoundChartSection } from './RoundChartSection';
+import EstimationCharts from '../../estimations/components/EstimationCharts';
 import { RoundEstimationsList } from './RoundEstimationsList';
 import { RoundAnalysisVerdict } from './RoundAnalysisVerdict';
 import { UpdateEstimationModal } from './Modals/UpdateEstimationModal';
@@ -12,7 +12,7 @@ import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
 import { FibonacciCard, EstimationMethod } from '../../../types';
 import { Users, Activity, Target, MessageSquare } from 'lucide-react';
-import { useParticipants } from '../../users/hooks/useParticipants';
+import { useParticipants } from '../../../features/users/hooks/useParticipants';
 
 interface EstimationRoundsProps {
   projectId: string;
@@ -135,11 +135,10 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
         <div className="space-y-12">
           {/* Main Visuals & Inputs Area */}
           <div className="space-y-8 max-w-5xl mx-auto">
-            <RoundChartSection 
-              viewedRound={viewedRound || null} 
+            <EstimationCharts 
               rounds={rounds} 
-              showEvolution={showEvolution} 
-              setShowEvolution={setShowEvolution} 
+              taskName={taskTitle}
+              unit={unit}
             />
             
             {!isFacilitator && (

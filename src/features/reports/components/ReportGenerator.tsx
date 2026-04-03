@@ -21,8 +21,8 @@ import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
 import { Project, Task, Round, User, UserRole } from '../../../types';
 import { loginSchema } from '../../../shared/utils/schemas';
 import { reportService } from '../services/reportService';
-import { taskService } from '../../tasks/services/taskService';
-import { roundService } from '../../rounds/services/roundService';
+import { taskService } from '../../../features/tasks/services/taskService';
+import { roundService } from '../../../features/rounds/services/roundService';
 import { toast } from 'react-hot-toast';
 
 interface ReportGeneratorProps {

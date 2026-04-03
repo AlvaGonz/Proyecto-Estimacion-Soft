@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { userService } from '../../users/services/userService';
+import { userService } from '../../../features/users/services/userService';
 
 export interface ParticipantInfo {
   name: string;

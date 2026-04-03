@@ -65,3 +65,6 @@ MODEL_HIT: llama-3.3-70b-versatile role=primary date=2026-03-27T22:12:03.503171
 MODEL_HIT: llama-3.1-8b-instant role=fast date=2026-03-27T22:12:09.701926
 MODEL_HIT: llama-3.1-8b-instant role=fast date=2026-03-27T22:12:16.802138
 MODEL_HIT: llama-3.1-8b-instant role=fast date=2026-03-27T22:12:23.724040
+ROLLBACK: code-review v2->v1 reason=regression date=2026-04-03T15:35:25.229473
+ROLLBACK: code-review v2->v1 reason=regression date=2026-04-03T15:37:29.865249
+MODEL_HIT: llama-3.3-70b-versatile role=primary date=2026-04-03T15:37:31.681318

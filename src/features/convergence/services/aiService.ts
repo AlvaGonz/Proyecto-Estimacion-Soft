@@ -1,4 +1,4 @@
-import { Estimation, RoundStats } from "../../../types";
+import { Estimation, RoundStats } from '../../../types';
 
 /**
  * Orquestador de IA para el análisis de convergencia.

@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useRounds } from '../useRounds';
 import { roundService } from '../../services/roundService';
-import { projectService } from '../../../projects/services/projectService';
+import { projectService } from '../../../../features/projects/services/projectService';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../services/roundService');
