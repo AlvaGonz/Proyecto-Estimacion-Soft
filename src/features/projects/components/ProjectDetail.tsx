@@ -14,7 +14,10 @@ import {
   Award,
   X,
   History,
-  ShieldCheck
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical
 } from 'lucide-react';
 import { Task, UserRole, AuditEntry, Project, Round } from '../../../types';
 import EstimationRounds from '../../rounds/components/EstimationRounds';
@@ -74,6 +77,55 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
   });
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configError, setConfigError] = useState('');
+
+  // Sidebar Resize State
+  const [sidebarWidth, setSidebarWidth] = useState(360);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const startResizing = React.useCallback(() => {
+    if (isSidebarCollapsed) setIsSidebarCollapsed(false);
+    setIsResizing(true);
+  }, [isSidebarCollapsed]);
+
+  const stopResizing = React.useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = React.useCallback(
+    (mouseMoveEvent: MouseEvent) => {
+      if (isResizing && containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const newWidth = mouseMoveEvent.clientX - containerRect.left;
+        // Limit range for usability
+        if (newWidth > 280 && newWidth < 800) {
+          setSidebarWidth(newWidth);
+        }
+      }
+    },
+    [isResizing]
+  );
+
+  React.useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, resize, stopResizing]);
 
   React.useEffect(() => {
     const fetchLogs = async () => {
@@ -321,7 +373,16 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
   }
 
   return (
-    <div className="space-y-8 md:space-y-12 pb-20 animate-reveal">
+    <div className="w-full min-h-screen">
+      <nav aria-label="Breadcrumb" className="max-w-[1600px] mx-auto pt-8 px-4 sm:px-8 lg:px-12 mb-4">
+        <ol className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+          <li><span className="hover:text-delphi-keppel cursor-pointer transition-colors" onClick={onBack}>Proyectos</span></li>
+          <li><span className="opacity-40">/</span></li>
+          <li><span className="text-slate-900">{project.name}</span></li>
+        </ol>
+      </nav>
+
+      <div className="max-w-[1600px] mx-auto space-y-8 md:space-y-12 pb-20 animate-reveal px-4 sm:px-8 lg:px-12">
       <div className="flex flex-col gap-10">
         <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
           <button
@@ -333,7 +394,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
           </button>
           <div className="space-y-4">
             <div className="flex items-center gap-4 md:gap-6 flex-wrap">
-              <h2 className="text-3xl md:text-6xl font-black text-slate-900 tracking-tight leading-none italic uppercase">{project.name}</h2>
+              <h2 className="font-black text-slate-900 tracking-tight leading-none italic uppercase" style={{ fontSize: 'clamp(1.5rem, 4vw + 0.5rem, 3.75rem)' }}>{project.name}</h2>
               <span className={`px-5 md:px-7 py-2.5 rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-xl backdrop-blur-md border animate-reveal ${
                 project.status?.toLowerCase() === 'active' ? 'bg-delphi-celadon/20 text-delphi-keppel border-delphi-keppel/20 shadow-delphi-keppel/5' : 
                 project.status?.toLowerCase() === 'finished' ? 'bg-delphi-keppel text-white border-white/20 shadow-delphi-keppel/20' : 
@@ -371,10 +432,10 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         </div>
 
         {isFacilitator && project.status?.toLowerCase() !== 'finished' && project.status?.toLowerCase() !== 'archived' && (
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-wrap gap-3">
             <button 
               onClick={() => setShowConfigModal(true)}
-              className="group flex items-center justify-center gap-3 px-6 py-4 bg-white/50 backdrop-blur-md border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-white hover:border-delphi-keppel/50 transition-all shadow-sm active:scale-95"
+              className="group flex items-center justify-center gap-3 px-6 py-4 bg-white/50 backdrop-blur-md border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-white hover:border-delphi-keppel/50 transition-all shadow-sm active:scale-95 flex-1 sm:flex-none min-w-[160px]"
             >
               <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform" />
               Configurar
@@ -383,7 +444,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
               onClick={() => setShowTaskForm(true)}
               disabled={sprintIsLocked}
               title={sprintIsLocked ? "No se pueden añadir tareas una vez iniciada la estimación" : ""}
-              className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all border ${
+              className={`flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl transition-all border flex-1 sm:flex-none min-w-[160px] ${
                 sprintIsLocked 
                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200 shadow-none' 
                   : 'bg-delphi-keppel text-white border-delphi-keppel shadow-delphi-keppel/30 hover:scale-[1.02] active:scale-95'
@@ -394,7 +455,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
             </button>
             <button
               onClick={() => setShowFinalizeModal(true)}
-              className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-delphi-giants transition-all active:scale-95 md:ml-auto"
+              className="flex items-center justify-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-delphi-giants transition-all active:scale-95 w-full sm:w-auto flex-1 sm:flex-none min-w-[160px] md:ml-auto"
             >
               <CheckCircle2 className="w-4 h-4" />
               Finalizar Proyecto
@@ -402,7 +463,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
             {role === UserRole.ADMIN && (
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="flex items-center justify-center gap-3 px-8 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-600/20 hover:bg-red-700 transition-all active:scale-95"
+                className="flex items-center justify-center gap-3 px-8 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-600/20 hover:bg-red-700 transition-all active:scale-95 flex-1 sm:flex-none min-w-[160px]"
               >
                 <X className="w-4 h-4" />
                 Eliminar Proyecto
@@ -609,7 +670,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
       )}
 
       {/* Navegación por Pestañas */}
-      <nav aria-label="Navegación del proyecto" role="tablist" className="flex bg-slate-100/50 p-1.5 md:p-2 rounded-2xl md:rounded-[2rem] gap-2 md:gap-4 overflow-x-auto no-scrollbar scroll-smooth shadow-inner border border-slate-200/50 backdrop-blur-sm w-fit max-w-full mb-8">
+      <nav aria-label="Navegación del proyecto" role="tablist" className="flex bg-slate-100/50 p-1.5 rounded-2xl gap-1 flex-wrap shadow-inner border border-slate-200/50 backdrop-blur-sm w-full mb-8">
         {[
           { id: 'tasks', label: 'Proceso', icon: Activity, color: 'text-delphi-keppel' },
           { id: 'docs', label: 'Docs', icon: FileText, color: 'text-delphi-orange' },
@@ -624,7 +685,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`flex items-center gap-2 md:gap-3 py-3 md:py-4 px-6 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black uppercase tracking-[0.1EM] transition-all shrink-0 ${activeTab === tab.id
+            className={`flex-1 min-w-[80px] justify-center flex items-center gap-2 md:gap-3 py-3 md:py-4 px-4 md:px-8 rounded-xl md:rounded-2xl text-[10px] md:text-sm font-black uppercase tracking-[0.1EM] transition-all ${activeTab === tab.id
               ? 'bg-white text-slate-900 shadow-lg shadow-slate-200/50 ring-1 ring-slate-200 scale-[1.02]'
               : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
               }`}
@@ -635,20 +696,44 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         ))}
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative">
+      <div ref={containerRef} className="relative">
         {activeTab === 'tasks' && (
-          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-            {/* Sidebar de Tareas */}
-            <div className="lg:col-span-4 lg:sticky lg:top-8 space-y-6 md:space-y-8">
-              <div className="bg-white/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_40px_rgba(0,0,0,0.03)] p-6 md:p-10 flex flex-col h-full max-h-[80vh] ring-1 ring-slate-200/50">
-                <div className="flex items-center justify-between mb-10 shrink-0">
-                  <div className="space-y-1">
-                    <h3 className="font-black text-2xl tracking-tighter text-slate-900">Tareas</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Backlog del Sprint</p>
-                  </div>
-                  <div className="bg-delphi-keppel/10 px-5 py-2.5 rounded-2xl text-[10px] md:text-xs font-black text-delphi-keppel uppercase tracking-widest ring-1 ring-delphi-keppel/20 shadow-sm shadow-delphi-keppel/5">
-                    {tasks.length} items
-                  </div>
+          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="flex flex-col lg:flex-row gap-8 lg:gap-0 items-start min-h-[70vh]">
+            {/* Sidebar de Tareas - Resizable */}
+            <div 
+              style={{ width: window.innerWidth >= 1024 ? (isSidebarCollapsed ? '96px' : `${sidebarWidth}px`) : '100%' }}
+              className="lg:sticky lg:top-8 flex flex-col shrink-0 min-w-0 transition-all duration-500 ease-in-out"
+            >
+              <div className={`bg-white/70 backdrop-blur-3xl rounded-[2.5rem] border border-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col h-full max-h-[80vh] ring-1 ring-slate-200/60 transition-all duration-500 ${isSidebarCollapsed ? 'p-4 items-center' : 'p-6 md:p-10'}`}>
+                <div className={`flex items-center justify-between shrink-0 transition-all duration-500 ${isSidebarCollapsed ? 'flex-col gap-6 mb-6' : 'mb-10'}`}>
+                  {!isSidebarCollapsed ? (
+                    <>
+                      <div className="space-y-1">
+                        <h3 className="font-black text-2xl tracking-tighter text-slate-900">Tareas</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Backlog del Sprint</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="bg-delphi-keppel/10 px-5 py-2.5 rounded-2xl text-[10px] md:text-xs font-black text-delphi-keppel uppercase tracking-widest ring-1 ring-delphi-keppel/20 shadow-sm shadow-delphi-keppel/5">
+                          {tasks.length}
+                        </div>
+                        <button 
+                          onClick={() => setIsSidebarCollapsed(true)}
+                          className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors group"
+                          title="Minimizar panel"
+                        >
+                          <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={() => setIsSidebarCollapsed(false)}
+                      className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-900/20 hover:scale-110 active:scale-95 transition-all"
+                      title="Expandir panel"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-4 overflow-y-auto no-scrollbar pb-6 grow pr-2">
@@ -675,16 +760,17 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                         {selectedTaskId === task.id && (
                           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-16 bg-delphi-keppel rounded-r-full shadow-[2px_0_10px_rgba(43,186,165,0.4)]" />
                         )}
-                        <div className="flex items-start gap-5">
+                        <div className={`flex items-start gap-5 transition-all duration-500 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
                           <div className={`shrink-0 mt-1 transition-all duration-500 ${selectedTaskId === task.id ? 'text-delphi-keppel scale-110' : 'text-slate-300 group-hover:text-slate-400'}`}>
                             {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' 
                               ? <CheckCircle2 className="w-7 h-7" /> 
                               : <Circle className="w-7 h-7" />}
                           </div>
-                          <div className="flex-1 min-w-0 pr-2">
-                            <h4 className={`text-sm md:text-base font-black leading-tight mb-3 truncate transition-colors ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-600'}`}>
-                              {task.title}
-                            </h4>
+                          {!isSidebarCollapsed && (
+                            <div className="flex-1 min-w-0 pr-2">
+                              <h4 className={`text-sm md:text-base font-black leading-tight mb-3 transition-colors ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-600'}`}>
+                                {task.title}
+                              </h4>
                             {task.status?.toLowerCase() === 'consensus' || task.status?.toLowerCase() === 'finalized' ? (
                               <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-4 py-1.5 rounded-xl ring-1 ring-delphi-keppel/20 shadow-sm shadow-delphi-keppel/5">
                                 <Award className="w-3.5 h-3.5" />
@@ -747,82 +833,69 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                               </div>
                             )}
                           </div>
+                          )}
                         </div>
                       </button>
                     ))
                   )}
                 </div>
               </div>
+            </div>
 
-              {isFacilitator && (
-                <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-white/10 relative overflow-hidden group shadow-2xl shadow-slate-950/20">
-                  <div className="absolute -top-12 -right-12 p-12 opacity-[0.03] group-hover:scale-125 group-hover:rotate-12 transition-transform duration-1000">
-                    <ShieldCheck className="w-48 h-48" />
-                  </div>
-                  <div className="relative z-10 flex flex-col gap-5">
-                    <div className="bg-delphi-keppel/20 w-14 h-14 flex items-center justify-center rounded-[1.25rem] text-delphi-keppel shadow-xl shadow-delphi-keppel/10 ring-1 ring-delphi-keppel/30">
-                      <ShieldCheck className="w-7 h-7" />
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-white font-black text-xl tracking-tight">
-                        Facilitador
-                      </h4>
-                      <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                        Supervisión activa del flujo iterativo, gestión de rondas y validación de consensos técnicos.
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <div className="flex -space-x-3">
-                        <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-delphi-keppel/20 flex items-center justify-center text-[10px] font-black text-delphi-keppel">AD</div>
-                        <div className="w-10 h-10 rounded-full border-2 border-slate-900 bg-delphi-orange/20 flex items-center justify-center text-[10px] font-black text-delphi-orange">RA</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Resize Handle - Simple & Robust */}
+            <div 
+              onMouseDown={startResizing}
+              className="hidden lg:flex w-2 relative self-stretch cursor-col-resize group items-center justify-center z-20"
+            >
+              <div className={`w-1 h-32 rounded-full transition-all duration-300 ${isResizing ? 'bg-delphi-keppel scale-x-125' : 'bg-slate-200 group-hover:bg-delphi-keppel'}`} />
+              <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-white border border-slate-200 shadow-xl p-1.5 rounded-full scale-0 group-hover:scale-100 transition-all pointer-events-none">
+                 <GripVertical className="w-3 h-3 text-slate-400" />
+              </div>
             </div>
 
             {/* Area de Contenido Principal (Estimación) */}
-            <div className="lg:col-span-8 space-y-10 min-h-[500px]">
-              {currentTask ? (
-                <div className="animate-in fade-in slide-in-from-right-12 duration-700 ease-out">
-                  <EstimationRounds
-                    taskId={currentTask.id}
-                    taskTitle={currentTask.title}
-                    unit={project.unit || "hours"}
-                    estimationMethod={project.estimationMethod}
-                    onConsensusReached={handleTaskConsensus}
-                    onTaskFinalize={handleTaskFinalize}
-                    isFacilitator={isFacilitator}
-                    projectId={project.id}
-                    currentUserId={currentUserId}
-                  />
-                </div>
-              ) : (
-                <div className="h-full min-h-[60vh] bg-white/40 backdrop-blur-3xl rounded-[3.5rem] border-2 border-dashed border-slate-200/60 flex flex-col items-center justify-center text-slate-400 gap-10 shadow-sm relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-50/30 to-transparent pointer-events-none" />
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-delphi-keppel/20 blur-[100px] rounded-full scale-150 animate-pulse transition-all duration-1000 group-hover:scale-[2]" />
-                    <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 transition-all duration-500 group-hover:-translate-y-2">
-                      <Star className="w-16 h-16 md:w-20 md:h-20 text-slate-200 group-hover:text-delphi-keppel transition-colors duration-500" />
+            <div className="flex-1 min-w-0 lg:pl-12">
+              <div className="space-y-10 min-h-[500px] bg-white/40 backdrop-blur-3xl rounded-[3.5rem] p-4 md:p-8 border border-white/40 shadow-inner overflow-hidden">
+                {currentTask ? (
+                  <div className="animate-in fade-in slide-in-from-right-12 duration-700 ease-out">
+                    <EstimationRounds
+                      taskId={currentTask.id}
+                      taskTitle={currentTask.title}
+                      unit={project.unit || "hours"}
+                      estimationMethod={project.estimationMethod}
+                      onConsensusReached={handleTaskConsensus}
+                      onTaskFinalize={handleTaskFinalize}
+                      isFacilitator={isFacilitator}
+                      projectId={project.id}
+                      currentUserId={currentUserId}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-full min-h-[70vh] bg-white/50 backdrop-blur-3xl rounded-[3.5rem] border-2 border-dashed border-slate-200/60 flex flex-col items-center justify-center text-slate-400 gap-10 shadow-[0_32px_100px_-20px_rgba(0,0,0,0.05)] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-50/30 to-transparent pointer-events-none" />
+                    
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-delphi-keppel/20 blur-[100px] rounded-full scale-150 animate-pulse transition-all duration-1000 group-hover:scale-[2]" />
+                      <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl shadow-slate-200/50 relative z-10 transition-all duration-500 group-hover:-translate-y-2">
+                        <Star className="w-16 h-16 md:w-20 md:h-20 text-slate-200 group-hover:text-delphi-keppel transition-colors duration-500" />
+                      </div>
+                    </div>
+                    
+                    <div className="text-center space-y-3 relative z-10 px-6">
+                      <h3 className="font-black text-3xl md:text-4xl tracking-tighter text-slate-900">Selecciona una tarea</h3>
+                      <p className="font-bold text-slate-500 text-sm md:text-base max-w-md mx-auto leading-relaxed">
+                        Elige una tarea de la lista lateral para iniciar el proceso de <span className="text-delphi-keppel">debate y estimación técnica</span>.
+                      </p>
                     </div>
                   </div>
-                  
-                  <div className="text-center space-y-3 relative z-10 px-6">
-                    <h3 className="font-black text-3xl md:text-4xl tracking-tighter text-slate-900">Selecciona una tarea</h3>
-                    <p className="font-bold text-slate-500 text-sm md:text-base max-w-md mx-auto leading-relaxed">
-                      Elige una tarea de la lista lateral para iniciar el proceso de <span className="text-delphi-keppel">debate y estimación técnica</span>.
-                    </p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {activeTab !== 'tasks' && (
-          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[60vh] bg-white/30 backdrop-blur-3xl rounded-[3.5rem] border border-white/40 shadow-sm p-6 md:p-10">
             {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
             {activeTab === 'discussion' && activeRound ? (
               <DiscussionSpace roundId={activeRound.id} />
@@ -930,6 +1003,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
