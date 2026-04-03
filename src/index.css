@@ -1,21 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+:root {
+  /* HSL-based Premium Palette - Source of Truth */
+  --delphi-keppel: 171 62% 45%;
+  --delphi-celadon: 145 41% 70%;
+  --delphi-vanilla: 47 88% 85%;
+  --delphi-orange: 37 95% 55%;
+  --delphi-giants: 15 95% 59%;
+  
+  --brand-primary: var(--delphi-keppel);
+  --brand-secondary: var(--delphi-orange);
+  --brand-dark: 225 25% 9%;
+  --brand-surface: 220 20% 97%;
+
+  /* Spacing & Radius Tokens */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 3rem;
+}
 
 @theme {
   --font-family-inter: 'Inter', 'Outfit', sans-serif;
   
-  /* HSL-based Premium Palette */
-  --color-delphi-keppel: hsl(171, 62%, 45%);
-  --color-delphi-celadon: hsl(145, 41%, 70%);
-  --color-delphi-vanilla: hsl(47, 88%, 85%);
-  --color-delphi-orange: hsl(37, 95%, 55%);
-  --color-delphi-giants: hsl(15, 95%, 59%);
+  /* Tailwind Colors referencing HSL variables */
+  --color-delphi-keppel: hsl(var(--delphi-keppel));
+  --color-delphi-celadon: hsl(var(--delphi-celadon));
+  --color-delphi-vanilla: hsl(var(--delphi-vanilla));
+  --color-delphi-orange: hsl(var(--delphi-orange));
+  --color-delphi-giants: hsl(var(--delphi-giants));
   
-  /* Core Brand Extensions */
-  --color-brand-primary: var(--color-delphi-keppel);
-  --color-brand-secondary: var(--color-delphi-orange);
-  --color-brand-dark: hsl(225, 25%, 9%);
-  --color-brand-surface: hsl(220, 20%, 97%);
+  --color-brand-primary: hsl(var(--brand-primary));
+  --color-brand-secondary: hsl(var(--brand-secondary));
+  --color-brand-dark: hsl(var(--brand-dark));
+  --color-brand-surface: hsl(var(--brand-surface));
+
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-spin-fast: spin 0.6s linear infinite;
 }
+
 
 @layer base {
   body {

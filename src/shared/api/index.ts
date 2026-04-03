@@ -20,6 +20,16 @@ export class ApiError extends Error {
 // Normalize endpoint safely (e.g. /auth/login)
 const normalizeEndpoint = (endpoint: string) => endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
+/**
+ * Masks sensitive API keys for safe logging/display
+ * Example: "sk-proj-..." -> "sk-p...xxxx"
+ */
+export const maskApiKey = (key?: string): string => {
+    if (!key) return '********';
+    if (key.length <= 8) return '********';
+    return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
+};
+
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 let lastUnauthorizedEvent = 0;

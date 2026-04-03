@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { authService } from '../services/auth.service.js';
-import { ApiError } from '../utils/ApiError.js';
-import { env } from '../config/env.js';
-import { RegisterDTO, LoginDTO } from '../types/api.types.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { authService } from './auth.service.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { env } from '../../config/env.js';
+import { RegisterDTO, LoginDTO } from '../../types/api.types.js';
 
 const REFRESH_TOKEN_COOKIE_OPTIONS = {
     httpOnly: true,
