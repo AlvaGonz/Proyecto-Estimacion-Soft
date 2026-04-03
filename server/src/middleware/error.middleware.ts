@@ -13,7 +13,8 @@ export const errorHandler = (
     if (!(error instanceof ApiError)) {
         const statusCode = 500;
         const message = error.message || 'Error interno del servidor';
-        error = new ApiError(statusCode, message, false);
+        // (B-010): Pass original stack to avoid losing trace
+        error = new ApiError(statusCode, message, false, err.stack);
     }
 
     const apiError = error as ApiError;

@@ -8,6 +8,7 @@ import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
 import { discussionService } from '../services/discussionService';
 import { Comment } from '../../../types';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
+import { sanitizeInput } from '../../../shared/utils/security';
 
 interface DiscussionSpaceProps {
    roundId: string;
@@ -100,7 +101,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                                     </div>
                                     <div className="bg-slate-50 border-slate-100 p-6 rounded-[2rem] rounded-tl-none border relative">
                                        <p className="text-slate-600 font-medium leading-relaxed">
-                                          {c.content}
+                                          {sanitizeInput(c.content)}
                                        </p>
                                     </div>
                                  </div>

@@ -60,6 +60,7 @@ export interface ITask extends Document {
     description: string;
     status: 'pending' | 'estimating' | 'consensus' | 'finalized';
     finalEstimate?: number;
+    finalJustification?: string;
     completionPercentage?: number;
     createdAt: Date;
     updatedAt: Date;

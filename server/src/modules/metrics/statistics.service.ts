@@ -44,8 +44,9 @@ export const statisticsService = {
         const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / count;
         const stdDev = Math.sqrt(variance);
 
-        // Coefficient of Variation (CV)
-        const cv = mean === 0 ? 0 : stdDev / mean;
+        // (B-005): Coefficient of Variation (CV) 
+        // Forced high value if n < 2 to prevent premature consensus
+        const cv = (count < 2 || mean === 0) ? 9.99 : stdDev / mean;
 
         // Range
         const range: [number, number] = [values[0], values[count - 1]];

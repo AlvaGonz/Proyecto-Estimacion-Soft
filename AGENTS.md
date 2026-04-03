@@ -55,7 +55,12 @@ Read `.agent/rules/security.md` before any auth, RBAC, or data access change.
 
 Skills live in `.agent/skills/`. The agent reads the skill name and description on load and activates the full SKILL.md only when the relevant task begins.
 
-> ⚡ Activation is **keyword-triggered and task-triggered**. The keywords below are the primary triggers.
+| Skill | Keyword Trigger | Description |
+|---|---|---|
+| `delphi-logic-guard` | `round`, `estimation`, `consensus` | Enforces Delphi Method business invariants |
+| `commit` | `commit`, `save`, `git` | Enforces git conventions and message format |
+
+> ⚡ Activation is **keyword-triggered and task-triggered**. The keywords above are the primary triggers.
 
 ---
 

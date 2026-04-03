@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { ITask } from '../types/models.types.js';
-import { TASK_STATUS } from '../config/constants.js';
+import { ITask } from '../../types/models.types.js';
+import { TASK_STATUS } from '../../config/constants.js';
 
 const taskSchema = new Schema<ITask>(
     {
@@ -31,6 +31,10 @@ const taskSchema = new Schema<ITask>(
         finalEstimate: {
             type: Number,
             min: 0
+        },
+        finalJustification: {
+            type: String,
+            trim: true
         }
     },
     {

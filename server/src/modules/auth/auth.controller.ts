@@ -66,11 +66,15 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
     const result = await authService.refreshToken(refreshToken);
 
+    // Issue new tokens (Access + Process Rotation)
+    res.cookie('refreshToken', result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
     res.cookie('accessToken', result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
 
     res.json({
         success: true,
-        data: result,
+        data: {
+            accessToken: result.accessToken
+        },
     });
 });
 

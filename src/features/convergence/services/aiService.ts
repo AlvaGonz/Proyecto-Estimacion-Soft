@@ -1,4 +1,4 @@
-import { Estimation, RoundStats } from "../../../types";
+import { Estimation, RoundStats } from '../../../types';
 
 /**
  * Orquestador de IA para el análisis de convergencia.
@@ -8,7 +8,8 @@ import { Estimation, RoundStats } from "../../../types";
 export const analyzeConsensus = async (
   estimations: Estimation[],
   stats: RoundStats,
-  unit: string
+  unit: string,
+  signal?: AbortSignal
 ): Promise<{ level: 'Alta' | 'Media' | 'Baja'; recommendation: string; aiInsights: string }> => {
   
   // @ts-ignore - Vite env
@@ -17,8 +18,9 @@ export const analyzeConsensus = async (
   // 1. Prioridad: Groq (Llama 3.3 70B)
   if (groqApiKey) {
     try {
-      return await analyzeWithGroq(estimations, stats, unit, groqApiKey);
+      return await analyzeWithGroq(estimations, stats, unit, groqApiKey, signal);
     } catch (error) {
+      if ((error as any).name === 'AbortError') throw error;
       console.error("Groq Analysis failed, falling back to Statistics:", error);
     }
   }
@@ -30,7 +32,7 @@ export const analyzeConsensus = async (
 /**
  * Implementación con Groq (Format compatible con OpenAI vía fetch nativo)
  */
-async function analyzeWithGroq(estimations: Estimation[], stats: RoundStats, unit: string, apiKey: string) {
+async function analyzeWithGroq(estimations: Estimation[], stats: RoundStats, unit: string, apiKey: string, signal?: AbortSignal) {
   const prompt = buildAnalysisPrompt(estimations, stats, unit);
   
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -50,7 +52,8 @@ async function analyzeWithGroq(estimations: Estimation[], stats: RoundStats, uni
       ],
       response_format: { type: "json_object" },
       temperature: 0.1
-    })
+    }),
+    signal
   });
 
   if (!response.ok) throw new Error(`Groq API error: ${response.statusText}`);
@@ -60,10 +63,19 @@ async function analyzeWithGroq(estimations: Estimation[], stats: RoundStats, uni
   return JSON.parse(content) as { level: 'Alta' | 'Media' | 'Baja'; recommendation: string; aiInsights: string };
 }
 
-/**
- * Generador de Prompt técnico compartido
- */
 function buildAnalysisPrompt(estimations: Estimation[], stats: RoundStats, unit: string) {
+  // B-012: Asegurar que el prompt no exceda los tokens (limitar justificaciones a 400 chars)
+  const MAX_JUSTIFICATION_LENGTH = 400;
+  
+  const justificationContext = estimations
+    .map(e => {
+      const truncated = e.justification.length > MAX_JUSTIFICATION_LENGTH
+        ? e.justification.substring(0, MAX_JUSTIFICATION_LENGTH) + ' (truncado...)'
+        : e.justification;
+      return `- Valor: ${e.value} ${unit}. Justificación: "${truncated}"`;
+    })
+    .join('\n');
+
   return `
     Analiza la convergencia de la siguiente ronda de estimación en EstimaPro:
     
@@ -74,7 +86,7 @@ function buildAnalysisPrompt(estimations: Estimation[], stats: RoundStats, unit:
     - IQR: ${stats.iqr} | Outliers: ${stats.outlierEstimationIds.length}
 
     JUSTIFICACIONES:
-    ${estimations.map(e => `- Valor: ${e.value} ${unit}. Justificación: "${e.justification}"`).join('\n')}
+    ${justificationContext}
     
     Genera un dictamen formal en JSON:
     {

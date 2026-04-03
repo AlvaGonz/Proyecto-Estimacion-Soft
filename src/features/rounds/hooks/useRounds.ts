@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Round } from '../../../types';
 import { roundService } from '../services/roundService';
-import { estimationService } from '../../estimations/services/estimationService';
-import { projectService } from '../../projects/services/projectService';
+import { estimationService } from '../../../features/estimations/services/estimationService';
+import { projectService } from '../../../features/projects/services/projectService';
 
 export interface UseRoundsResult {
   rounds: Round[];

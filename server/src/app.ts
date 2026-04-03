@@ -8,13 +8,36 @@ import { errorHandler } from './middleware/error.middleware.js';
 
 const app: Application = express();
 
-// 1. Security headers
-app.use(helmet());
+// 1. (SC001): Explicit security headers via Helmet
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // Add needed external CDNs here
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'", "https://api.groq.com"]
+        }
+    },
+    xContentTypeOptions: true, // (nosniff)
+    referrerPolicy: { policy: 'same-origin' }
+}));
 
-// 2. CORS — allow cookies cross-origin
+// 2. (B-011): Precise CORS — allow cookies cross-origin but only for known domains
 app.use(cors({
-    origin: env.ALLOWED_ORIGINS,
+    origin: (origin, callback) => {
+        // If origin matches one in env list, allow it
+        if (!origin || env.ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`[CORS] Blocked request from: ${origin}`);
+            callback(null, false);
+        }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // 3. Cookie parser — required for httpOnly refresh token cookies

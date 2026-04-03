@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Award, Zap, Clock, MessageSquare, CheckCircle2, TrendingUp, BarChart3, Star, UserPlus, ShieldCheck } from 'lucide-react';
+import { 
+  Award, 
+  Zap, 
+  Clock, 
+  MessageSquare, 
+  CheckCircle2, 
+  TrendingUp, 
+  BarChart3, 
+  Star, 
+  UserPlus, 
+  ShieldCheck, 
+  Shield, 
+  GraduationCap, 
+  Users 
+} from 'lucide-react';
 import { userService, User } from '../services/userService';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { Project, Task, Round, Estimation, UserRole } from '../../../types';
@@ -7,124 +21,79 @@ import { calculateExpertAccuracy } from '../../../shared/utils/performanceMetric
 
 interface TeamPanelProps {
   expertIds?: string[];
+  facilitatorId?: string;
   rounds?: Record<string, Round[]>;
   tasks?: Task[];
   isFacilitator?: boolean;
 }
 
 const TeamPanel: React.FC<TeamPanelProps> = ({ 
-  expertIds = [], 
+  expertIds, 
+  facilitatorId, 
   rounds = {}, 
-  tasks = [],
-  isFacilitator = false
+  tasks = [], 
+  isFacilitator 
 }) => {
   const [experts, setExperts] = useState<User[]>([]);
+  const [facilitator, setFacilitator] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Robust fetching of experts to ensure we always have names if available
   useEffect(() => {
     let isMounted = true;
     
-    const fetchExperts = async () => {
-      if (!expertIds || expertIds.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-
+    const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        const fetchedExperts = await Promise.all(
-          expertIds.map(async (id) => {
-            try {
-              // Ensure we have a clean string ID
-              const idStr = typeof id === 'string' ? id : (id as any).id || (id as any)._id;
-              if (!idStr || String(idStr).includes('[object')) return null;
-              
-              return await userService.getUserById(String(idStr));
-            } catch (err) {
-              console.warn(`[TeamPanel] Failed to fetch expert profile for ID ${id}:`, err);
-              return null;
-            }
-          })
-        );
+        const users = await userService.getAllUsers();
         
-        if (isMounted) {
-          setExperts(fetchedExperts.filter(Boolean) as User[]);
+        // Helper to normalize IDs (string or object with _id/id)
+        const normalizeId = (id: any): string => {
+          if (!id) return '';
+          if (typeof id === 'string') return id;
+          return id._id || id.id || '';
+        };
+
+        // 1. Fetch Facilitator
+        if (facilitatorId) {
+          const stringFacilitatorId = normalizeId(facilitatorId);
+          const fData = users.find((u: User) => {
+            const uId = normalizeId(u.id || (u as any)._id);
+            return uId === stringFacilitatorId;
+          });
+          if (fData && isMounted) setFacilitator(fData);
         }
-      } catch (error) {
-        console.error('[TeamPanel] Critical error in expert resolution loop:', error);
+
+        // 2. Fetch Experts (Consorcio)
+        const cleanExpertIds = (expertIds || []).map(normalizeId).filter(Boolean);
+
+        if (cleanExpertIds.length > 0) {
+          const projectExperts = users.filter((u: User) => {
+            const uId = typeof u.id === 'string' ? u.id : (u as any).id || (u as any)._id;
+            return cleanExpertIds.includes(uId);
+          });
+          if (isMounted) setExperts(projectExperts);
+        } else {
+          if (isMounted) setExperts([]);
+        }
+      } catch (err) {
+        console.error('TeamPanel: Error fetching project members:', err);
+        if (isMounted) setError('No se pudo cargar la información de los miembros.');
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
 
-    fetchExperts();
+    fetchData();
     return () => { isMounted = false; };
-  }, [expertIds]);
-
-  const expertStats = useMemo(() => {
-    const allRounds = Object.values(rounds || {}).flat() as Round[];
-    
-    return experts.map(expert => {
-      // Determine participation in any OPEN round (current action)
-      const currentActiveRounds = allRounds.filter(r => r.status === 'open');
-      const hasEstimatedCurrent = currentActiveRounds.some(r => 
-        r.estimations?.some(e => e.expertId === expert.id)
-      );
-
-      const roundsEstimated = allRounds.filter(r => 
-        r.estimations?.some(e => e.expertId === expert.id)
-      ).length;
-
-      const tasksEstimated = tasks.filter(t => {
-        const taskRounds = rounds[t.id] || [];
-        return taskRounds.some(r => r.estimations?.some(e => e.expertId === expert.id));
-      }).length;
-
-      const participationRate = tasks.length > 0 ? (tasksEstimated / tasks.length) * 100 : 0;
-      const puntualidad = allRounds.length > 0 ? (roundsEstimated / allRounds.length) * 100 : 0;
-      
-      const accuracyScore = calculateExpertAccuracy(expert.id, tasks, rounds);
-      const debateCount = 0; // Future enhancement: map from actual comments
-
-      const globalScore = (participationRate + puntualidad + accuracyScore) / 3;
-
-      return {
-        id: expert.id,
-        name: expert.name,
-        role: expert.role,
-        tasksEstimated,
-        totalTasks: tasks.length,
-        participationRate: Math.round(participationRate),
-        puntualidad: Math.round(puntualidad),
-        debateCount,
-        accuracyScore,
-        globalScore: Math.round(globalScore),
-        isParticipating: hasEstimatedCurrent
-      };
-    });
-  }, [experts, rounds, tasks]);
-
-  const globalCommitment = useMemo(() => {
-    if (expertStats.length === 0) return 0;
-    const avg = expertStats.reduce((acc, curr) => acc + curr.globalScore, 0) / expertStats.length;
-    return Math.round(avg);
-  }, [expertStats]);
+  }, [expertIds, facilitatorId]);
 
   if (isLoading) return (
     <div className="h-64 flex flex-col items-center justify-center gap-4 animate-pulse">
-      <LoadingSpinner size="lg" label="Sincronizando perfiles de expertos..." />
+      <LoadingSpinner size="lg" label="Sincronizando perfiles de equipo..." />
     </div>
   );
-
-  if (expertStats.length === 0) {
-    return (
-      <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4 glass-card rounded-[3rem] border-dashed animate-reveal">
-        <UserPlus className="w-12 h-12 opacity-20" />
-        <p className="font-bold text-sm uppercase tracking-widest italic">Consorcio sin miembros asignados</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-10 animate-reveal">
@@ -134,108 +103,115 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
             <BarChart3 className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none italic uppercase">Panel de Expertos</h3>
-            <p className="text-slate-500 font-bold mt-2 text-sm tracking-wide">Métricas cuantitativas de participación y precisión del consenso.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 bg-white/50 backdrop-blur-md p-4 px-6 rounded-[2rem] border border-white shadow-sm ring-1 ring-slate-900/5">
-          <TrendingUp className="w-6 h-6 text-delphi-keppel" />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Compromiso Global</span>
-            <span className={`text-xl font-black ${globalCommitment >= 80 ? 'text-delphi-keppel' : globalCommitment >= 50 ? 'text-delphi-orange' : 'text-delphi-giants'}`}>
-              {globalCommitment}%
-            </span>
+            <h3 className="text-3xl font-black text-slate-900 tracking-tight leading-none italic uppercase">Panel de Equipo</h3>
+            <p className="text-slate-500 font-bold mt-2 text-sm tracking-wide">Gestión de facilitadores y consorcio técnico.</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {expertStats.map((exp, index) => (
-          <div 
-            key={exp.id} 
-            style={{ animationDelay: `${index * 150}ms` }}
-            className="group relative overflow-hidden glass-card p-8 rounded-[3rem] hover:shadow-2xl hover:shadow-delphi-keppel/10 hover:-translate-y-1 transition-all duration-500 animate-reveal border border-white/60"
-          >
-            {/* Participation Badge */}
-            <div className={`absolute top-6 right-8 flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-              exp.isParticipating ? 'bg-delphi-keppel/10 text-delphi-keppel border border-delphi-keppel/20' : 'bg-slate-100 text-slate-400 border border-slate-200'
-            }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${exp.isParticipating ? 'bg-delphi-keppel animate-pulse' : 'bg-slate-300'}`} />
-              {exp.isParticipating ? 'Enviado' : 'Pendiente'}
-            </div>
-
-            <div className="relative z-10 flex flex-col md:flex-row gap-8 mt-4">
-              <div className="flex flex-col items-center shrink-0">
-                <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-delphi-keppel to-delphi-keppel/70 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-delphi-keppel/20 mb-4 group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
-                  {exp.name.charAt(0)}
-                </div>
-                <div className={`text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full border shadow-sm ${
-                  isFacilitator ? 'bg-delphi-orange/10 text-delphi-orange border-delphi-orange/20' : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}>
-                  {isFacilitator ? 'Identificado' : 'Anónimo'}
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-delphi-keppel transition-colors">
-                      {isFacilitator ? exp.name : `Experto #${index + 1}`}
-                    </h4>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-3">
-                      {isFacilitator ? exp.role : 'Especialista del Consorcio'}
-                    </p>
-                  </div>
-                  <div className="text-right flex flex-col items-end">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">Índice IQ</span>
-                    <span className={`text-4xl font-black leading-none ${exp.globalScore >= 80 ? 'text-delphi-keppel' : exp.globalScore >= 50 ? 'text-delphi-orange' : 'text-delphi-giants'}`}>
-                      {exp.globalScore}%
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <CheckCircle2 className={`w-5 h-5 mx-auto mb-2 ${exp.participationRate >= 70 ? 'text-delphi-keppel' : 'text-slate-300'}`} />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Ritmo</p>
-                    <p className="text-base font-black text-slate-900">{exp.participationRate}%</p>
-                  </div>
-                  <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <MessageSquare className="w-5 h-5 text-delphi-orange mx-auto mb-2 opacity-50" />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Feedback</p>
-                    <p className="text-base font-black text-slate-900">{exp.debateCount}</p>
-                  </div>
-                  <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <Clock className={`w-5 h-5 mx-auto mb-2 ${exp.puntualidad >= 80 ? 'text-delphi-celadon' : 'text-delphi-orange'}`} />
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Delay</p>
-                    <p className="text-base font-black text-slate-900">{exp.puntualidad}%</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Precisión Técnica</span>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${
-                      exp.accuracyScore >= 80 ? 'bg-delphi-keppel/10 text-delphi-keppel' : exp.accuracyScore >= 50 ? 'bg-delphi-orange/10 text-delphi-orange' : 'bg-delphi-giants/10 text-delphi-giants'
-                    }`}>
-                      {exp.accuracyScore >= 80 ? 'PREMIUM' : exp.accuracyScore >= 50 ? 'ESTÁNDAR' : 'REVISAR'}
-                    </span>
-                  </div>
-                  <div className="h-2.5 w-full bg-slate-100/50 rounded-full overflow-hidden p-0.5 shadow-inner" role="progressbar">
-                    <div
-                      className={`h-full rounded-full transition-all duration-1000 shadow-lg ${
-                        exp.accuracyScore >= 80 ? 'bg-delphi-keppel' : exp.accuracyScore >= 50 ? 'bg-delphi-orange' : 'bg-delphi-giants'
-                      }`}
-                      style={{ width: `${exp.accuracyScore}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <Star className="absolute -top-6 -right-6 w-32 h-32 text-delphi-keppel/5 opacity-0 group-hover:opacity-100 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 pointer-events-none" />
+      <div className="space-y-12">
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+             <div className="bg-delphi-keppel/10 p-2 rounded-xl">
+               <Shield className="w-5 h-5 text-delphi-keppel" />
+             </div>
+             <h3 className="font-black text-xs uppercase tracking-[0.2em] text-slate-400">Facilitador del Proyecto</h3>
           </div>
-        ))}
+
+          {!facilitator && !isLoading ? (
+            <div className="p-8 border-2 border-dashed border-slate-100 rounded-3xl text-center">
+              <p className="text-sm font-bold text-slate-400">Facilitador no asignado o cargando...</p>
+            </div>
+          ) : facilitator && (
+            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-6 group hover:shadow-xl hover:shadow-slate-100 transition-all duration-500 hover:-translate-y-1">
+              <div className="relative">
+                <div className="absolute inset-0 bg-delphi-keppel/20 blur-2xl rounded-full scale-0 group-hover:scale-150 transition-transform duration-700" />
+                <div className="w-16 h-16 bg-gradient-to-br from-slate-800 to-black rounded-2xl flex items-center justify-center text-white font-black text-2xl relative z-10 border-4 border-white shadow-xl">
+                  {facilitator.name[0]}
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-lg text-slate-900 leading-tight">{facilitator.name}</h4>
+                  <span className="px-3 py-1 rounded-full bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest shadow-lg shadow-black/10">Líder</span>
+                </div>
+                <p className="text-sm text-slate-400 font-bold mt-1 tracking-tight">{facilitator.email}</p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <Star className="w-3.5 h-3.5 text-delphi-keppel" />
+                    Responsable de Sesión
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+             <div className="bg-delphi-orange/10 p-2 rounded-xl">
+               <GraduationCap className="w-5 h-5 text-delphi-orange" />
+             </div>
+             <h3 className="font-black text-xs uppercase tracking-[0.2em] text-slate-400">Consorcio Técnico (Expertos)</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {experts.length === 0 ? (
+              <div className="col-span-full py-16 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center gap-4 group hover:border-delphi-keppel transition-all px-8">
+                <div className="bg-white p-6 rounded-full shadow-lg group-hover:scale-110 transition-transform">
+                  <Users className="w-10 h-10 text-slate-200 group-hover:text-delphi-keppel transition-colors" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 tracking-tight text-lg italic">Consorcio sin miembros asignados</h4>
+                  <p className="text-sm text-slate-400 font-bold max-w-xs mt-2 leading-relaxed">
+                    No hay expertos asignados a este proyecto. {isFacilitator && "Puedes gestionar expertos desde la configuración del proyecto."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              experts.map((expert, idx) => {
+                const totalEstimatedTasks = tasks.filter(task => {
+                  const taskRoundsList = rounds[task.id] || [];
+                  return taskRoundsList.some(r => r.estimations?.some(e => e.expertId === expert.id));
+                }).length;
+
+                return (
+                  <div key={expert.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6 relative overflow-hidden group hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: `${idx * 100}ms` }}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-delphi-keppel/5 -mr-16 -mt-16 rounded-full blur-3xl group-hover:bg-delphi-keppel/10 transition-colors" />
+                    
+                    <div className="flex items-start gap-5">
+                      <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 font-black text-xl group-hover:bg-delphi-keppel group-hover:text-white transition-all duration-500 shadow-inner">
+                        {expert.name[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-black text-base text-slate-900 truncate tracking-tight">{expert.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold truncate tracking-widest mt-0.5">{expert.email.toUpperCase()}</p>
+                        <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-md bg-delphi-orange/10 text-delphi-orange text-[9px] font-black uppercase tracking-[0.1em]">
+                          {(expert as any).expertiseArea || 'Experto General'}
+                        </div>
+                      </div>
+                    </div>
+    
+                    <div className="pt-5 border-t border-slate-50 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Actividad</span>
+                        <span className="text-[10px] font-black text-delphi-keppel uppercase tracking-widest">
+                          {totalEstimatedTasks} / {tasks.length} Tareas
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner">
+                        <div 
+                          className="h-full bg-delphi-keppel rounded-full transition-all duration-1000 group-hover:shadow-[0_0_8px_rgba(43,186,165,0.4)]"
+                          style={{ width: `${tasks.length > 0 ? (totalEstimatedTasks / tasks.length) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
       </div>
 
       <div className="bg-slate-900 p-6 md:p-12 rounded-[2rem] md:rounded-[4rem] text-white flex flex-col md:flex-row items-center gap-6 md:gap-12 shadow-2xl overflow-hidden relative group border border-white/5">
