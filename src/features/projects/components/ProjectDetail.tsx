@@ -111,23 +111,28 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         </nav>
 
         {/* Header Seccion */}
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 animate-in fade-in slide-in-from-top-8 duration-1000">
-          <ProjectDetailHeader project={project} sprintIsLocked={sprintIsLocked} />
-          <ProjectActionButtons 
+        <header className="flex flex-col lg:flex-row lg:items-start justify-between gap-10 animate-in fade-in slide-in-from-top-8 duration-1000">
+          <ProjectDetailHeader 
+            project={project} 
+            sprintIsLocked={sprintIsLocked} 
             isFacilitator={isFacilitator}
-            role={role}
-            projectStatus={project.status}
-            sprintIsLocked={sprintIsLocked}
-            onConfigClick={() => updateState({ showConfigModal: true })}
-            onAddTaskClick={() => updateState({ showTaskForm: true })}
             onFinalizeClick={() => updateState({ showFinalizeModal: true })}
-            onDeleteClick={() => updateState({ showDeleteModal: true })}
           />
+          <div className="flex-shrink-0">
+            <ProjectActionButtons 
+              isFacilitator={isFacilitator}
+              role={role}
+              projectStatus={project.status}
+              sprintIsLocked={sprintIsLocked}
+              onConfigClick={() => updateState({ showConfigModal: true })}
+              onDeleteClick={() => updateState({ showDeleteModal: true })}
+            />
+          </div>
         </header>
 
         {/* Tab Navigation */}
         <div className="relative animate-in fade-in duration-1000 delay-300">
-          <div className="flex p-2 bg-slate-100/60 backdrop-blur-md rounded-[2.5rem] w-full lg:w-fit border border-slate-200/50 shadow-inner overflow-x-auto no-scrollbar">
+          <div className="flex p-1.5 bg-slate-100/80 backdrop-blur-xl rounded-[2rem] w-full lg:w-fit border border-slate-200/60 shadow-inner overflow-x-auto no-scrollbar">
             {[
               { id: 'tasks', label: 'Proceso Estimación', icon: FileText },
               { id: 'docs', label: 'Especificaciones', icon: CheckCircle2 },
@@ -138,9 +143,9 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
               <button
                 key={tab.id}
                 onClick={() => updateState({ activeTab: tab.id as any })}
-                className={`flex items-center gap-4 px-6 md:px-10 py-4.5 rounded-[2rem] text-[10px] md:text-xs font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap ${
+                className={`flex items-center gap-3 px-5 md:px-8 py-3.5 rounded-[1.75rem] text-[10px] md:text-[11px] font-black uppercase tracking-[0.1em] transition-all whitespace-nowrap ${
                   activeTab === tab.id 
-                    ? 'bg-white text-slate-900 shadow-[0_12px_30px_rgba(0,0,0,0.06)] scale-[1.02] ring-1 ring-slate-900/5' 
+                    ? 'bg-white text-slate-900 shadow-[0_8px_20px_rgba(0,0,0,0.06)] scale-[1.02] ring-1 ring-slate-900/5' 
                     : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
                 }`}
               >
@@ -161,6 +166,8 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                 onSelectTask={(id) => updateState({ selectedTaskId: id })}
                 isSidebarCollapsed={isSidebarCollapsed}
                 onToggleCollapse={(coll) => updateState({ isSidebarCollapsed: coll })}
+                onAddTaskClick={() => updateState({ showTaskForm: true })}
+                sprintIsLocked={sprintIsLocked}
                 sidebarWidth={sidebarWidth}
                 roundsByTask={roundsByTask}
                 project={project}

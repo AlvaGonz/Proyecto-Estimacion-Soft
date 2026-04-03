@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task, Round, Project } from '../../../../types';
-import { Activity, ChevronLeft, ChevronRight, CheckCircle2, Circle, Award } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, CheckCircle2, Circle, Award, Plus, Settings } from 'lucide-react';
 
 interface TaskSidebarProps {
   tasks: Task[];
@@ -8,6 +8,8 @@ interface TaskSidebarProps {
   onSelectTask: (taskId: string) => void;
   isSidebarCollapsed: boolean;
   onToggleCollapse: (collapsed: boolean) => void;
+  onAddTaskClick: () => void;
+  sprintIsLocked: boolean;
   sidebarWidth: number;
   roundsByTask: Record<string, Round[]>;
   project: Project;
@@ -20,6 +22,8 @@ export const TaskSidebar: React.FC<TaskSidebarProps> = ({
   onSelectTask,
   isSidebarCollapsed,
   onToggleCollapse,
+  onAddTaskClick,
+  sprintIsLocked,
   sidebarWidth,
   roundsByTask,
   project,
@@ -89,25 +93,42 @@ export const TaskSidebar: React.FC<TaskSidebarProps> = ({
       style={{ width: window.innerWidth >= 1024 ? (isSidebarCollapsed ? '96px' : `${sidebarWidth}px`) : '100%' }}
       className="lg:sticky lg:top-8 flex flex-col shrink-0 min-w-0 transition-all duration-500 ease-in-out"
     >
-      <div className={`bg-white/70 backdrop-blur-3xl rounded-[2.5rem] border border-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col h-full max-h-[80vh] ring-1 ring-slate-200/60 transition-all duration-500 ${isSidebarCollapsed ? 'p-4 items-center' : 'p-6 md:p-10'}`}>
-        <div className={`flex items-center justify-between shrink-0 transition-all duration-500 ${isSidebarCollapsed ? 'flex-col gap-6 mb-6' : 'mb-10'}`}>
+      <div className={`bg-white/70 backdrop-blur-3xl rounded-[2.5rem] border border-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] flex flex-col h-full max-h-[85vh] ring-1 ring-slate-200/60 transition-all duration-500 ${isSidebarCollapsed ? 'p-4 items-center' : 'p-6 md:p-10'}`}>
+        <div className={`flex items-start justify-between shrink-0 transition-all duration-500 ${isSidebarCollapsed ? 'flex-col gap-6 mb-6' : 'mb-8 border-b border-slate-100 pb-8'}`}>
           {!isSidebarCollapsed ? (
             <>
-              <div className="space-y-1">
-                <h3 className="font-black text-2xl tracking-tighter text-slate-900">Tareas</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Backlog del Sprint</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="bg-delphi-keppel/10 px-5 py-2.5 rounded-2xl text-[10px] md:text-xs font-black text-delphi-keppel uppercase tracking-widest ring-1 ring-delphi-keppel/20 shadow-sm shadow-delphi-keppel/5">
-                  {tasks.length}
+              <div className="space-y-4 w-full">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-black text-2xl tracking-tighter text-slate-900">Tareas</h3>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                       Backlog del Sprint
+                       <span className="bg-slate-100 px-2 py-0.5 rounded-lg text-slate-500">{tasks.length}</span>
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => onToggleCollapse(true)}
+                    className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors group"
+                    title="Minimizar panel"
+                  >
+                    <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => onToggleCollapse(true)}
-                  className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors group"
-                  title="Minimizar panel"
-                >
-                  <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
-                </button>
+
+                {isFacilitator && (
+                  <button
+                    onClick={onAddTaskClick}
+                    disabled={sprintIsLocked}
+                    className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-lg ${
+                      sprintIsLocked 
+                        ? 'bg-slate-50 text-slate-300 border-slate-100 shadow-none cursor-not-allowed' 
+                        : 'bg-delphi-keppel text-white border-delphi-keppel shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95'
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Añadir Tarea
+                  </button>
+                )}
               </div>
             </>
           ) : (
