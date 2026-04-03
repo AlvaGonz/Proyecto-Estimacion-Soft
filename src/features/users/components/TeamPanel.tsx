@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Award, Zap, Clock, MessageSquare, CheckCircle2, TrendingUp, BarChart3, Star, ShieldCheck } from 'lucide-react';
+import { Award, Zap, Clock, MessageSquare, CheckCircle2, TrendingUp, BarChart3, Star, UserPlus, ShieldCheck } from 'lucide-react';
 import { userService, User } from '../services/userService';
 import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
 import { Project, Task, Round, Estimation, UserRole } from '../../../types';
@@ -12,19 +12,6 @@ interface TeamPanelProps {
   isFacilitator?: boolean;
 }
 
-interface ExpertStats {
-  id: string;
-  name: string;
-  role: string;
-  tasksEstimated: number;
-  totalTasks: number;
-  participationRate: number; // % Tareas Estimadas
-  puntualidad: number; // (Rounds estimated / Total rounds)
-  debateCount: number; // Placeholder or from actual comments if available
-  accuracyScore: number; // Compromiso Individual / Convergencia
-  globalScore: number;
-}
-
 const TeamPanel: React.FC<TeamPanelProps> = ({ 
   expertIds = [], 
   rounds = {}, 
@@ -34,36 +21,58 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
   const [experts, setExperts] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Robust fetching of experts to ensure we always have names if available
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchExperts = async () => {
+      if (!expertIds || expertIds.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         const fetchedExperts = await Promise.all(
-          expertIds.map(id => {
-            const idStr = typeof id === 'string' ? id : (id as any).id || (id as any)._id;
-            return userService.getUserById(String(idStr));
+          expertIds.map(async (id) => {
+            try {
+              // Ensure we have a clean string ID
+              const idStr = typeof id === 'string' ? id : (id as any).id || (id as any)._id;
+              if (!idStr || String(idStr).includes('[object')) return null;
+              
+              return await userService.getUserById(String(idStr));
+            } catch (err) {
+              console.warn(`[TeamPanel] Failed to fetch expert profile for ID ${id}:`, err);
+              return null;
+            }
           })
         );
-        setExperts(fetchedExperts);
+        
+        if (isMounted) {
+          setExperts(fetchedExperts.filter(Boolean) as User[]);
+        }
       } catch (error) {
-        console.error('Error fetching experts:', error);
+        console.error('[TeamPanel] Critical error in expert resolution loop:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    if (expertIds.length > 0) {
-      fetchExperts();
-    } else {
-      setIsLoading(false);
-    }
+    fetchExperts();
+    return () => { isMounted = false; };
   }, [expertIds]);
 
   const expertStats = useMemo(() => {
+    const allRounds = Object.values(rounds || {}).flat() as Round[];
+    
     return experts.map(expert => {
-      const expertRounds = Object.values(rounds || {}).flat() as Round[];
-      const totalRounds = expertRounds.length;
-      const roundsEstimated = expertRounds.filter(r => 
+      // Determine participation in any OPEN round (current action)
+      const currentActiveRounds = allRounds.filter(r => r.status === 'open');
+      const hasEstimatedCurrent = currentActiveRounds.some(r => 
+        r.estimations?.some(e => e.expertId === expert.id)
+      );
+
+      const roundsEstimated = allRounds.filter(r => 
         r.estimations?.some(e => e.expertId === expert.id)
       ).length;
 
@@ -73,10 +82,10 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
       }).length;
 
       const participationRate = tasks.length > 0 ? (tasksEstimated / tasks.length) * 100 : 0;
-      const puntualidad = totalRounds > 0 ? (roundsEstimated / totalRounds) * 100 : 0;
+      const puntualidad = allRounds.length > 0 ? (roundsEstimated / allRounds.length) * 100 : 0;
       
       const accuracyScore = calculateExpertAccuracy(expert.id, tasks, rounds);
-      const debateCount = 0; 
+      const debateCount = 0; // Future enhancement: map from actual comments
 
       const globalScore = (participationRate + puntualidad + accuracyScore) / 3;
 
@@ -86,11 +95,12 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
         role: expert.role,
         tasksEstimated,
         totalTasks: tasks.length,
-        participationRate: parseFloat(participationRate.toFixed(1)),
-        puntualidad: parseFloat(puntualidad.toFixed(1)),
+        participationRate: Math.round(participationRate),
+        puntualidad: Math.round(puntualidad),
         debateCount,
         accuracyScore,
-        globalScore: parseFloat(globalScore.toFixed(1))
+        globalScore: Math.round(globalScore),
+        isParticipating: hasEstimatedCurrent
       };
     });
   }, [experts, rounds, tasks]);
@@ -101,13 +111,26 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
     return Math.round(avg);
   }, [expertStats]);
 
-  if (isLoading) return <div className="h-64 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
+  if (isLoading) return (
+    <div className="h-64 flex flex-col items-center justify-center gap-4 animate-pulse">
+      <LoadingSpinner size="lg" label="Sincronizando perfiles de expertos..." />
+    </div>
+  );
+
+  if (expertStats.length === 0) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4 glass-card rounded-[3rem] border-dashed animate-reveal">
+        <UserPlus className="w-12 h-12 opacity-20" />
+        <p className="font-bold text-sm uppercase tracking-widest italic">Consorcio sin miembros asignados</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-reveal">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] glass-card border-white/40 shadow-xl shadow-delphi-keppel/5">
         <div className="flex items-center gap-8">
-          <div className="bg-gradient-to-br from-delphi-keppel to-delphi-keppel/80 p-5 rounded-[2rem] shadow-2xl shadow-delphi-keppel/20 group-hover:scale-110 transition-transform">
+          <div className="bg-gradient-to-br from-delphi-keppel to-delphi-keppel/80 p-5 rounded-[2rem] shadow-2xl shadow-delphi-keppel/20">
             <BarChart3 className="w-10 h-10 text-white" />
           </div>
           <div>
@@ -131,9 +154,17 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
           <div 
             key={exp.id} 
             style={{ animationDelay: `${index * 150}ms` }}
-            className="group relative overflow-hidden glass-card p-8 rounded-[3rem] hover:shadow-2xl hover:shadow-delphi-keppel/10 hover:-translate-y-1 transition-all duration-500 animate-reveal"
+            className="group relative overflow-hidden glass-card p-8 rounded-[3rem] hover:shadow-2xl hover:shadow-delphi-keppel/10 hover:-translate-y-1 transition-all duration-500 animate-reveal border border-white/60"
           >
-            <div className="relative z-10 flex flex-col md:flex-row gap-8">
+            {/* Participation Badge */}
+            <div className={`absolute top-6 right-8 flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+              exp.isParticipating ? 'bg-delphi-keppel/10 text-delphi-keppel border border-delphi-keppel/20' : 'bg-slate-100 text-slate-400 border border-slate-200'
+            }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${exp.isParticipating ? 'bg-delphi-keppel animate-pulse' : 'bg-slate-300'}`} />
+              {exp.isParticipating ? 'Enviado' : 'Pendiente'}
+            </div>
+
+            <div className="relative z-10 flex flex-col md:flex-row gap-8 mt-4">
               <div className="flex flex-col items-center shrink-0">
                 <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-delphi-keppel to-delphi-keppel/70 flex items-center justify-center text-4xl font-black text-white shadow-2xl shadow-delphi-keppel/20 mb-4 group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
                   {exp.name.charAt(0)}
@@ -148,9 +179,11 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
               <div className="flex-1 space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-delphi-keppel transition-colors">{exp.name}</h4>
+                    <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-delphi-keppel transition-colors">
+                      {isFacilitator ? exp.name : `Experto #${index + 1}`}
+                    </h4>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-3">
-                      {isFacilitator ? exp.role : 'Experto del Dominio'}
+                      {isFacilitator ? exp.role : 'Especialista del Consorcio'}
                     </p>
                   </div>
                   <div className="text-right flex flex-col items-end">
@@ -163,17 +196,17 @@ const TeamPanel: React.FC<TeamPanelProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <CheckCircle2 className="w-5 h-5 text-delphi-keppel mx-auto mb-2" />
+                    <CheckCircle2 className={`w-5 h-5 mx-auto mb-2 ${exp.participationRate >= 70 ? 'text-delphi-keppel' : 'text-slate-300'}`} />
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Ritmo</p>
                     <p className="text-base font-black text-slate-900">{exp.participationRate}%</p>
                   </div>
                   <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <MessageSquare className="w-5 h-5 text-delphi-orange mx-auto mb-2" />
+                    <MessageSquare className="w-5 h-5 text-delphi-orange mx-auto mb-2 opacity-50" />
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Feedback</p>
                     <p className="text-base font-black text-slate-900">{exp.debateCount}</p>
                   </div>
                   <div className="bg-white/40 p-4 rounded-[1.5rem] border border-white/60 shadow-sm text-center group-hover:bg-white transition-colors">
-                    <Clock className="w-5 h-5 text-delphi-giants mx-auto mb-2" />
+                    <Clock className={`w-5 h-5 mx-auto mb-2 ${exp.puntualidad >= 80 ? 'text-delphi-celadon' : 'text-delphi-orange'}`} />
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Delay</p>
                     <p className="text-base font-black text-slate-900">{exp.puntualidad}%</p>
                   </div>

@@ -141,6 +141,32 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
     }
   }, [projectId, activeTab]);
 
+  const currentTask = tasks.find(t => t.id === selectedTaskId);
+  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
+
+  // Security and Navigation Logic
+  React.useEffect(() => {
+    if (project && !isLoading) {
+      const isExpert = role === UserRole.EXPERT;
+      const isParticipant = isFacilitator || (project.expertIds && project.expertIds.includes(currentUserId));
+
+      // 1. Security Check: Redirect if not a participant/facilitator
+      if (!isParticipant) {
+        notificationService.addNotification({
+          type: 'system',
+          message: 'No tienes permiso para acceder a este proyecto.'
+        });
+        onBack();
+        return;
+      }
+
+      // 2. Expert Preference: Focus on tasks if it's active or kickoff
+      if (isExpert && (project.status === 'active' || project.status === 'kickoff')) {
+        setActiveTab('tasks');
+      }
+    }
+  }, [project, isLoading, role, currentUserId, isFacilitator, onBack]);
+
   React.useEffect(() => {
     const fetchData = async () => {
       try {
@@ -182,25 +208,11 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
   }, [projectId]);
 
   React.useEffect(() => {
-    if (!selectedTaskId) {
-      setActiveRound(null);
-      return;
+    if (activeTab === 'docs' && !isFacilitator && role !== UserRole.ADMIN) {
+      setActiveTab('tasks');
     }
-    const fetchActiveRound = async () => {
-      try {
-        const rounds = await roundService.getRoundsByTask(projectId, selectedTaskId);
-        const active = rounds.find(r => r.status === 'open');
-        setActiveRound(active || rounds[rounds.length - 1] || null);
-      } catch (err) {
-        console.error("Error fetching rounds for discussion", err);
-      }
-    };
-    fetchActiveRound();
-  }, [selectedTaskId]);
+  }, [activeTab, isFacilitator, role]);
 
-  const currentTask = tasks.find(t => t.id === selectedTaskId);
-  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
-  
   // Cargar datos del proyecto en el formulario de configuración
   React.useEffect(() => {
     if (project && showConfigModal) {
@@ -868,6 +880,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
                       isFacilitator={isFacilitator}
                       projectId={project.id}
                       currentUserId={currentUserId}
+                      expertIds={project.expertIds || []}
                     />
                   </div>
                 ) : (
