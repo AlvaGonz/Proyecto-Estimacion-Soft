@@ -60,9 +60,9 @@ Always include this section. Agents should use their own identity:
 ## Commit Attribution
 AI commits MUST include:
 ```
--By: (the agent model's name and attribution byline)
+Co-Authored-By: (the agent model's name and attribution byline)
 ```
-Example: `-By: Claude Sonnet 4 <noreply@example.com>`
+Example: `Co-Authored-By: Claude Sonnet 4 <noreply@example.com>`
 ```
 
 ### Key Conventions
@@ -100,7 +100,7 @@ Use **pnpm**: `pnpm install`, `pnpm dev`
 ## Commit Attribution
 AI commits MUST include:
 ```
--By: (the agent model's name and attribution byline)
+Co-Authored-By: (the agent model's name and attribution byline)
 ```
 
 ## File-Scoped Commands

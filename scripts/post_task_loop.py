@@ -83,7 +83,7 @@ def is_already_processed(task_hash: str) -> bool:
     
     lock_dir.mkdir(parents=True, exist_ok=True)
     temp_file = lock_file.with_suffix(".tmp")
-    temp_file.write_text(f"processed {datetime.now().isoformat()}", encoding="utf-8", errors="replace")
+    temp_file.write_text(f"processed {datetime.now().isoformat()}", encoding="utf-8")
     os.replace(temp_file, lock_file)
     return False
 
@@ -113,7 +113,7 @@ def get_session_memory() -> str:
     for path in [LESSONS_GLOBAL, LESSONS_LOCAL]:
         if path.exists():
             try:
-                content = path.read_text(encoding="utf-8", errors="replace")
+                content = path.read_text(encoding="utf-8")
                 # Step 2: Parse blocks using regex
                 blocks = re.findall(r'---\nLESSON:\n(.*?)\n---', content, re.DOTALL)
                 for block in blocks:
@@ -132,7 +132,7 @@ def get_session_memory() -> str:
 def parse_lessons_from_file(path: Path) -> list[dict]:
     """Extract LESSON: and META_RULE: blocks as structured dicts (SEA Step 3 & 4)."""
     if not path.exists(): return []
-    content = path.read_text(encoding="utf-8", errors="replace")
+    content = path.read_text(encoding="utf-8")
     # Match both LESSON: and META_RULE:
     blocks = re.findall(r'---\n(LESSON|META_RULE):\n(.*?)\n---', content, re.DOTALL)
     parsed = []
@@ -288,7 +288,7 @@ def agent_validator(mutations: list, task: str) -> dict:
 def _append_to_file(path: Path, lines: list[str]):
     """Helper to append lines to a file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "a", encoding="utf-8", errors="replace") as f:
+    with open(path, "a", encoding="utf-8") as f:
         for line in lines:
             f.write(f"\n{line}")
 
@@ -324,7 +324,7 @@ def evolve_skill_prompt(skill_name: str, issues: list, task: str):
     if not skill_path.exists():
         return
     
-    original_content = skill_path.read_text(encoding="utf-8", errors="replace")
+    original_content = skill_path.read_text(encoding="utf-8")
     system = (
         "You are a Prompt Engineer. Rewrite the following SKILL.md to fix the reported issues "
         "while preserving the YAML metadata and core behavior. Use 'Differential Evolution' "
@@ -358,7 +358,7 @@ def evolve_skill_prompt(skill_name: str, issues: list, task: str):
         # Step 5: Snapshot before mutation
         version = snapshot_skill(str(skill_path))
         
-        skill_path.write_text(mutated, encoding="utf-8", errors="replace")
+        skill_path.write_text(mutated, encoding="utf-8")
         console.print(f"  [bold green]EVOLVED:[/bold green] {skill_name} to {version}")
         
         # Log the evolution event
@@ -376,7 +376,7 @@ def update_fitness_log(skill_name: str, score: int):
     FITNESS_LOG.parent.mkdir(exist_ok=True)
     lines = []
     if FITNESS_LOG.exists():
-        lines = FITNESS_LOG.read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = FITNESS_LOG.read_text(encoding="utf-8").splitlines()
     
     header = "| skill_name | activation_count | avg_score | fitness_label | last_evolved |"
     if not lines:
@@ -401,7 +401,7 @@ def update_fitness_log(skill_name: str, score: int):
         label = "HIGH" if score >= 85 else ("MED" if score >= 60 else "LOW")
         lines.append(f"| {skill_name} | 1 | {score} | {label} | {timestamp} |")
     
-    FITNESS_LOG.write_text("\n".join(lines), encoding="utf-8", errors="replace")
+    FITNESS_LOG.write_text("\n".join(lines), encoding="utf-8")
     return label # Return label for use in loop
 
 def update_fitness_log_raw(skill_name: str, score: int, evolved_from: str = "null"):
@@ -429,7 +429,7 @@ def snapshot_skill(skill_path: str) -> str:
     curr_v = get_skill_version(skill_name)
     next_v = f"v{int(curr_v[1:]) + 1}"
     dest = history_dir / f"{skill_name}.{next_v}.md"
-    dest.write_text(path.read_text(encoding="utf-8", errors="replace"), encoding="utf-8", errors="replace")
+    dest.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
     prune_skill_history(skill_name)
     return next_v
 
@@ -488,7 +488,7 @@ def get_actionable_low_fitness_skills(log_path: Path) -> list[str]:
         return []
     today = datetime.now().date()
     low_skills = set()
-    for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in log_path.read_text(encoding="utf-8").splitlines():
         match = re.search(r"FITNESS=LOW skill=(\S+) date=(\d{4}-\d{2}-\d{2})", line)
         if match:
             skill, date_str = match.group(1), match.group(2)
@@ -503,7 +503,7 @@ def is_skill_converged(skill_name: str) -> bool:
     """Check if skill has consistently high scores (>= 90 x 5)."""
     if not FITNESS_LOG.exists(): return False
     scores = []
-    for line in FITNESS_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in FITNESS_LOG.read_text(encoding="utf-8").splitlines():
         m = re.search(rf"skill={skill_name}.*score=(\d+)", line)
         if m: scores.append(int(m.group(1)))
     if len(scores) < CONVERGENCE_STREAK: return False
@@ -538,7 +538,7 @@ def generate_population(skill_name: str, champion_path: str, client) -> list[str
     POPULATION_DIR.mkdir(parents=True, exist_ok=True)
     champion_path_obj = Path(champion_path)
     if not champion_path_obj.exists(): return []
-    champ_prompt = champion_path_obj.read_text(encoding="utf-8", errors="replace")
+    champ_prompt = champion_path_obj.read_text(encoding="utf-8")
     
     variations = [
         "Generate a more specific, concrete version of this prompt. Focus on tightening constraints and removing ambiguity.",
@@ -554,7 +554,7 @@ def generate_population(skill_name: str, champion_path: str, client) -> list[str
             resp = groq_call_with_fallback(client, [{"role": "system", "content": system}, {"role": "user", "content": user}], role="fast")
             mutated = resp.choices[0].message.content.strip()
             dest = POPULATION_DIR / f"{skill_name}.candidate-{char}.md"
-            dest.write_text(mutated, encoding="utf-8", errors="replace")
+            dest.write_text(mutated, encoding="utf-8")
             paths.append(str(dest))
         except Exception: pass
     return paths
@@ -566,7 +566,7 @@ def elect_champion(skill_name: str, champion_path: str) -> str | None:
     
     # Parse telemetry for completed tournament scores (run=3)
     results = {} # {id: [scores]}
-    for line in tele_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in tele_path.read_text(encoding="utf-8").splitlines():
         if f"POPULATION_SCORE: skill={skill_name}" in line:
             m = re.search(r"candidate=(\w) score=(\d+)", line)
             if m:
@@ -583,7 +583,7 @@ def elect_champion(skill_name: str, champion_path: str) -> str | None:
     # Get current champion avg (last 3 from fitness log)
     champ_scores = []
     if FITNESS_LOG.exists():
-        for line in FITNESS_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
+        for line in FITNESS_LOG.read_text(encoding="utf-8").splitlines():
             m = re.search(rf"skill={skill_name}.*?score=(\d+)", line)
             if m: champ_scores.append(int(m.group(1)))
     
@@ -594,7 +594,7 @@ def elect_champion(skill_name: str, champion_path: str) -> str | None:
         if winner_path.exists():
             snapshot_skill(champion_path)
             tmp = Path(champion_path).with_suffix(".tmp")
-            tmp.write_text(winner_path.read_text(encoding="utf-8", errors="replace"), encoding="utf-8", errors="replace")
+            tmp.write_text(winner_path.read_text(encoding="utf-8"), encoding="utf-8")
             os.replace(tmp, champion_path)
             _append_to_file(tele_path, [f"CHAMPION_ELECTED: skill={skill_name} candidate={best_id} old_avg={champ_avg} new_avg={best_avg} date={datetime.now().isoformat()}"])
             # Cleanup
@@ -627,7 +627,7 @@ def log_workflow_run(chain: str, task_type: str, score: int, token_count: int) -
     """Log performance of an agent chain (SEA Step 2)."""
     log_path = Path("tasks/workflow-fitness-log.md")
     if not log_path.exists():
-        log_path.write_text("# Workflow Fitness Log\n", encoding="utf-8", errors="replace")
+        log_path.write_text("# Workflow Fitness Log\n", encoding="utf-8")
     
     date = datetime.now().strftime("%Y-%m-%d")
     line = f"WORKFLOW_RUN: chain={chain} task_type={task_type} score={score} tokens={token_count} date={date}"
@@ -636,7 +636,7 @@ def log_workflow_run(chain: str, task_type: str, score: int, token_count: int) -
 def analyze_workflow_fitness(log_path: Path, min_runs: int = 30) -> list[str]:
     """Identify efficiency opportunities in agent chains (SEA Step 2)."""
     if not log_path.exists(): return []
-    content = log_path.read_text(encoding="utf-8", errors="replace")
+    content = log_path.read_text(encoding="utf-8")
     runs = []
     for line in content.splitlines():
         m = re.search(r"WORKFLOW_RUN: chain=(\S+) task_type=(\w+) score=(\d+) tokens=(\d+)", line)
@@ -692,7 +692,7 @@ def maybe_abstract_patterns(skill_name: str, client) -> None:
     if count < ABSTRACTION_THRESHOLD: return
     
     # Check if already abstracted recently
-    tele_content = Path("tasks/loop-telemetry.md").read_text(encoding="utf-8", errors="replace") if Path("tasks/loop-telemetry.md").exists() else ""
+    tele_content = Path("tasks/loop-telemetry.md").read_text(encoding="utf-8") if Path("tasks/loop-telemetry.md").exists() else ""
     if f"META_RULE_GENERATED: skill={skill_name}" in tele_content:
         # Only abstract every 5 new lessons
         already_gen = len(re.findall(f"META_RULE_GENERATED: skill={skill_name}", tele_content))
@@ -780,7 +780,7 @@ def load_skill_dependencies(path: str = ".agent/skill-dependencies.json") -> dic
     p = Path(path)
     if not p.exists(): return {}
     try:
-        return json.loads(p.read_text(encoding="utf-8", errors="replace"))
+        return json.loads(p.read_text(encoding="utf-8"))
     except Exception: return {}
 
 def get_blocked_skills(skills_queued_for_evolution: list[str], dependencies: dict) -> list[str]:
@@ -797,7 +797,7 @@ def get_blocked_skills(skills_queued_for_evolution: list[str], dependencies: dic
 def maybe_remove_approval_block(skill: str):
     """Remove a REJECT block from the approvals file."""
     if not PENDING_APPROVALS_FILE.exists(): return
-    content = PENDING_APPROVALS_FILE.read_text(encoding="utf-8", errors="replace")
+    content = PENDING_APPROVALS_FILE.read_text(encoding="utf-8")
     # Identify blocks (delimited by ## PENDING APPROVAL)
     parts = re.split(r"(## PENDING APPROVAL — .*?\n)", content)
     if not parts: return
@@ -888,7 +888,7 @@ def queue_for_human_approval(skill: str, old_prompt: str, new_prompt: str, reaso
 def check_pending_approvals() -> dict[str, str]:
     """Parse the approvals file and return state per skill."""
     if not PENDING_APPROVALS_FILE.exists(): return {}
-    content = PENDING_APPROVALS_FILE.read_text(encoding="utf-8", errors="replace")
+    content = PENDING_APPROVALS_FILE.read_text(encoding="utf-8")
     results = {}
     blocks = re.split(r"## PENDING APPROVAL", content)
     for b in blocks:
@@ -1009,7 +1009,7 @@ def archive_stale_fitness_entries(log_path: Path, archive_path: Path):
     """Move entries older than RECENCY_WINDOW_DAYS to archive atomically."""
     if not log_path.exists(): return
     today, keep, stale = datetime.now().date(), [], []
-    for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in log_path.read_text(encoding="utf-8").splitlines():
         match = re.search(r"date=(\d{4}-\d{2}-\d{2})", line)
         if match:
             try:
@@ -1069,7 +1069,7 @@ def agent_archivist(task: str, issues: list, mutations: list, score: int, verdic
             print(f"LOOP: {skill_name} plateaued — spawning population of 3 candidates")
         else:
             # Tournament in progress. Find candidate with least runs.
-            tele_content = Path("tasks/loop-telemetry.md").read_text(encoding="utf-8", errors="replace") if Path("tasks/loop-telemetry.md").exists() else ""
+            tele_content = Path("tasks/loop-telemetry.md").read_text(encoding="utf-8") if Path("tasks/loop-telemetry.md").exists() else ""
             counts = {"A": 0, "B": 0, "C": 0}
             for char in counts:
                 counts[char] = len(re.findall(rf"POPULATION_SCORE: skill={skill_name} candidate={char}", tele_content))

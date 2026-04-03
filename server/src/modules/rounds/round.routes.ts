@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { openRound, closeRound, getRoundsByTask, updateRoundAnalysis } from './round.controller.js';
-import { authenticate } from '../../middleware/auth.middleware.js';
-import { requireRole } from '../../middleware/rbac.middleware.js';
-import { validate } from '../../middleware/validate.middleware.js';
-import { ROLES } from '../../config/constants.js';
-import { openRoundSchema } from '../../types/api.types.js';
+import { openRound, closeRound, getRoundsByTask, updateRoundAnalysis } from '../controllers/round.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import { requireRole } from '../middleware/rbac.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+import { ROLES } from '../config/constants.js';
+import { openRoundSchema } from '../types/api.types.js';
 
 const router = Router();
 
