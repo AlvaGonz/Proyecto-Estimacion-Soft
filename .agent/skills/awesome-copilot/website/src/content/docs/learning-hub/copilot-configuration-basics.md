@@ -385,7 +385,7 @@ CLI settings use **camelCase** naming. Key settings added in recent releases:
 
 | Setting | Description |
 |---------|-------------|
-| `includeCoAuthoredBy` | Include Co-authored-by trailer in commits |
+| `includeCoAuthoredBy` | Include -by trailer in commits |
 | `effortLevel` | Default reasoning effort level (`low`, `medium`, `high`) |
 | `autoUpdatesChannel` | Update channel (`stable`, `preview`) |
 | `statusLine` | Show status line in the terminal UI |

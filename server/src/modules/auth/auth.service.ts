@@ -1,9 +1,9 @@
-import { RegisterDTO, LoginDTO } from '../types/api.types.js';
-import { User } from '../models/index.js';
+import { RegisterDTO, LoginDTO } from '../../types/api.types.js';
+import { User } from '../users/user.model.js';
 import { tokenService } from './token.service.js';
-import { auditService } from './audit.service.js';
-import { ApiError } from '../utils/ApiError.js';
-import { IUser } from '../types/models.types.js';
+import { auditService } from '../audit-log/audit.service.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { IUser } from '../../types/models.types.js';
 
 interface AuthResult {
     user: Record<string, unknown>;

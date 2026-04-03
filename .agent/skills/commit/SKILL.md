@@ -82,7 +82,6 @@ git commit -m "type(scope): Subject" \
 Second paragraph.
 
 Fixes GH-1234
-Co-Authored-By: (the agent's name and attribution byline)"
 ```
 
 ```bash

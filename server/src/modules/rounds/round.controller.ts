@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { roundService } from '../services/round.service.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { roundService } from './round.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const openRound = asyncHandler(async (req: Request, res: Response) => {
     const { taskId } = req.body;

@@ -1,27 +1,29 @@
 import { Request, Response } from 'express';
-import { User } from '../models/User.model.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { userService } from './user.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 
-export const getAllUsers = asyncHandler(async (_req: Request, res: Response) => {
-    const users = await User.find({}).sort({ name: 1 });
+export const getUsers = asyncHandler(async (req: Request, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const role = req.query.role as string | undefined;
+    const isActiveParam = req.query.isActive as string | undefined;
+    const isActive = isActiveParam !== undefined ? isActiveParam === 'true' : undefined;
 
-    res.json({
-        success: true,
-        data: users
-    });
+    const result = await userService.listUsers({ role, isActive, page, limit });
+    res.json({ success: true, data: result });
+});
+
+export const createUser = asyncHandler(async (req: Request, res: Response) => {
+    const user = await userService.createUser(req.body, req.user!.id);
+    res.status(201).json({ success: true, data: user });
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const user = await userService.updateUser(req.params.id, req.body, req.user!.id);
+    res.json({ success: true, data: user });
+});
 
-    // TODO: Validate user exists in database
-    // TODO: Validate update payload with Zod
-    // TODO: Update user fields (except password — separate endpoint)
-    // TODO: Log audit event (action: 'user:update')
-
-    res.json({
-        success: true,
-        message: 'Usuario actualizado',
-        data: { id },
-    });
+export const deactivateUser = asyncHandler(async (req: Request, res: Response) => {
+    await userService.deactivateUser(req.params.id, req.user!.id);
+    res.json({ success: true, message: 'Usuario desactivado exitosamente' });
 });

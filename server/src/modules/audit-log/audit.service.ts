@@ -1,4 +1,4 @@
-import { AuditLog } from '../models/index.js';
+import { AuditLog } from './audit-log.model.js';
 
 interface AuditLogData {
     userId: string;

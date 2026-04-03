@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { projectService } from '../services/project.service.js';
-import { taskService } from '../services/task.service.js';
-import { auditService } from '../services/audit.service.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { Role } from '../config/constants.js';
+import { projectService } from './project.service.js';
+import { taskService } from '../tasks/task.service.js';
+import { auditService } from '../audit-log/audit.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { Role } from '../../config/constants.js';
 
 // ─── Proyectos ───────────────────────────────────────────────────────
 
@@ -84,6 +84,19 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
     res.json({
         success: true,
         message: 'Proyecto eliminado correctamente'
+    });
+});
+
+export const restoreProject = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const requesterId = req.user?.id as string;
+
+    const project = await projectService.restore(id, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Proyecto restaurado exitosamente',
+        data: project
     });
 });
 

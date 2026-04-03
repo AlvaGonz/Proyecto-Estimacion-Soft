@@ -1,10 +1,10 @@
-import { Project } from '../models/Project.model.js';
-import { Round } from '../models/Round.model.js';
-import { Task } from '../models/Task.model.js';
-import { IProject } from '../types/models.types.js';
-import { ApiError } from '../utils/ApiError.js';
-import { PROJECT_STATUS, ROLES, Role } from '../config/constants.js';
-import { auditService } from './audit.service.js';
+import { Project } from './project.model.js';
+import { Round } from '../rounds/round.model.js';
+import { Task } from '../tasks/task.model.js';
+import { IProject } from '../../types/models.types.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { PROJECT_STATUS, ROLES, Role } from '../../config/constants.js';
+import { auditService } from '../audit-log/audit.service.js';
 import mongoose from 'mongoose';
 
 export const projectService = {

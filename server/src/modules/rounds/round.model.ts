@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
-import { IRound } from '../types/models.types.js';
-import { ROUND_STATUS } from '../config/constants.js';
-import { ApiError } from '../utils/ApiError.js';
+import { IRound } from '../../types/models.types.js';
+import { ROUND_STATUS } from '../../config/constants.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 const roundStatsSchema = new Schema({
     mean: { type: Number, required: true },

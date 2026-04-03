@@ -1,9 +1,9 @@
-import { Estimation } from '../models/Estimation.model.js';
-import { Round } from '../models/Round.model.js';
-import { IEstimation } from '../types/models.types.js';
-import { ApiError } from '../utils/ApiError.js';
-import { ROUND_STATUS, ROLES, Role } from '../config/constants.js';
-import { auditService } from './audit.service.js';
+import { Estimation } from './estimation.model.js';
+import { Round } from '../rounds/round.model.js';
+import { IEstimation } from '../../types/models.types.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ROUND_STATUS, ROLES, Role } from '../../config/constants.js';
+import { auditService } from '../audit-log/audit.service.js';
 
 export const estimationService = {
     async submit(roundId: string, expertId: string, value: number, justification: string, metodoData?: any): Promise<IEstimation> {

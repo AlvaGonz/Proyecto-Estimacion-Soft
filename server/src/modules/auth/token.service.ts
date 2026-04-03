@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
-import { ApiError } from '../utils/ApiError.js';
+import { env } from '../../config/env.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 interface AccessTokenPayload {
     id: string;

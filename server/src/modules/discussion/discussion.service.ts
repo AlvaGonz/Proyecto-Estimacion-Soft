@@ -1,6 +1,6 @@
-import { Comment } from '../models/Comment.model.js';
-import { IComment } from '../types/models.types.js';
-import { auditService } from './audit.service.js';
+import { Comment } from './comment.model.js';
+import { IComment } from '../../types/models.types.js';
+import { auditService } from '../audit-log/audit.service.js';
 
 export const discussionService = {
     async addComment(roundId: string, userId: string, content: string, isAnonymous: boolean): Promise<IComment> {

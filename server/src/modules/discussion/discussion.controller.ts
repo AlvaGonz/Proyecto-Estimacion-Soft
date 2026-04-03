@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { discussionService } from '../services/discussion.service.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
+import { discussionService } from './discussion.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const addComment = asyncHandler(async (req: Request, res: Response) => {
     const { id: roundId } = req.params;

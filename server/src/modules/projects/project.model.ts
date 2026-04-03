@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose';
-import { IProject } from '../types/models.types.js';
-import { PROJECT_STATUS } from '../config/constants.js';
+import { IProject } from '../../types/models.types.js';
+import { PROJECT_STATUS } from '../../config/constants.js';
 
 const convergenceConfigSchema = new Schema({
     cvThreshold: {

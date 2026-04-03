@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
-import { IEstimation } from '../types/models.types.js';
-import { ApiError } from '../utils/ApiError.js';
-import { ROUND_STATUS } from '../config/constants.js';
+import { IEstimation } from '../../types/models.types.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ROUND_STATUS } from '../../config/constants.js';
 
 const estimationSchema = new Schema<IEstimation>(
     {

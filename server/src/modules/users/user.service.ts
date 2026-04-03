@@ -1,8 +1,8 @@
 import bcrypt from 'bcrypt';
-import { User } from '../models/index.js';
-import { ApiError } from '../utils/ApiError.js';
-import { auditService } from './audit.service.js';
-import type { CreateUserByAdminDTO, UpdateUserByAdminDTO } from '../types/api.types.js';
+import { User } from './user.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { auditService } from '../audit-log/audit.service.js';
+import type { CreateUserByAdminDTO, UpdateUserByAdminDTO } from '../../types/api.types.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -20,7 +20,7 @@ interface ListUsersResult {
     pages: number;
 }
 
-class AdminService {
+class UserService {
     async listUsers({ role, isActive, page, limit }: ListUsersFilters): Promise<ListUsersResult> {
         const query: Record<string, unknown> = {};
 
@@ -112,4 +112,4 @@ class AdminService {
     }
 }
 
-export const adminService = new AdminService();
+export const userService = new UserService();

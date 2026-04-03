@@ -2,16 +2,17 @@ import { Router } from 'express';
 import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
-    createTask, getTasksByProject, updateTask, deleteProject, finalizeTask
-} from '../controllers/project.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { requireRole } from '../middleware/rbac.middleware.js';
-import { validate } from '../middleware/validate.middleware.js';
-import { ROLES } from '../config/constants.js';
+    createTask, getTasksByProject, updateTask, deleteProject, 
+    finalizeTask, restoreProject
+} from './project.controller.js';
+import { authenticate } from '../../middleware/auth.middleware.js';
+import { requireRole } from '../../middleware/rbac.middleware.js';
+import { validate } from '../../middleware/validate.middleware.js';
+import { ROLES } from '../../config/constants.js';
 import {
     createProjectSchema, updateProjectSchema, manageExpertsSchema,
     createTaskSchema, updateTaskSchema
-} from '../types/api.types.js';
+} from '../../types/api.types.js';
 
 const router = Router();
 
@@ -48,12 +49,18 @@ router.post(
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     archiveProject
 );
-
 // DELETE /api/projects/:id - Permanent soft delete (isDeleted flag)
 router.delete(
     '/:id',
     requireRole(ROLES.ADMIN),
     deleteProject
+);
+
+// PATCH /api/projects/:id/restore - Admin only restore
+router.patch(
+    '/:id/restore',
+    requireRole(ROLES.ADMIN),
+    restoreProject
 );
 
 // PATCH /api/projects/:id/experts
