@@ -68,7 +68,7 @@ export const RoundHeader: React.FC<RoundHeaderProps> = ({
                 );
               })
             ) : (
-              <span className="text-xs text-slate-300 italic px-2">Esperando inicio...</span>
+              <span className="text-xs text-slate-300 italic px-2">Sin rondas activas</span>
             )}
             
             {/* New Round "+" Button - Always visible for Facilitator context */}
