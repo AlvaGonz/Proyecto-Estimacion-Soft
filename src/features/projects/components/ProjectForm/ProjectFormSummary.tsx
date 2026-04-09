@@ -1,7 +1,7 @@
 import React from 'react';
 import { Send, ArrowLeft, Info, FileText, BrainCircuit, Sparkles, ListChecks, Users, Shield, Target } from 'lucide-react';
 import { Project, EstimationMethod, User } from '../../../../types';
-import { WizardTask } from './useProjectForm';
+import { WizardTask } from '../../hooks/useProjectForm';
 import { LoadingSpinner } from '../../../../shared/components/LoadingSpinner';
 
 interface ProjectFormSummaryProps {

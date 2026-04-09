@@ -1,7 +1,7 @@
 import React from 'react';
 import { Target, Info, Sparkles, BrainCircuit, BarChart3, Layers, Clock, Zap } from 'lucide-react';
 import { EstimationMethod } from '../../../../types';
-import { TimeLimitOption } from './useProjectForm';
+import { TimeLimitOption } from '../../hooks/useProjectForm';
 
 interface ProjectMethodConfigProps {
   estimationMethod: EstimationMethod;

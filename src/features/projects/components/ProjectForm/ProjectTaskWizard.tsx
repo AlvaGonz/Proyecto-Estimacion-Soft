@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown, ListChecks } from 'lucide-react';
-import { WizardTask } from './useProjectForm';
+import { WizardTask } from '../../hooks/useProjectForm';
 
 interface ProjectTaskWizardProps {
   tasks: WizardTask[];
