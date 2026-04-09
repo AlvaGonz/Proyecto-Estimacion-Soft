@@ -57,7 +57,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
             className="px-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-delphi-giants/30 outline-none transition-all"
           >
             <option value="">Todos los roles</option>
-            <option value="admin">Admin</option>
+            <option value="admin">Administrador</option>
             <option value="facilitador">Facilitador</option>
             <option value="experto">Experto</option>
           </select>

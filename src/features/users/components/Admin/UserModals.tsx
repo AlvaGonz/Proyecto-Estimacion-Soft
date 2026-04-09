@@ -62,7 +62,7 @@ export const CreateUserModal: React.FC<UserModalProps> = ({ onClose, onSave, isL
                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 font-bold text-sm focus:ring-2 focus:ring-delphi-keppel/30 outline-none transition-all">
                      <option value="experto">Experto</option>
                      <option value="facilitador">Facilitador</option>
-                     <option value="admin">Admin</option>
+                     <option value="admin">Administrador</option>
                   </select>
                </div>
 
