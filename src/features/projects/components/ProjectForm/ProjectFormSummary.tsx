@@ -163,7 +163,7 @@ export const ProjectFormSummary: React.FC<ProjectFormSummaryProps> = ({
         <button 
           type="button" 
           onClick={onPrev} 
-          className="px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
+          className="rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all gap-3 btn-base"
         >
           <ArrowLeft className="w-4 h-4" /> 
           Volver y Corregir
@@ -171,7 +171,7 @@ export const ProjectFormSummary: React.FC<ProjectFormSummaryProps> = ({
         <button 
           onClick={onSubmit}
           disabled={isSubmitting || selectedExpertsCount < 1 || validTaskCount < 1}
-          className="flex-1 bg-slate-900 text-white px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+          className="flex-1 bg-slate-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all gap-3 disabled:opacity-50 disabled:hover:scale-100 btn-base"
         >
           {isSubmitting ? <LoadingSpinner /> : (
             <>

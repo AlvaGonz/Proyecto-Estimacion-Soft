@@ -97,7 +97,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                                  <div className="flex-1 space-y-3">
                                     <div className="flex items-center justify-between">
                                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{new Date(c.timestamp || (c as any).createdAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                       <button className="text-slate-300 hover:text-delphi-orange transition-colors"><Flag className="w-4 h-4" /></button>
+                                       <button className="text-slate-300 hover:text-delphi-orange transition-colors btn-base"><Flag className="w-4 h-4" /></button>
                                     </div>
                                     <div className="bg-slate-50 border-slate-100 p-6 rounded-[2rem] rounded-tl-none border relative">
                                        <p className="text-slate-600 font-medium leading-relaxed">
@@ -130,7 +130,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                            <button
                               onClick={handleSendComment}
                               aria-label="Enviar comentario"
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-delphi-keppel text-white p-2.5 rounded-full hover:scale-110 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-delphi-keppel text-white p-2.5 rounded-full hover:scale-110 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20 btn-base"
                            >
                               <Send className="w-5 h-5" />
                            </button>

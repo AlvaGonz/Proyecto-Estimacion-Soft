@@ -84,7 +84,7 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({
             </div>
             <button 
               onClick={onClose}
-              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
+              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors btn-base"
             >
               <X className="w-5 h-5" />
             </button>
@@ -101,7 +101,7 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({
           <div className="flex flex-col sm:flex-row gap-3">
             <button 
               onClick={onClose}
-              className="flex-1 py-4 px-6 rounded-2xl border border-slate-200 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+              className="flex-1 rounded-2xl border border-slate-200 text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 btn-base"
             >
               {cancelText}
             </button>
@@ -109,7 +109,7 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({
               <button 
                 onClick={onConfirm}
                 disabled={isLoading}
-                className={`flex-[1.5] py-4 px-6 rounded-2xl text-white text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50 ${getButtonStyles()}`}
+                className={`flex-[1.5] rounded-2xl text-white text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50 ${getButtonStyles()} btn-base`}
               >
                 {isLoading ? 'Procesando...' : confirmText}
               </button>

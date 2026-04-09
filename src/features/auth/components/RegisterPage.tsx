@@ -199,7 +199,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full ${isLoading ? 'bg-slate-700 cursor-not-allowed' : 'bg-delphi-keppel shadow-delphi-keppel/30 hover:scale-[1.02]'} text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 group`}
+              className={`w-full ${isLoading ? 'bg-slate-700 cursor-not-allowed' : 'bg-delphi-keppel shadow-delphi-keppel/30 hover:scale-[1.02]'} text-white rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all gap-4 group btn-base`}
             >
               {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
               {!isLoading && <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
@@ -216,7 +216,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
           {/* Login Link */}
           <button 
             onClick={onGoToLogin}
-            className="w-full flex items-center justify-center gap-3 text-slate-400 hover:text-white transition-colors group"
+            className="w-full gap-3 text-slate-400 hover:text-white transition-colors group btn-base"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-widest">¿Ya tienes cuenta? Inicia sesión</span>

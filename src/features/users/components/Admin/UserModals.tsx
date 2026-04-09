@@ -23,7 +23,7 @@ export const CreateUserModal: React.FC<UserModalProps> = ({ onClose, onSave, isL
          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 space-y-6">
             <div className="flex items-center justify-between">
                <h3 className="text-2xl font-black text-slate-900">Nuevo Usuario</h3>
-               <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+               <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-slate-100 transition-colors btn-base">
                   <X className="w-5 h-5 text-slate-400" />
                </button>
             </div>
@@ -68,11 +68,11 @@ export const CreateUserModal: React.FC<UserModalProps> = ({ onClose, onSave, isL
 
                <div className="flex gap-3 pt-2">
                   <button type="button" onClick={onClose}
-                     className="flex-1 py-3 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all">
+                     className="flex-1 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all btn-base">
                      Cancelar
                   </button>
                   <button type="submit" disabled={isLoading}
-                     className="flex-1 py-3 rounded-2xl bg-delphi-giants text-white text-sm font-black shadow-lg shadow-delphi-giants/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                     className="flex-1 rounded-2xl bg-delphi-giants text-white text-sm font-black shadow-lg shadow-delphi-giants/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-base">
                      {isLoading ? 'Creando...' : 'Crear Usuario'}
                   </button>
                </div>
@@ -113,7 +113,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
       <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 space-y-6">
         <div className="flex items-center justify-between">
           <h3 id="edit-user-title" className="text-2xl font-black text-slate-900">Editar Usuario</h3>
-          <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+          <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-slate-100 transition-colors btn-base">
             <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
@@ -175,11 +175,11 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
-              className="flex-1 py-3 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all">
+              className="flex-1 rounded-2xl border border-slate-200 text-sm font-black text-slate-500 hover:bg-slate-50 transition-all btn-base">
               Cancelar
             </button>
             <button type="submit" disabled={isLoading}
-              className="flex-1 py-3 rounded-2xl bg-delphi-keppel text-white text-sm font-black shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+              className="flex-1 rounded-2xl bg-delphi-keppel text-white text-sm font-black shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed btn-base">
               {isLoading ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>

@@ -111,7 +111,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full ${isLoading ? 'bg-slate-700 cursor-not-allowed' : 'bg-delphi-keppel shadow-delphi-keppel/30 hover:scale-[1.02]'} text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 group`}
+              className={`w-full ${isLoading ? 'bg-slate-700 cursor-not-allowed' : 'bg-delphi-keppel shadow-delphi-keppel/30 hover:scale-[1.02]'} text-white rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all gap-4 group btn-base`}
             >
               {isLoading ? 'Autenticando...' : 'Ingresar al Sistema'}
               {!isLoading && <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />}
@@ -124,7 +124,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
               Auth UCE
             </div>
             <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-            <button className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">Olvidé mi clave</button>
+            <button className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors btn-base">Olvidé mi clave</button>
           </div>
 
           {/* Register Link */}
@@ -132,7 +132,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onGoToRegister }) => {
             <div className="text-center pt-2">
               <button 
                 onClick={onGoToRegister}
-                className="text-[10px] font-black uppercase tracking-widest text-delphi-keppel hover:text-delphi-celadon transition-colors"
+                className="text-[10px] font-black uppercase tracking-widest text-delphi-keppel hover:text-delphi-celadon transition-colors btn-base"
               >
                 ¿No tienes cuenta? Regístrate
               </button>

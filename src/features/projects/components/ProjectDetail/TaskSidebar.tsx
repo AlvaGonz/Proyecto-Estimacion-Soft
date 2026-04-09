@@ -119,11 +119,7 @@ export const TaskSidebar: React.FC<TaskSidebarProps> = ({
                   <button
                     onClick={onAddTaskClick}
                     disabled={sprintIsLocked}
-                    className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-lg ${
-                      sprintIsLocked 
-                        ? 'bg-slate-50 text-slate-300 border-slate-100 shadow-none cursor-not-allowed' 
-                        : 'bg-delphi-keppel text-white border-delphi-keppel shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95'
-                    }`}
+                    className={`gap-3 w-full rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border shadow-lg ${ sprintIsLocked ? 'bg-slate-50 text-slate-300 border-slate-100 shadow-none cursor-not-allowed' : 'bg-delphi-keppel text-white border-delphi-keppel shadow-delphi-keppel/20 hover:scale-[1.02] active:scale-95' } btn-base`}
                   >
                     <Plus className="w-4 h-4" />
                     Añadir Tarea

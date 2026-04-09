@@ -79,7 +79,7 @@ export const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
           {isFacilitator && project.status?.toLowerCase() !== 'finished' && (
             <button
               onClick={onFinalizeClick}
-              className="group flex items-center gap-4 bg-slate-900 hover:bg-delphi-giants p-1.5 pr-6 rounded-2xl border border-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-900/10 active:scale-95"
+              className="group gap-4 bg-slate-900 hover:bg-delphi-giants p-1.5 pr-6 rounded-2xl border border-slate-800 transition-all cursor-pointer shadow-xl shadow-slate-900/10 active:scale-95 btn-base"
             >
               <div className="p-3 bg-white/10 rounded-xl group-hover:scale-110 transition-transform">
                 <CheckCircle2 className="w-5 h-5 text-white" />

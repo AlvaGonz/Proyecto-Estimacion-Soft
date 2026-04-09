@@ -88,7 +88,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, curren
           <Bell className="w-5 h-5 text-delphi-keppel" />
           <h4 className="font-black text-slate-900 tracking-tight">Notificaciones</h4>
         </div>
-        <button onClick={onClose} aria-label="Cerrar notificaciones" className="p-1 text-slate-300 hover:text-delphi-giants transition-colors"><X className="w-5 h-5" /></button>
+        <button onClick={onClose} aria-label="Cerrar notificaciones" className="p-1 text-slate-300 hover:text-delphi-giants transition-colors btn-base"><X className="w-5 h-5" /></button>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar p-2 min-h-[100px]">
@@ -137,7 +137,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, curren
         <div className="p-4 border-t border-slate-50 bg-slate-50/20 text-center">
           <button 
             onClick={handleMarkAllAsRead} 
-            className="text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel hover:underline"
+            className="text-[10px] font-black uppercase tracking-[0.2em] text-delphi-keppel hover:underline btn-base"
           >
             Marcar todas como leídas
           </button>

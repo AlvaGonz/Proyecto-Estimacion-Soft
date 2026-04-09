@@ -29,7 +29,7 @@ export const ProjectTaskWizard: React.FC<ProjectTaskWizardProps> = ({
         <button
           type="button"
           onClick={addTask}
-          className="relative z-10 hidden sm:flex items-center gap-3 bg-delphi-keppel text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-delphi-keppel/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-delphi-keppel/20"
+          className="relative z-10 hidden sm:flex gap-3 bg-delphi-keppel text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-delphi-keppel/90 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-delphi-keppel/20 btn-base"
         >
           <Plus className="w-4 h-4" />
           Nueva Tarea
@@ -87,7 +87,7 @@ export const ProjectTaskWizard: React.FC<ProjectTaskWizardProps> = ({
         <button
           type="button"
           onClick={addTask}
-          className="w-full py-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black text-xs uppercase tracking-[0.25em] flex flex-col items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-600 transition-all group"
+          className="w-full border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black text-xs uppercase tracking-[0.25em] flex-col gap-3 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-600 transition-all group btn-base"
         >
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:scale-110 transition-transform">
              <Plus className="w-5 h-5" />

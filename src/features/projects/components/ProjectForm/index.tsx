@@ -101,7 +101,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
           <button 
             type="button"
             onClick={onCancel}
-            className="w-12 h-12 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel/30 hover:scale-110 transition-all shadow-sm"
+            className="w-12 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-delphi-keppel hover:border-delphi-keppel/30 hover:scale-110 transition-all shadow-sm btn-base"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -137,7 +137,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                  <button 
                    type="button" 
                    onClick={handlePrev} 
-                   className="px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
+                   className="rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all gap-3 btn-base"
                  >
                    Anterior
                  </button>
@@ -145,7 +145,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                <button 
                  type="button" 
                  onClick={handleNext} 
-                 className="flex-1 sm:flex-none ml-auto bg-slate-900 text-white px-12 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                 className="flex-1 sm:flex-none ml-auto bg-slate-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 hover:bg-black hover:scale-[1.02] active:scale-95 transition-all gap-3 btn-base"
                >
                  Siguiente Paso
                </button>

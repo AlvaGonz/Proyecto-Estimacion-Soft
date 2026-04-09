@@ -86,7 +86,7 @@ export const ProjectModals: React.FC<ProjectModalsProps> = ({
               </div>
               <button 
                 type="submit" 
-                className="w-full group relative overflow-hidden bg-delphi-keppel text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-delphi-keppel/30 hover:shadow-delphi-keppel/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full group relative overflow-hidden bg-delphi-keppel text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-delphi-keppel/30 hover:shadow-delphi-keppel/40 transition-all hover:scale-[1.02] active:scale-[0.98] btn-base"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                 Crear Tarea Técnica
@@ -216,11 +216,7 @@ export const ProjectModals: React.FC<ProjectModalsProps> = ({
                 <button 
                   type="submit"
                   disabled={isSavingConfig}
-                  className={`flex-[2] py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 ${
-                    isSavingConfig 
-                      ? 'bg-slate-300 text-slate-500' 
-                      : 'bg-delphi-keppel text-white hover:scale-[1.02] shadow-delphi-keppel/20'
-                  }`}
+                  className={`flex-[2] rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 ${ isSavingConfig ? 'bg-slate-300 text-slate-500' : 'bg-delphi-keppel text-white hover:scale-[1.02] shadow-delphi-keppel/20' } btn-base`}
                 >
                   {isSavingConfig ? 'Actualizando...' : 'Guardar Cambios'}
                 </button>
@@ -250,7 +246,7 @@ export const ProjectModals: React.FC<ProjectModalsProps> = ({
                 <button 
                   onClick={handleFinalizeProject}
                   disabled={isFinalizing}
-                  className="group relative overflow-hidden w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  className="group relative overflow-hidden w-full bg-slate-900 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 btn-base"
                 >
                   {isFinalizing ? 'Procesando...' : 'Sí, Finalizar Proyecto'}
                 </button>
@@ -287,7 +283,7 @@ export const ProjectModals: React.FC<ProjectModalsProps> = ({
                 <button 
                   onClick={handleDeleteProject}
                   disabled={isDeleting}
-                  className="group relative overflow-hidden w-full bg-red-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-red-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  className="group relative overflow-hidden w-full bg-red-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-red-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 btn-base"
                 >
                    {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
                 </button>

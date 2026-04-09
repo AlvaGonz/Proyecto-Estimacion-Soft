@@ -122,7 +122,7 @@ export const RoundEstimationsList: React.FC<RoundEstimationsListProps> = ({
           <button
             onClick={onCloseRound}
             disabled={currentRoundEstimations.length < 1 || isAnalyzing}
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50"
+            className="w-full bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all disabled:opacity-50 btn-base"
           >
             {isAnalyzing ? "Analizando..." : "Cerrar y Analizar Ronda"}
           </button>

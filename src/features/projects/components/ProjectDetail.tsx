@@ -99,7 +99,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role, 
         <nav className="flex items-center gap-6 animate-in slide-in-from-left-8 duration-700 ease-out">
           <button 
             onClick={onBack}
-            className="group p-4 bg-white/40 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-sm hover:bg-slate-900 transition-all active:scale-90"
+            className="group p-4 bg-white/40 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-sm hover:bg-slate-900 transition-all active:scale-90 btn-base"
           >
             <ArrowLeft className="w-5 h-5 text-slate-600 group-hover:text-white transition-colors" />
           </button>

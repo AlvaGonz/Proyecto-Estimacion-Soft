@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
             <button
               onClick={logout}
-              className="p-2.5 rounded-xl bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants hover:text-white transition-all border border-delphi-giants/20"
+              className="p-2.5 rounded-xl bg-delphi-giants/10 text-delphi-giants hover:bg-delphi-giants hover:text-white transition-all border border-delphi-giants/20 btn-base"
               title="Cerrar Sesión"
               aria-label="Cerrar sesión"
             >

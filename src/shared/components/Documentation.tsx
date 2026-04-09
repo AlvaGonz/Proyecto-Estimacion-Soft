@@ -28,7 +28,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
         <div className="flex gap-4">
           <div className="relative">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-            <input 
+            search-base<input 
               type="text" 
               aria-label="Buscar archivos"
               placeholder="Buscar archivos..." 
@@ -36,7 +36,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
             />
           </div>
           {isFacilitator && (
-            <button className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all">
+            <button className="bg-delphi-keppel text-white rounded-2xl font-black gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all btn-base">
               <Plus className="w-5 h-5" />
               Subir Archivo
             </button>
@@ -70,14 +70,14 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                 <Clock className="w-3.5 h-3.5" />
                 {doc.date}
               </div>
-              <button aria-label={`Descargar ${doc.name}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
+              <button aria-label={`Descargar ${doc.name}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all btn-base">
                 <Download className="w-4 h-4" />
               </button>
             </div>
             
             {isFacilitator && (
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants">
+                <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants btn-base">
                    <FileArchive className="w-4 h-4 rotate-45" />
                 </button>
               </div>

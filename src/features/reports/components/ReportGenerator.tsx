@@ -284,7 +284,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
                       <button
                         onClick={handleGenerateReport}
                         disabled={isGenerating || projects.length === 0}
-                        className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group"
+                        className="w-full bg-slate-900 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-98 transition-all gap-4 disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group btn-base"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-delphi-keppel/0 via-white/5 to-delphi-keppel/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                         {isGenerating ? (

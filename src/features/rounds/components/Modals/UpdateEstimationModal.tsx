@@ -36,13 +36,13 @@ export const UpdateEstimationModal: React.FC<UpdateEstimationModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            className="flex-1 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all btn-base"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-3 rounded-xl bg-delphi-keppel text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] shadow-lg shadow-delphi-keppel/20 transition-all"
+            className="flex-1 rounded-xl bg-delphi-keppel text-white font-black text-xs uppercase tracking-widest hover:scale-[1.02] shadow-lg shadow-delphi-keppel/20 transition-all btn-base"
           >
             Confirmar
           </button>

@@ -144,11 +144,11 @@ export const RoundAnalysisVerdict: React.FC<RoundAnalysisVerdictProps> = ({
 
           <div className="pt-6 flex flex-col sm:flex-row gap-4">
             {isFacilitator && rounds.length > 0 && (
-              <button onClick={onFinalizeTask} className="flex-1 bg-white border-2 border-delphi-keppel text-delphi-keppel py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-delphi-keppel hover:text-white transition-all shadow-lg active:scale-95">
+              <button onClick={onFinalizeTask} className="flex-1 bg-white border-2 border-delphi-keppel text-delphi-keppel rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-delphi-keppel hover:text-white transition-all shadow-lg active:scale-95 btn-base">
                 Finalizar Consenso
               </button>
             )}
-            <button onClick={onStartNextRound} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl active:scale-95">
+            <button onClick={onStartNextRound} className="flex-1 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl active:scale-95 btn-base">
               Iniciar Nueva Ronda
             </button>
           </div>

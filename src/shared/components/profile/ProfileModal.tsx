@@ -20,7 +20,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Gradient header band */}
         <div className="h-28 sm:h-32 bg-gradient-to-br from-delphi-keppel via-delphi-celadon/60 to-delphi-keppel/80 relative">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.15),transparent_70%)]" />
-          <button onClick={onClose} className="absolute top-5 right-5 p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-all">
+          <button onClick={onClose} className="absolute top-5 right-5 p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-all btn-base">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -38,10 +38,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <p className="text-slate-400 font-medium text-sm mt-3">{currentUser.email}</p>
 
           <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-slate-100 w-full space-y-3">
-            <button className="w-full py-3.5 sm:py-4 rounded-2xl bg-delphi-keppel/10 text-delphi-keppel font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-keppel hover:text-white transition-all duration-300 border border-delphi-keppel/20">
+            <button className="w-full py-3.5 sm:py-4 rounded-2xl bg-delphi-keppel/10 text-delphi-keppel font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-keppel hover:text-white transition-all duration-300 border border-delphi-keppel/20 btn-base">
               Cambiar Contraseña
             </button>
-            <button onClick={logout} className="w-full py-3.5 sm:py-4 rounded-2xl bg-white text-delphi-giants font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all duration-300 border-2 border-delphi-giants/20">
+            <button onClick={logout} className="w-full py-3.5 sm:py-4 rounded-2xl bg-white text-delphi-giants font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-delphi-giants hover:text-white transition-all duration-300 border-2 border-delphi-giants/20 btn-base">
               Cerrar Sesión
             </button>
           </div>

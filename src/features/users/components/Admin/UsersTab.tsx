@@ -81,7 +81,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({
         <button 
           id="btn-nuevo-usuario" 
           onClick={onCreateUser}
-          className="flex items-center gap-3 px-6 py-3 bg-delphi-giants text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-delphi-giants/20 hover:scale-[1.02] active:scale-95 transition-all"
+          className="gap-3 bg-delphi-giants text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-delphi-giants/20 hover:scale-[1.02] active:scale-95 transition-all btn-base"
         >
           <UserPlus className="w-4 h-4" />
           Crear Nuevo Usuario

@@ -101,7 +101,7 @@ export const OnboardingTour: React.FC = () => {
             </div>
             <button 
               onClick={handleClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+              className="text-slate-400 hover:text-slate-600 transition-colors p-1 btn-base"
               aria-label="Cerrar tour"
             >
               <X className="w-5 h-5" />
@@ -118,7 +118,7 @@ export const OnboardingTour: React.FC = () => {
           <div className="flex items-center justify-between pt-6 border-t border-slate-100">
             <button 
               onClick={handleClose}
-              className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+              className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors btn-base"
             >
               Saltar
             </button>
@@ -127,7 +127,7 @@ export const OnboardingTour: React.FC = () => {
               {currentStep > 0 && (
                 <button 
                   onClick={handlePrev}
-                  className="p-3 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="p-3 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors btn-base"
                   aria-label="Paso anterior"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -135,7 +135,7 @@ export const OnboardingTour: React.FC = () => {
               )}
               <button 
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-delphi-keppel text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20"
+                className="gap-2 rounded-xl bg-delphi-keppel text-white font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20 btn-base"
               >
                 {currentStep === TOUR_STEPS.length - 1 ? (
                   <>Finalizar <Check className="w-4 h-4" /></>

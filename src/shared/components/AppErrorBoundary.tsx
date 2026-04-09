@@ -14,7 +14,7 @@ const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) =
       <div className="flex gap-4">
         <button 
           onClick={resetErrorBoundary}
-          className="flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all"
+          className="gap-2 bg-red-500 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 transition-all btn-base"
         >
           <RefreshCw className="w-4 h-4" />
           Reintentar

@@ -77,11 +77,7 @@ export const RoundHeader: React.FC<RoundHeaderProps> = ({
               disabled={!onStartNextRound || hasActiveRound}
               title="Iniciar Nueva Ronda"
               aria-label="Nueva Ronda"
-              className={`flex items-center justify-center min-w-[32px] h-8 rounded-lg transition-all border-2 border-dashed
-                ${!hasActiveRound && onStartNextRound
-                  ? 'border-delphi-keppel text-delphi-keppel hover:bg-delphi-keppel hover:text-white hover:border-solid shadow-sm'
-                  : 'border-slate-100 text-slate-300 cursor-not-allowed opacity-50'
-                }`}
+              className={`min-w-[32px] rounded-lg transition-all border-2 border-dashed ${!hasActiveRound && onStartNextRound ? 'border-delphi-keppel text-delphi-keppel hover:bg-delphi-keppel hover:text-white hover:border-solid shadow-sm' : 'border-slate-100 text-slate-300 cursor-not-allowed opacity-50' } btn-base`}
             >
               <span className="text-sm font-black relative -top-[1px]">+</span>
             </button>

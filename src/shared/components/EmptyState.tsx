@@ -22,7 +22,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description
       {action && (
         <button 
           onClick={action.onClick}
-          className="bg-delphi-keppel text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-105 active:scale-95 transition-all"
+          className="bg-delphi-keppel text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-105 active:scale-95 transition-all btn-base"
         >
           {action.label}
         </button>
