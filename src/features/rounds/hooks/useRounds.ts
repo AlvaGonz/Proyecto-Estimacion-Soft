@@ -55,7 +55,7 @@ export const useRounds = (projectId: string, taskId: string): UseRoundsResult =>
           return taskRounds;
         });
 
-        const active = taskRounds.find(r => r.status === 'open') || null;
+        const active = taskRounds.find(r => r.status === 'abierta') || null;
         setActiveRound(active);
 
         // Auto-select latest round

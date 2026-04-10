@@ -38,7 +38,7 @@ export const reportService = {
     doc.setTextColor(15, 23, 42); // slate-900
     doc.text(`Proyecto: ${project.name}`, 20, 45);
     doc.setFontSize(10);
-    const methodLabel = project.estimationMethod ? (project.estimationMethod === 'planning-poker' ? 'Planning Poker (Agile)' : project.estimationMethod === 'three-point' ? 'Estimación de Tres Puntos (PERT)' : 'Wideband Delphi (Tradicional)') : 'Wideband Delphi';
+    const methodLabel = project.estimationMethod ? (project.estimationMethod === 'Poker' ? 'Planning Poker (Agile)' : project.estimationMethod === 'TresPuntos' ? 'Estimación de Tres Puntos (PERT)' : 'Wideband Delphi (Tradicional)') : 'Wideband Delphi';
     doc.text(`Método: ${methodLabel}`, 20, 52);
     doc.text(`Unidad: ${project.unit}`, 20, 58);
 
@@ -94,9 +94,9 @@ export const reportService = {
           if (round.stats?.metricaResultados) {
             const m = round.stats.metricaResultados;
             let mText = '';
-            if (project.estimationMethod === 'planning-poker' && m.moda) {
+            if (project.estimationMethod === 'Poker' && m.moda) {
               mText = `Moda: ${m.moda} | Coherencia: ${m.consensoPct}%`;
-            } else if (project.estimationMethod === 'three-point' && m.expectedValue) {
+            } else if (project.estimationMethod === 'TresPuntos' && m.expectedValue) {
               mText = `Valor PERT (E): ${m.expectedValue} | Desviación (σ): ${m.standardDeviation}`;
             }
             if (mText) {
@@ -111,10 +111,10 @@ export const reportService = {
 
           const estimations = round.estimations ? round.estimations.map((est, idx: number) => {
             let valText = est.value.toString();
-            if (project.estimationMethod === 'three-point' && est.metodoData) {
+            if (project.estimationMethod === 'TresPuntos' && est.metodoData) {
               const d = est.metodoData;
               valText = `${est.value} (O:${d.optimistic}, M:${d.mostLikely}, P:${d.pessimistic})`;
-            } else if (project.estimationMethod === 'planning-poker' && est.metodoData) {
+            } else if (project.estimationMethod === 'Poker' && est.metodoData) {
               valText = `C:( ${est.metodoData.card} )`;
             }
             
@@ -173,9 +173,9 @@ export const reportService = {
         if (r.estimations) {
            r.estimations.forEach((e, idx: number) => {
              let valText = e.value.toString();
-             if (project.estimationMethod === 'three-point' && e.metodoData) {
+             if (project.estimationMethod === 'TresPuntos' && e.metodoData) {
                valText = `E:${e.value} (O:${e.metodoData.optimistic}, M:${e.metodoData.mostLikely}, P:${e.metodoData.pessimistic})`;
-             } else if (project.estimationMethod === 'planning-poker' && e.metodoData) {
+             } else if (project.estimationMethod === 'Poker' && e.metodoData) {
                valText = `Card: ${e.metodoData.card}`;
              }
 

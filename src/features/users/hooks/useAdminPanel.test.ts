@@ -54,7 +54,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
     expect(result.current.showInactive).toBe(false);
 
     await waitFor(() => {
-      expect(adminService.listUsers).toHaveBeenCalledWith({ isActive: true });
+      expect(adminService.listUsers).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
     });
     // role no debe estar en el payload cuando es vacío
     const lastCall = vi.mocked(adminService.listUsers).mock.calls[0][0];
@@ -72,7 +72,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
     await waitFor(() => {
       // 2 llamadas: al montar y tras el cambo del filtro
       expect(adminService.listUsers).toHaveBeenCalledTimes(2);
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'admin', isActive: true });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'admin', isActive: true }));
     });
   });
 
@@ -85,7 +85,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
     });
 
     await waitFor(() => {
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'facilitador', isActive: true });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'facilitador', isActive: true }));
     });
   });
 
@@ -98,7 +98,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
     });
 
     await waitFor(() => {
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'experto', isActive: true });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'experto', isActive: true }));
     });
   });
 
@@ -112,7 +112,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
     });
 
     await waitFor(() => {
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'Product Owner', isActive: true });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'Product Owner', isActive: true }));
     });
   });
 
@@ -127,7 +127,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
 
     await waitFor(() => {
       // Debería enviarse sin isActive pero con el de rol
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'experto' });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'experto' }));
       const lastCall = vi.mocked(adminService.listUsers).mock.calls[vi.mocked(adminService.listUsers).mock.calls.length - 1][0];
       expect(lastCall).not.toHaveProperty('isActive');
     });
@@ -143,7 +143,7 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
 
     await waitFor(() => {
       // Debería enviarse sin role y sin isActive
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({});
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({}));
     });
   });
 
@@ -189,8 +189,32 @@ describe('useAdminPanel - Role Filter Server-Side Validation', () => {
 
     await waitFor(() => {
       expect(adminService.listUsers).toHaveBeenCalledTimes(2);
-      expect(adminService.listUsers).toHaveBeenLastCalledWith({ role: 'admin', isActive: true });
+      expect(adminService.listUsers).toHaveBeenLastCalledWith(expect.objectContaining({ role: 'admin', isActive: true }));
     });
+  });
+
+  it('TEST CA-S6 — usa AbortSignal y cancela la petición anterior si cambia dependencias', async () => {
+    const { result, rerender } = renderHook(() => useAdminPanel());
+    await waitFor(() => expect(adminService.listUsers).toHaveBeenCalledTimes(1));
+
+    const firstCall = vi.mocked(adminService.listUsers).mock.calls[0];
+    const signal1 = firstCall[0].signal;
+    expect(signal1).toBeDefined();
+    expect(signal1?.aborted).toBe(false);
+
+    // Provocamos otro request
+    act(() => {
+      result.current.setRoleFilter('admin');
+    });
+
+    // Validamos que el loadUsers anterior se haya abortado
+    await waitFor(() => {
+      expect(signal1?.aborted).toBe(true);
+      expect(adminService.listUsers).toHaveBeenCalledTimes(2);
+    });
+    
+    const secondCall = vi.mocked(adminService.listUsers).mock.calls[1];
+    expect(secondCall[0].signal).toBeDefined();
   });
 
 });

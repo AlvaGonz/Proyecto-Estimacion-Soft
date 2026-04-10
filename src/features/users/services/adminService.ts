@@ -31,14 +31,14 @@ interface UpdateUserData {
 }
 
 export const adminService = {
-    async listUsers(filters?: { role?: string; isActive?: boolean; page?: number }): Promise<ListUsersResult> {
+    async listUsers(filters?: { role?: string; isActive?: boolean; page?: number; signal?: AbortSignal }): Promise<ListUsersResult> {
         const params = new URLSearchParams();
         if (filters?.role) params.set('role', filters.role);
         if (filters?.isActive !== undefined) params.set('isActive', String(filters.isActive));
         if (filters?.page) params.set('page', String(filters.page));
 
         const query = params.toString() ? `?${params.toString()}` : '';
-        return await fetchApi<ListUsersResult>(`/admin/users${query}`);
+        return await fetchApi<ListUsersResult>(`/admin/users${query}`, { signal: filters?.signal });
     },
 
     async createUser(data: CreateUserData): Promise<AdminUser> {

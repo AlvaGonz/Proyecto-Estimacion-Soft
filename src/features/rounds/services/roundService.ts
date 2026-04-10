@@ -21,7 +21,7 @@ export const roundService = {
         return {
             round: response.round,
             analysis: {
-                level: response.convergence.converged ? 'Alta' : 'Baja',
+                level: response.convergence.converged ? 'alta' : 'baja',
                 recommendation: response.convergence.recommendation
             }
         };

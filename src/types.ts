@@ -1,8 +1,8 @@
 
 export enum UserRole {
-  ADMIN = 'admin',
-  FACILITATOR = 'facilitador',
-  EXPERT = 'experto'
+  ADMIN = 'Administrador',
+  FACILITATOR = 'Facilitador',
+  EXPERT = 'Experto'
 }
 
 export interface User {
@@ -21,7 +21,7 @@ export interface Project {
   unit: 'hours' | 'storyPoints' | 'personDays';
   facilitatorId: string;
   expertIds: string[];
-  status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
+  status: 'activo' | 'finalizado' | 'archivado';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
   maxRounds: number;
@@ -79,7 +79,7 @@ export interface Round {
   id: string;
   taskId: string;
   roundNumber: number;
-  status: 'open' | 'closed';
+  status: 'abierta' | 'cerrada';
   startTime: Date;
   endTime?: Date;
   stats?: RoundStats;
@@ -102,7 +102,7 @@ export interface RoundStats {
 }
 
 export interface ConvergenceAnalysis {
-  level: 'Alta' | 'Media' | 'Baja';
+  level: 'alta' | 'media' | 'baja';
   recommendation: string;
   aiInsights?: string;
 }
@@ -126,7 +126,7 @@ export interface Comment {
 }
 
 // ─── RF031/032/034 — Estimation Methods ──────────────────────────
-export type EstimationMethod = 'wideband-delphi' | 'planning-poker' | 'three-point';
+export type EstimationMethod = 'Delphi' | 'Poker' | 'TresPuntos';
 
 export interface ConvergenceConfig {
   cvThreshold: number;       // default: 0.25
@@ -141,11 +141,15 @@ export interface ThreePointEstimation {
   stdDev?: number;      // σ = (P - O) / 6       — calculated, not entered
 }
 
-export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '?'] as const;
+export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '∞', '?'] as const;
 export type FibonacciCard = typeof FIBONACCI_SEQUENCE[number];
 
 export const METHOD_LABELS: Record<string, string> = {
-  'wideband-delphi': 'Wideband Delphi (Tradicional)',
-  'planning-poker': 'Planning Poker (Agile)',
-  'three-point': 'Estimación de Tres Puntos (PERT)'
+  'Delphi': 'Wideband Delphi (Tradicional)',
+  'Poker': 'Planning Poker (Agile)',
+  'TresPuntos': 'Estimación de Tres Puntos (PERT)'
 };
+
+export type ReportFormat = 'PDF' | 'Excel';
+export type NotificationChannel = 'email' | 'plataforma';
+

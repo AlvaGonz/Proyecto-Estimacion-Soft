@@ -146,6 +146,6 @@ export const getAdminMetricsSummary = (
     participationRate: parseFloat(avgParticipation.toFixed(1)),
     consensusIndex,
     avgRounds,
-    activeSessions: activeProjects.filter(p => p.status === 'active' || p.status === 'kickoff').length
+    activeSessions: activeProjects.filter(p => p.status === 'activo').length
   };
 };

@@ -152,7 +152,7 @@ export const useEstimationActions = (
           console.error("AI Analysis failed:", aiErr);
           // Fallback to basic convergence analysis handled by roundService.closeRound but refined
           aiAnalysisResult = {
-            level: round.stats.coefficientOfVariation < 0.15 ? 'Alta' : round.stats.coefficientOfVariation < 0.30 ? 'Media' : 'Baja',
+            level: round.stats.coefficientOfVariation < 0.15 ? 'alta' : round.stats.coefficientOfVariation < 0.30 ? 'media' : 'baja',
             recommendation: round.stats.coefficientOfVariation < 0.20 ? 'Consenso alcanzado. Finalice la tarea' : 'Abra una nueva ronda',
             aiInsights: 'Basado en análisis estadístico local (Falló Gemini)'
           };
@@ -160,7 +160,7 @@ export const useEstimationActions = (
       }
 
       // B-001: Automatic finalization on High convergence
-      if (aiAnalysisResult?.level === 'Alta') {
+      if (aiAnalysisResult?.level === 'alta') {
         setTimeout(async () => {
           try {
             await taskService.finalizeTask(projectId, taskId);

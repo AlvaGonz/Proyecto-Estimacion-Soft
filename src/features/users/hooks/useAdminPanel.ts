@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User as AppUser, Round } from '../../../types';
 import { adminService, AdminUser } from '../services/adminService';
 import { projectService } from '../../../features/projects/services/projectService';
@@ -31,20 +31,41 @@ export const useAdminPanel = (currentUser?: AppUser | null, onBack?: () => void)
       activeSessions: 0
    });
 
+   const abortControllerRef = useRef<AbortController | null>(null);
+
    const loadUsers = useCallback(async () => {
       if (activeTab !== 'users') return;
+
+      if (abortControllerRef.current) {
+         abortControllerRef.current.abort();
+      }
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       try {
          setIsLoading(true);
          setError(null);
-         const filters: { role?: string; isActive?: boolean } = {};
+         const filters: { role?: string; isActive?: boolean; signal?: AbortSignal } = {};
          if (roleFilter) filters.role = roleFilter;
          if (!showInactive) filters.isActive = true;
+         filters.signal = abortController.signal;
+
          const result = await adminService.listUsers(filters);
-         setUsers(result.users);
+         
+         if (abortControllerRef.current === abortController) {
+             setUsers(result.users);
+         }
       } catch (err: any) {
-         setError(err.message || 'Error al cargar usuarios');
+         if (err.name === 'AbortError' || err.message === 'The operation was aborted') {
+             return;
+         }
+         if (abortControllerRef.current === abortController) {
+             setError(err.message || 'Error al cargar usuarios');
+         }
       } finally {
-         setIsLoading(false);
+         if (abortControllerRef.current === abortController) {
+             setIsLoading(false);
+         }
       }
    }, [activeTab, roleFilter, showInactive]);
 

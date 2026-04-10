@@ -65,7 +65,7 @@ export const useProjectDetail = (projectId: string, role: UserRole, currentUserI
       name: '',
       description: '',
       unit: 'hours',
-      estimationMethod: 'wideband-delphi',
+      estimationMethod: 'Delphi',
       cvThreshold: 0.25,
       maxOutlierPercent: 30
     },
@@ -191,7 +191,7 @@ export const useProjectDetail = (projectId: string, role: UserRole, currentUserI
         return;
       }
 
-      if (role === UserRole.EXPERT && (state.project.status === 'active' || state.project.status === 'kickoff')) {
+      if (role === UserRole.EXPERT && (state.project.status === 'activo')) {
         updateState({ activeTab: 'tasks' });
       }
     }
@@ -204,7 +204,7 @@ export const useProjectDetail = (projectId: string, role: UserRole, currentUserI
           name: state.project.name || '',
           description: state.project.description || '',
           unit: state.project.unit || 'hours',
-          estimationMethod: state.project.estimationMethod || 'wideband-delphi',
+          estimationMethod: state.project.estimationMethod || 'Delphi',
           cvThreshold: state.project.convergenceConfig?.cvThreshold || 0.25,
           maxOutlierPercent: (state.project.convergenceConfig?.maxOutlierPercent || 0.30) * 100
         },
@@ -303,7 +303,7 @@ export const useProjectDetail = (projectId: string, role: UserRole, currentUserI
     if (!state.project) return;
     try {
       updateState({ isFinalizing: true });
-      const updated = await projectService.updateProject(projectId, { status: 'finished' });
+      const updated = await projectService.updateProject(projectId, { status: 'finalizado' });
       
       const targetIds = [state.project.facilitatorId, ...(state.project.expertIds || [])]
         .filter(id => id !== currentUserId);

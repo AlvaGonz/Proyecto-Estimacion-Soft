@@ -10,7 +10,7 @@ export const analyzeConsensus = async (
   stats: RoundStats,
   unit: string,
   signal?: AbortSignal
-): Promise<{ level: 'Alta' | 'Media' | 'Baja'; recommendation: string; aiInsights: string }> => {
+): Promise<{ level: 'alta' | 'media' | 'baja'; recommendation: string; aiInsights: string }> => {
   
   // @ts-ignore - Vite env
   const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
@@ -26,7 +26,7 @@ export const analyzeConsensus = async (
   }
 
   // 2. Fallback: Análisis Estadístico Local (Sin IA / No requiere API Keys)
-  return fallbackAnalysis(stats) as { level: 'Alta' | 'Media' | 'Baja'; recommendation: string; aiInsights: string };
+  return fallbackAnalysis(stats) as { level: 'alta' | 'media' | 'baja'; recommendation: string; aiInsights: string };
 };
 
 /**
@@ -60,7 +60,7 @@ async function analyzeWithGroq(estimations: Estimation[], stats: RoundStats, uni
   
   const data = await response.json();
   const content = data.choices[0].message.content;
-  return JSON.parse(content) as { level: 'Alta' | 'Media' | 'Baja'; recommendation: string; aiInsights: string };
+  return JSON.parse(content) as { level: 'alta' | 'media' | 'baja'; recommendation: string; aiInsights: string };
 }
 
 function buildAnalysisPrompt(estimations: Estimation[], stats: RoundStats, unit: string) {
@@ -90,7 +90,7 @@ function buildAnalysisPrompt(estimations: Estimation[], stats: RoundStats, unit:
     
     Genera un dictamen formal en JSON:
     {
-      "level": "Alta" | "Media" | "Baja",
+      "level": "alta" | "media" | "baja",
       "recommendation": "Acción inmediata recomendada",
       "aiInsights": "Análisis profundo de la dispersión de datos y coherencia técnica."
     }
@@ -106,7 +106,7 @@ const fallbackAnalysis = (stats: RoundStats) => {
   const isModerateConformity = cv < 25;
 
   return {
-    level: isHighConformity ? 'Alta' : isModerateConformity ? 'Media' : 'Baja',
+    level: isHighConformity ? 'alta' : isModerateConformity ? 'media' : 'baja',
     recommendation: isHighConformity 
       ? 'Consenso alcanzado. Proceder a consolidación.' 
       : isModerateConformity 
