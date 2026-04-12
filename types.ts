@@ -14,6 +14,16 @@ export interface User {
   expertiseArea?: string;
 }
 
+export interface Attachment {
+  id?: string;
+  originalName: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  path: string;
+  uploadedAt: Date | string | number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -28,6 +38,7 @@ export interface Project {
   sprints: number;
   hasStartedRounds?: boolean;
   isDeleted?: boolean;
+  attachments?: Attachment[];
   createdAt: number;
 }
 

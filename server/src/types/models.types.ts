@@ -37,6 +37,16 @@ export interface IConvergenceConfig {
     maxOutlierPercent: number; // Default 0.30 — max % of outliers allowed
 }
 
+export interface IAttachment {
+    id?: string;
+    originalName: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    path: string;
+    uploadedAt: Date;
+}
+
 export interface IProject extends Document {
     name: string;
     description: string;
@@ -49,6 +59,7 @@ export interface IProject extends Document {
     convergenceConfig: IConvergenceConfig;
     maxRounds: number;          // Added: for wideband delphi or other methods
     sprints: number;            // Added: to organize project in sprints
+    attachments: IAttachment[];
     createdAt: Date;
     updatedAt: Date;
 }

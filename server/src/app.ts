@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middleware/error.middleware.js';
@@ -24,7 +25,11 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// 5. API routes
+// 5. Static files (uploads folder)
+const uploadDir = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadDir));
+
+// 6. API routes
 app.use('/api', routes);
 
 // 6. 404 handler for unmatched routes

@@ -17,6 +17,15 @@ const convergenceConfigSchema = new Schema({
     }
 }, { _id: false }); // No need for _id in subdocument
 
+const attachmentSchema = new Schema({
+    originalName: { type: String, required: true },
+    filename: { type: String, required: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    path: { type: String, required: true },
+    uploadedAt: { type: Date, default: Date.now }
+}, { _id: true });
+
 const projectSchema = new Schema<IProject>(
     {
         name: {
@@ -76,6 +85,10 @@ const projectSchema = new Schema<IProject>(
             default: 1,
             min: 1,
             max: 50
+        },
+        attachments: {
+            type: [attachmentSchema],
+            default: []
         }
     },
     {
