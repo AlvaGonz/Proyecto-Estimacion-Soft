@@ -3,7 +3,7 @@ import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
     createTask, getTasksByProject, updateTask, deleteProject, finalizeTask,
-    uploadAttachment
+    uploadAttachment, deleteAttachment
 } from '../controllers/project.controller.js';
 import { upload } from '../middleware/upload.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -64,6 +64,13 @@ router.post(
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     upload.single('file'),
     uploadAttachment
+);
+
+// DELETE /api/projects/:id/attachments/:attachmentId
+router.delete(
+    '/:id/attachments/:attachmentId',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    deleteAttachment
 );
 
 // PATCH /api/projects/:id/experts

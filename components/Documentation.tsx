@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
@@ -60,6 +60,17 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteAttachment = async (attachment: Attachment) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar "${attachment.originalName}"?`)) return;
+    
+    try {
+      await projectService.deleteAttachment(projectId, attachment.id || attachment._id || '');
+      setAttachments(prev => prev.filter(a => (a.id || a._id) !== (attachment.id || attachment._id)));
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar archivo");
     }
   };
 
@@ -164,6 +175,16 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                     {extType === 'DOCX' && <FileText className="w-7 h-7 text-blue-500" />}
                     {extType === 'FILE' && <FileText className="w-7 h-7" />}
                   </div>
+                  
+                  {isFacilitator && (
+                    <button 
+                      onClick={() => handleDeleteAttachment(doc)} 
+                      aria-label="Eliminar archivo"
+                      className="absolute top-6 right-6 p-2 text-slate-400 hover:text-delphi-giants hover:bg-delphi-giants/10 rounded-xl transition-all"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                   
                   <h4 className="font-black text-slate-900 mb-1 line-clamp-2 pr-6" title={doc.originalName}>{doc.originalName}</h4>
                   <div className="flex items-center gap-3 text-[10px] font-black uppercase text-slate-400 tracking-widest mt-2">

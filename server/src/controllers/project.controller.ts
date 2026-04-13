@@ -130,6 +130,19 @@ export const uploadAttachment = asyncHandler(async (req: Request, res: Response)
     });
 });
 
+export const deleteAttachment = asyncHandler(async (req: Request, res: Response) => {
+    const { id, attachmentId } = req.params;
+    const requesterId = req.user?.id as string;
+
+    const project = await projectService.deleteAttachment(id, attachmentId, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Archivo eliminado correctamente',
+        data: project
+    });
+});
+
 export const manageExperts = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { expertIds } = req.body;

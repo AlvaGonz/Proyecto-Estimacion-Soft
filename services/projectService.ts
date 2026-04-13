@@ -54,5 +54,11 @@ export const projectService = {
             method: 'POST',
             body: formData
         });
+    },
+
+    async deleteAttachment(projectId: string, attachmentId: string): Promise<any> {
+        return fetchApi<any>(`/projects/${projectId}/attachments/${attachmentId}`, {
+            method: 'DELETE'
+        });
     }
 };
