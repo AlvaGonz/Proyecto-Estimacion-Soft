@@ -38,7 +38,7 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
     const response = await fetch(fullUrl, config);
 
     // Handle 401 Unauthorized by attempting to refresh the token once
-    if (response.status === 401 && retries > 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+    if (response.status === 401 && retries > 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register') && !endpoint.includes('/auth/logout')) {
         if (!isRefreshing) {
             isRefreshing = true;
             refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
@@ -67,6 +67,11 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
     const json: ApiResponse<T> = await response.json().catch(() => ({ success: false, message: 'Invalid JSON response' }));
 
     if (!response.ok || !json.success) {
+        // If we get a 401 here and it didn't match the refresh logic (e.g. retries === 0), it's a hard unauthorized
+        // We exclude logout and refresh to avoid infinite loops during session cleanup
+        if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/logout') && !endpoint.includes('/auth/refresh')) {
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        }
         const errorMessage = json.message || 'Error en la petición';
         throw new Error(errorMessage);
     }

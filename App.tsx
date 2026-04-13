@@ -88,8 +88,8 @@ const App: React.FC = () => {
     };
     checkAuth();
 
-    const handleUnauthorized = async () => {
-      await authService.logout().catch(() => {});
+    const handleUnauthorized = () => {
+      localStorage.removeItem('estimapro_auth');
       setCurrentUser(null);
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
