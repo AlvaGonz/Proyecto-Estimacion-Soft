@@ -61,6 +61,18 @@ export const adminService = {
         });
     },
 
+    async activateUser(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/users/${id}/activate`, {
+            method: 'PATCH',
+        });
+    },
+
+    async deleteUser(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/users/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
     async listProjects(): Promise<any[]> {
         const result = await fetchApi<any>('/admin/projects');
         return result.data;

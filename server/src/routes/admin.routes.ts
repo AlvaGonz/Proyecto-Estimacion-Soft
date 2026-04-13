@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, deactivateUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
+import { getUsers, createUser, updateUser, deactivateUser, activateUser, deleteUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole, requirePermission } from '../middleware/rbac.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
@@ -8,25 +8,19 @@ import { ROLES, PERMISSIONS } from '../config/constants.js';
 
 const router = Router();
 
-// All admin routes: must be authenticated AND have ADMIN role
-router.use(authenticate, requireRole(ROLES.ADMIN));
+// All admin routes: must be authenticated
+router.use(authenticate);
 
-// GET  /api/admin/users
-router.get('/users', requirePermission(PERMISSIONS.MANAGE_USERS), getUsers);
+// User management endpoints: ADMIN and FACILITADOR
+router.get('/users', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), getUsers);
+router.post('/users', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), validate(createUserByAdminSchema), createUser);
+router.patch('/users/:id', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), validate(updateUserByAdminSchema), updateUser);
+router.patch('/users/:id/deactivate', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), deactivateUser);
+router.patch('/users/:id/activate', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), activateUser);
+router.delete('/users/:id', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), requirePermission(PERMISSIONS.MANAGE_USERS), deleteUser);
 
-// POST /api/admin/users
-router.post('/users', requirePermission(PERMISSIONS.MANAGE_USERS), validate(createUserByAdminSchema), createUser);
-
-// PATCH /api/admin/users/:id
-router.patch('/users/:id', requirePermission(PERMISSIONS.MANAGE_USERS), validate(updateUserByAdminSchema), updateUser);
-
-// PATCH /api/admin/users/:id/deactivate
-router.patch('/users/:id/deactivate', requirePermission(PERMISSIONS.MANAGE_USERS), deactivateUser);
-
-// GET /api/admin/projects
-router.get('/projects', getProjects);
-
-// PATCH /api/admin/projects/:id/restore
-router.patch('/projects/:id/restore', restoreProject);
+// Project management endpoints: ADMIN (global default previously, now explicit)
+router.get('/projects', requireRole(ROLES.ADMIN), getProjects);
+router.patch('/projects/:id/restore', requireRole(ROLES.ADMIN), restoreProject);
 
 export default router;
