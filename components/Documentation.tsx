@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2 } from 'lucide-react';
+import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle } from 'lucide-react';
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
@@ -188,16 +188,31 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
         </div>
       )}
 
+      {isFacilitator && (
+        <div className="mt-8 bg-amber-50 border border-amber-200 p-6 rounded-[2rem] flex items-start gap-4 animate-in slide-in-from-bottom duration-700">
+          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-6 h-6 text-amber-600" />
+          </div>
+          <div className="text-left">
+            <h5 className="font-black text-amber-900 leading-tight">Advisor de Carga</h5>
+            <p className="text-amber-800/70 text-sm font-medium mt-1">
+              Para garantizar el rendimiento de la plataforma, asegúrate de que los archivos no superen los <strong>100 MB</strong>. 
+              Recuerda que solo se admiten formatos <strong>PDF</strong> y <strong>Word</strong> (.doc, .docx).
+            </p>
+          </div>
+        </div>
+      )}
+
       {isFacilitator && attachments.length > 0 && (
         <div 
           onClick={handleUploadClick}
-          className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center cursor-pointer hover:bg-delphi-vanilla/60 transition-colors"
+          className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center cursor-pointer hover:bg-delphi-vanilla/60 transition-colors mt-8"
         >
            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4">
               <Plus className="w-10 h-10 text-delphi-orange" />
            </div>
            <p className="font-black text-delphi-orange tracking-tight text-lg">Haz click aquí para seleccionar más archivos</p>
-           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 10MB por archivo. Solo Word y PDF.</p>
+           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo. Solo Word y PDF.</p>
         </div>
       )}
     </div>

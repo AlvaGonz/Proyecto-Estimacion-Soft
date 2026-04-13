@@ -82,8 +82,11 @@ export interface RoundStats {
   stdDev: number;
   variance: number;
   coefficientOfVariation: number;
-  range: [number, number];
+  range: [number, number] | number;
   iqr: number;
+  q1?: number;
+  q3?: number;
+  outliers?: number[];
   outlierEstimationIds: string[]; // IDs of outlier estimations
   metricaResultados?: Record<string, any>;
 }

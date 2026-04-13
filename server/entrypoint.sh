@@ -6,13 +6,13 @@ echo "============================================="
 echo "Node API Container Env Initialization"
 echo "============================================="
 
-echo "🔧 Setting up locals and environment context..."
+echo "???? Setting up locals and environment context..."
 
 if [ -z "$MONGODB_URI" ]; then
-  echo "⚠️ Warning: MONGODB_URI is not set."
+  echo "?????? Warning: MONGODB_URI is not set."
 else
-  echo "🔌 Configured to connect to: $MONGODB_URI"
+  echo "???? Configured to connect to: $MONGODB_URI"
 fi
 
-echo "🚀 Starting primary process..."
+echo "???? Starting primary process..."
 exec "$@"

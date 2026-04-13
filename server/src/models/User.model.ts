@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { IUser, IUserModel } from '../types/models.types.js';
 
 const BCRYPT_ROUNDS = 12;

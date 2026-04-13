@@ -196,6 +196,7 @@ const App: React.FC = () => {
     );
   };
 
+  return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 relative">
       <SessionTimeout />
       

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mongodb:
     image: mongo:8.0
@@ -67,6 +65,7 @@ services:
       - mongodb
     volumes:
       - ./server:/app
+      - /app/node_modules
       - ./run-seeds.sh:/app/run-seeds.sh
     # This container exits after running seeds
 

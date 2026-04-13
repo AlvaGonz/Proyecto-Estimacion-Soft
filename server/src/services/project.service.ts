@@ -50,14 +50,15 @@ export const projectService = {
             throw ApiError.notFound('Proyecto no encontrado');
         }
 
-        // Calculate hasStartedRounds manually for the UI
+        // Add virtual-like property for UI
         const taskIds = await Task.find({ projectId: id }).distinct('_id');
         const count = await Round.countDocuments({ taskId: { $in: taskIds } });
         
-        const projectObj = project.toObject() as IProject;
-        (projectObj as any).hasStartedRounds = count > 0;
+        // We attach this to the document instance. 
+        // Note: res.json() will include it if we don't use .toObject() or if we use { virtuals: true }
+        (project as any).hasStartedRounds = count > 0;
 
-        return projectObj;
+        return project as any;
     },
 
     async update(id: string, data: Partial<IProject>, requesterId: string): Promise<IProject> {

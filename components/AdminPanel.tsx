@@ -12,7 +12,10 @@ import {
    Zap,
    Lock,
    X,
-   AlertCircle
+   AlertCircle,
+   FolderArchive,
+   Trash2,
+   RotateCcw
 } from 'lucide-react';
 import { UserRole, User as AppUser } from '../types';
 import { LoadingSpinner } from './ui/LoadingSpinner';
