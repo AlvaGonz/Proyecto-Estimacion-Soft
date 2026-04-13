@@ -176,17 +176,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                     {extType === 'FILE' && <FileText className="w-7 h-7" />}
                   </div>
                   
-                  {isFacilitator && (
-                    <button 
-                      onClick={() => handleDeleteAttachment(doc)} 
-                      aria-label="Eliminar archivo"
-                      className="absolute top-6 right-6 p-2 text-slate-400 hover:text-delphi-giants hover:bg-delphi-giants/10 rounded-xl transition-all"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  )}
-                  
-                  <h4 className="font-black text-slate-900 mb-1 line-clamp-2 pr-6" title={doc.originalName}>{doc.originalName}</h4>
+                  <h4 className="font-black text-slate-900 mb-1 line-clamp-2" title={doc.originalName}>{doc.originalName}</h4>
                   <div className="flex items-center gap-3 text-[10px] font-black uppercase text-slate-400 tracking-widest mt-2">
                     <span>{formatBytes(doc.size)}</span>
                     <span className="w-1 h-1 bg-slate-200 rounded-full" />
@@ -199,9 +189,20 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                     <Clock className="w-3.5 h-3.5" />
                     {formatDate(doc.uploadedAt)}
                   </div>
-                  <button onClick={() => handleDownload(doc)} aria-label={`Descargar ${doc.originalName}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
-                    <Download className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {isFacilitator && (
+                      <button 
+                        onClick={() => handleDeleteAttachment(doc)} 
+                        title="Eliminar archivo"
+                        className="p-2.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={() => handleDownload(doc)} aria-label={`Descargar ${doc.originalName}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
