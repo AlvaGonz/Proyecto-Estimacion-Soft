@@ -9,7 +9,7 @@ interface DocumentationProps {
 }
 
 const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
-  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
+  const isFacilitator = String(role).toLowerCase() === 'admin' || String(role).toLowerCase() === 'facilitador';
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,26 +184,29 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                    <Clock className="w-3.5 h-3.5" />
-                    {formatDate(doc.uploadedAt)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {isFacilitator && (
-                      <button 
-                        onClick={() => handleDeleteAttachment(doc)} 
-                        title="Eliminar archivo"
-                        className="p-2.5 rounded-xl bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                      <Clock className="w-3.5 h-3.5" />
+                      {formatDate(doc.uploadedAt)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isFacilitator ? (
+                        <button 
+                          onClick={() => handleDeleteAttachment(doc)} 
+                          title="Eliminar archivo"
+                          className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        /* Debug hidden state if needed: <span className="text-[8px] opacity-10">R:{String(role)}</span> */
+                        null
+                      )}
+                      <button onClick={() => handleDownload(doc)} aria-label={`Descargar ${doc.originalName}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
+                        <Download className="w-4 h-4" />
                       </button>
-                    )}
-                    <button onClick={() => handleDownload(doc)} aria-label={`Descargar ${doc.originalName}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
-                      <Download className="w-4 h-4" />
-                    </button>
+                    </div>
                   </div>
-                </div>
               </div>
             );
           })}
