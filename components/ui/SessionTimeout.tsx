@@ -8,7 +8,7 @@ export const SessionTimeout: React.FC = () => {
     const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const INACTIVITY_LIMIT = 60 * 1000; // 60 seconds
+    const INACTIVITY_LIMIT = 14.75 * 60 * 1000; // 14 minutes and 45 seconds
     const COUNTDOWN_LIMIT = 15; // 15 seconds
 
     const handleActivity = () => {
