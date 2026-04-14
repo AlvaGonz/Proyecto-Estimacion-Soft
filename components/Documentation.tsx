@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle, Trash2, Image, FileSpreadsheet } from 'lucide-react';
+import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle, Trash2, Image as ImageIcon, FileSpreadsheet } from 'lucide-react';
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
@@ -190,7 +190,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                     {extType === 'JSON' && <FileCode className="w-7 h-7" />}
                     {extType === 'DOCX' && <FileText className="w-7 h-7 text-blue-500" />}
                     {extType === 'EXCEL' && <FileSpreadsheet className="w-7 h-7" />}
-                    {extType === 'IMAGE' && <Image className="w-7 h-7" />}
+                    {extType === 'IMAGE' && <ImageIcon className="w-7 h-7" />}
                     {extType === 'FILE' && <FileText className="w-7 h-7" />}
                   </div>
                   

@@ -27,6 +27,20 @@ export interface Project {
   hasStartedRounds?: boolean;
   isDeleted?: boolean;
   createdAt: number;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: string;
+  _id?: string; // Compatibility with MongoDB
+  projectId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  path: string;
+  uploadedBy: string;
+  uploadedAt: number;
 }
 
 export interface Task {

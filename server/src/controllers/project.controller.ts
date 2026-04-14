@@ -97,31 +97,7 @@ export const uploadAttachment = asyncHandler(async (req: Request, res: Response)
         throw ApiError.badRequest('No se proporcionó ningún archivo o el formato es incorrecto');
     }
 
-    const { originalname, filename, mimetype, size } = file;
-
-    // Use projectService to add attachment
-    const project = await projectService.findById(id);
-    if (!project) throw ApiError.notFound('Proyecto no encontrado');
-
-    const attachment = {
-        originalName: originalname,
-        filename: filename,
-        mimeType: mimetype,
-        size: size,
-        path: `/uploads/${filename}`,
-        uploadedAt: new Date()
-    };
-
-    project.attachments.push(attachment as any);
-    await project.save();
-
-    await auditService.log({
-        userId: requesterId,
-        action: 'UPLOAD_ATTACHMENT',
-        resource: 'Proyecto',
-        resourceId: id,
-        details: { originalName: originalname, mimeType: mimetype }
-    });
+    const attachment = await projectService.addAttachment(id, file, requesterId);
 
     res.status(201).json({
         success: true,

@@ -42,7 +42,15 @@ interface ProjectDetailProps {
 
 type TabType = 'tasks' | 'docs' | 'discussion' | 'team' | 'audit';
 
-const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }) => {
+export default function ProjectDetail({
+  projectId,
+  onBack,
+  role
+}: {
+  projectId: string;
+  onBack: () => void;
+  role: UserRole;
+}) {
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -201,6 +209,25 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
         ? { ...t, status: 'consensus', finalEstimate: finalValue }
         : t
     ));
+  };
+
+  const handleTaskFinalize = async (taskId?: string) => {
+    try {
+      const idToFinalize = taskId || selectedTaskId;
+      if (!idToFinalize || !projectId) return;
+      
+      await taskService.finalizeTask(projectId, idToFinalize);
+      
+      // RF032: Refresh full state to sync transitions
+      const [proj, taskList] = await Promise.all([
+        projectService.getProject(projectId),
+        taskService.getTasks(projectId)
+      ]);
+      setProject(proj);
+      setTasks(taskList);
+    } catch (err: any) {
+      alert(err.message || "Error al finalizar la tarea");
+    }
   };
 
   const handleFinalizeProject = async () => {
@@ -685,6 +712,4 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
       )}
     </div>
   );
-};
-
-export default ProjectDetail;
+}

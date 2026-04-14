@@ -25,6 +25,7 @@ import { z } from 'zod';
 import { roundService } from '../services/roundService';
 import { estimationService } from '../services/estimationService';
 import { convergenceService, type ConvergenceResult, type EstimationWithExpert } from '../services/convergence.service';
+import { taskService } from '../services/taskService';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
@@ -46,7 +47,7 @@ const METHOD_LABELS: Record<EstimationMethod, string> = {
   'three-point': 'Tres Puntos',
 };
 
-const EstimationRounds: React.FC<EstimationRoundsProps> = ({
+export default function EstimationRounds({
   projectId,
   taskId,
   taskTitle,
@@ -55,7 +56,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   onConsensusReached,
   onTaskFinalize,
   isFacilitator = true
-}) => {
+}: EstimationRoundsProps) {
   const [rounds, setRounds] = useState<Round[]>([]);
   const [activeRound, setActiveRound] = useState<Round | null>(null);
   const [estimations, setEstimations] = useState<Estimation[]>([]);
@@ -325,9 +326,9 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
+  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
   const viewedRound = rounds.find(r => (r.id || (r as any)._id) === selectedRoundId) || lastClosedRound || activeRound;
 
-  const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
   const currentRoundEstimations = estimations.filter(e => {
     const activeId = activeRound?.id || (activeRound as any)?._id || '';
     const closedId = lastClosedRound?.id || (lastClosedRound as any)?._id || '';
@@ -690,7 +691,4 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       </div>
     </AppErrorBoundary>
   );
-};
-
-
-export default EstimationRounds;
+}

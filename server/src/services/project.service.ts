@@ -163,6 +163,36 @@ export const projectService = {
         return project as IProject;
     },
 
+    async addAttachment(projectId: string, fileData: any, requesterId: string): Promise<any> {
+        const project = await Project.findById(projectId);
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        const attachment = {
+            originalName: fileData.originalname,
+            filename: fileData.filename,
+            mimeType: fileData.mimetype,
+            size: fileData.size,
+            path: `/uploads/${fileData.filename}`,
+            uploadedAt: new Date()
+        };
+
+        project.attachments.push(attachment as any);
+        await project.save();
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:upload_attachment',
+            resource: 'Project',
+            resourceId: projectId,
+            details: { filename: fileData.filename, originalName: fileData.originalname }
+        });
+
+        // Retornar el attachment con su ID generado por Mongoose
+        return project.attachments[project.attachments.length - 1];
+    },
+
     async deleteAttachment(projectId: string, attachmentId: string, requesterId: string): Promise<IProject> {
         const project = await Project.findById(projectId);
         if (!project) {
