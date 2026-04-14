@@ -36,6 +36,7 @@ export interface Task {
   description: string;
   status: 'pending' | 'estimating' | 'consensus';
   finalEstimate?: number;
+  completionPercentage?: number;
 }
 
 export interface Estimation {
@@ -66,7 +67,7 @@ export interface RoundStats {
   stdDev: number;
   variance: number;
   coefficientOfVariation: number;
-  range: [number, number];
+  range: [number, number] | number;
   iqr: number;
   outlierEstimationIds: string[]; // IDs of outlier estimations
   metricaResultados?: Record<string, any>;

@@ -4,6 +4,7 @@ import {
     archiveProject, manageExperts, getProjectAuditLogs,
     createTask, getTasksByProject, updateTask, deleteProject
 } from '../controllers/project.controller.js';
+import { upload } from '../middleware/upload.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole } from '../middleware/rbac.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
@@ -86,6 +87,13 @@ router.patch(
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     validate(updateTaskSchema),
     updateTask
+);
+
+// PATCH /api/projects/:id/tasks/:tid/finalize
+router.patch(
+    '/:id/tasks/:tid/finalize',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    finalizeTask
 );
 
 export default router;

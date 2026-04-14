@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
 import { auditService } from './audit.service.js';
@@ -108,6 +108,44 @@ class AdminService {
             resource: 'User',
             resourceId: userId,
             details: { email: user.email }
+        });
+    }
+
+    async activateUser(userId: string, adminId: string): Promise<void> {
+        const user = await User.findById(userId);
+        if (!user) {
+            throw ApiError.notFound('Usuario no encontrado');
+        }
+
+        await User.findByIdAndUpdate(userId, { isActive: true });
+
+        await auditService.log({
+            userId: adminId,
+            action: 'ADMIN_ACTIVATE_USER',
+            resource: 'User',
+            resourceId: userId,
+            details: { email: user.email }
+        });
+    }
+
+    async deleteUser(userId: string, adminId: string): Promise<void> {
+        if (userId === adminId) {
+            throw ApiError.badRequest('No puedes eliminarte a ti mismo');
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            throw ApiError.notFound('Usuario no encontrado');
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        await auditService.log({
+            userId: adminId,
+            action: 'ADMIN_DELETE_USER',
+            resource: 'User',
+            resourceId: userId,
+            details: { email: user.email, name: user.name }
         });
     }
 }

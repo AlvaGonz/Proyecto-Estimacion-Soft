@@ -543,7 +543,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                           {task.status === 'consensus' ? (
                             <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
                               <Award className="w-3 h-3" />
-                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate}h</span>
+                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
                             </div>
                           ) : (
                             <div className="space-y-1.5 mt-2">
@@ -585,6 +585,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ projectId, onBack, role }
                   unit={project.unit || "Horas"}
                   estimationMethod={project.estimationMethod}
                   onConsensusReached={handleTaskConsensus}
+                  onTaskFinalize={handleTaskFinalize}
                   isFacilitator={isFacilitator}
                   projectId={project.id}
                 />

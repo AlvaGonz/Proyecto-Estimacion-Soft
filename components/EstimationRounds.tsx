@@ -10,7 +10,9 @@ import {
   BrainCircuit,
   CheckCircle2,
   Lock,
-  MessageSquare
+  MessageSquare,
+  Users,
+  Target
 } from 'lucide-react';
 import { Estimation, Round, ConvergenceAnalysis, type EstimationMethod, type FibonacciCard } from '../types';
 import { DelphiInput, PokerCards, ThreePointInput } from './estimation-methods';
@@ -34,6 +36,7 @@ interface EstimationRoundsProps {
   unit: string;
   estimationMethod?: EstimationMethod;
   onConsensusReached?: (value: number) => void;
+  onTaskFinalize?: (taskId: string) => void;
   isFacilitator?: boolean;
 }
 
@@ -50,6 +53,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   unit,
   estimationMethod = 'wideband-delphi',
   onConsensusReached,
+  onTaskFinalize,
   isFacilitator = true
 }) => {
   const [rounds, setRounds] = useState<Round[]>([]);
@@ -67,7 +71,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<{ value?: string; justification?: string }>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -80,6 +84,12 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           setRounds(taskRounds);
           const active = taskRounds.find(r => r.status === 'open') || null;
           setActiveRound(active);
+
+          // RF012-020: Auto-select latest round on initial load or if no selection
+          if (!selectedRoundId && taskRounds.length > 0) {
+            const latestId = active?.id || (active as any)?._id || (taskRounds[taskRounds.length - 1].id || (taskRounds[taskRounds.length - 1] as any)._id);
+            setSelectedRoundId(latestId);
+          }
 
           if (taskRounds.length > 0) {
             const allEsts = await Promise.all(
@@ -219,6 +229,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
       setRounds(prev => prev.map(r => (r.id || (r as any)._id) === activeId ? round : r));
       setActiveRound(null);
+      setSelectedRoundId(activeId); // Keep selection on this round
       setAnalysis(analysis);
 
       // RF020: Calculate convergence for display
@@ -252,6 +263,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
       const nextRound = await roundService.openRound(projectId, taskId);
       setRounds(prev => [...prev, nextRound]);
       setActiveRound(nextRound);
+      setSelectedRoundId(nextRound.id || (nextRound as any)._id);
       setAnalysis(null);
     } catch (err: any) {
       alert(err.message || 'Failed opening round');
@@ -260,10 +272,55 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const handleFinalizeTask = () => {
-    const lastRound = rounds[rounds.length - 1];
-    if (lastRound?.stats && onConsensusReached) {
-      onConsensusReached(lastRound.stats.median);
+  const handleFinalizeTask = async () => {
+    try {
+      setIsAnalyzing(true);
+      await taskService.finalizeTask(projectId, taskId);
+      if (onTaskFinalize) {
+        onTaskFinalize(taskId);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al finalizar la tarea');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const roundIsOpen = activeRound?.status === 'open';
+  const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
+  const canClose = activeRound && isFacilitator; // Solo el facilitador puede cerrar
+
+  const renderEstimationInput = () => {
+    switch (estimationMethod) {
+      case 'wideband-delphi':
+        return (
+          <DelphiInput
+            value={delphiValue}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
+      case 'planning-poker':
+        return (
+          <PokerCards
+            selectedCard={pokerCard}
+            justification={justification}
+            onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
+      case 'three-point':
+        return (
+          <ThreePointInput
+            values={threePoint}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
     }
   };
 
@@ -478,7 +535,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-black text-slate-900">
-                {activeRound ? `Ronda ${activeRound.roundNumber}` : `Resultados`}
+                {viewedRound ? `Ronda ${viewedRound.roundNumber}` : `Resultados`}
               </h4>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 {currentRoundEstimations.length} Expertos
@@ -542,7 +599,9 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
           <div className="space-y-6">
             {activeRound ? (
               <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-                <h4 className="text-xl font-black text-slate-900">Tu Estimación</h4>
+                <h4 className="text-xl font-black text-slate-900">
+                  {isFacilitator ? "Progreso de la Ronda" : "Tu Estimación"}
+                </h4>
                 <div className="space-y-4">
                   {canEstimate ? renderEstimationInput() : (
                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
@@ -644,7 +703,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                     )}
 
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                      {isFacilitator && analysis.level === 'Alta' && (
+                      {isFacilitator && rounds.length > 0 && (
                         <button onClick={handleFinalizeTask} className="flex-1 bg-delphi-keppel text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">
                           Finalizar Tarea
                         </button>

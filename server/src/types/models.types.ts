@@ -37,6 +37,16 @@ export interface IConvergenceConfig {
     maxOutlierPercent: number; // Default 0.30 — max % of outliers allowed
 }
 
+export interface IAttachment {
+    id?: string;
+    originalName: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    path: string;
+    uploadedAt: Date;
+}
+
 export interface IProject extends Document {
     name: string;
     description: string;
@@ -47,6 +57,9 @@ export interface IProject extends Document {
     isDeleted?: boolean;
     estimationMethod: 'wideband-delphi' | 'planning-poker' | 'three-point';
     convergenceConfig: IConvergenceConfig;
+    maxRounds: number;          // Added: for wideband delphi or other methods
+    sprints: number;            // Added: to organize project in sprints
+    attachments: IAttachment[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -56,8 +69,9 @@ export interface ITask extends Document {
     projectId: Types.ObjectId;
     title: string;
     description: string;
-    status: 'pending' | 'estimating' | 'consensus';
+    status: 'pending' | 'estimating' | 'consensus' | 'finalized';
     finalEstimate?: number;
+    completionPercentage?: number;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -6,6 +6,8 @@ import { ApiError } from '../utils/ApiError.js';
 import { PROJECT_STATUS, ROLES, Role } from '../config/constants.js';
 import { auditService } from './audit.service.js';
 import mongoose from 'mongoose';
+import path from 'path';
+import fs from 'fs';
 
 export const projectService = {
     async create(data: Partial<IProject>, facilitatorId: string): Promise<IProject> {

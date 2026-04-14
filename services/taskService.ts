@@ -21,5 +21,11 @@ export const taskService = {
             method: 'PATCH',
             body: data
         });
+    },
+
+    async finalizeTask(projectId: string, taskId: string): Promise<Task> {
+        return fetchApi<Task>(`/projects/${projectId}/tasks/${taskId}/finalize`, {
+            method: 'PATCH'
+        });
     }
 };

@@ -31,6 +31,7 @@ import { AppErrorBoundary } from './components/ui/AppErrorBoundary';
 import { authService } from './services/authService';
 import { projectService } from './services/projectService';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { SessionTimeout } from './components/ui/SessionTimeout';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -197,6 +198,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 relative">
+      <SessionTimeout />
+      
       {/* Overlay para móvil */}
       {isSidebarOpen && (
         <div

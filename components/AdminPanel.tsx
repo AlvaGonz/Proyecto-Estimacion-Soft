@@ -12,7 +12,10 @@ import {
    Zap,
    Lock,
    X,
-   AlertCircle
+   AlertCircle,
+   FolderArchive,
+   Trash2,
+   RotateCcw
 } from 'lucide-react';
 import { UserRole, User as AppUser } from '../types';
 import { LoadingSpinner } from './ui/LoadingSpinner';
@@ -331,7 +334,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                     </td>
                                     <td className="px-8 py-6 text-right">
                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          {user.isActive && (
+                                          {user.isActive ? (
                                              <button
                                                 aria-label={`Desactivar ${user.name}`}
                                                 title={isSelf ? 'No puedes desactivarte a ti mismo' : 'Desactivar usuario'}
@@ -340,7 +343,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                                 className="p-2.5 rounded-xl bg-slate-100 text-slate-400 hover:text-delphi-giants transition-all focus:opacity-100 outline-none disabled:opacity-30 disabled:cursor-not-allowed">
                                                 <UserX className="w-4 h-4" />
                                              </button>
+                                          ) : (
+                                             <button
+                                                aria-label={`Habilitar ${user.name}`}
+                                                title="Habilitar usuario"
+                                                onClick={() => handleActivate(user)}
+                                                className="p-2.5 rounded-xl bg-delphi-keppel/10 text-delphi-keppel hover:bg-delphi-keppel hover:text-white transition-all focus:opacity-100 outline-none">
+                                                <UserCheck className="w-4 h-4" />
+                                             </button>
                                           )}
+                                          <button
+                                             aria-label={`Borrar ${user.name}`}
+                                             title={isSelf ? 'No puedes borrarte a ti mismo' : 'Borrar usuario permanentemente'}
+                                             disabled={isSelf}
+                                             onClick={() => handleDelete(user)}
+                                             className="p-2.5 rounded-xl bg-slate-100 text-slate-400 hover:text-red-600 transition-all focus:opacity-100 outline-none disabled:opacity-30 disabled:cursor-not-allowed">
+                                             <Trash2 className="w-4 h-4" />
+                                          </button>
                                        </div>
                                     </td>
                                  </tr>
