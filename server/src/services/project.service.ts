@@ -52,15 +52,14 @@ export const projectService = {
             throw ApiError.notFound('Proyecto no encontrado');
         }
 
-        // Add virtual-like property for UI
+        // Calculate hasStartedRounds manually for the UI
         const taskIds = await Task.find({ projectId: id }).distinct('_id');
         const count = await Round.countDocuments({ taskId: { $in: taskIds } });
         
-        // We attach this to the document instance. 
-        // Note: res.json() will include it if we don't use .toObject() or if we use { virtuals: true }
-        (project as any).hasStartedRounds = count > 0;
+        const projectObj = project.toObject() as IProject;
+        (projectObj as any).hasStartedRounds = count > 0;
 
-        return project as any;
+        return projectObj;
     },
 
     async update(id: string, data: Partial<IProject>, requesterId: string): Promise<IProject> {
@@ -162,47 +161,5 @@ export const projectService = {
             resourceId: id
         });
         return project as IProject;
-    },
-
-    async deleteAttachment(projectId: string, attachmentId: string, requesterId: string): Promise<IProject> {
-        const project = await Project.findById(projectId);
-        if (!project) {
-            throw ApiError.notFound('Proyecto no encontrado');
-        }
-
-        if (project.status === PROJECT_STATUS.ARCHIVED) {
-            throw ApiError.forbidden('No se puede modificar un proyecto archivado');
-        }
-
-        const attachmentIndex = project.attachments.findIndex(a => (a as any)._id.toString() === attachmentId);
-        if (attachmentIndex === -1) {
-            throw ApiError.notFound('Documento no encontrado');
-        }
-
-        const attachment = project.attachments[attachmentIndex];
-        const filePath = path.join(process.cwd(), 'uploads', attachment.filename);
-
-        // Remove from DB first
-        project.attachments.splice(attachmentIndex, 1);
-        await project.save();
-
-        // Remove from filesystem (optional but recommended)
-        try {
-            await fs.promises.unlink(filePath);
-        } catch (err) {
-            console.error(`Error deleting file: ${filePath}`, err);
-            // We don't throw here to avoid rollback of DB deletion, or maybe we should?
-            // Usually DB is source of truth, if file is missing it's okay.
-        }
-
-        await auditService.log({
-            userId: requesterId,
-            action: 'DELETE_ATTACHMENT',
-            resource: 'Proyecto',
-            resourceId: projectId,
-            details: { originalName: attachment.originalName, filename: attachment.filename }
-        });
-
-        return project;
     }
 };

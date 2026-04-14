@@ -14,16 +14,6 @@ export interface User {
   expertiseArea?: string;
 }
 
-export interface Attachment {
-  id?: string;
-  originalName: string;
-  filename: string;
-  mimeType: string;
-  size: number;
-  path: string;
-  uploadedAt: Date | string | number;
-}
-
 export interface Project {
   id: string;
   name: string;
@@ -34,11 +24,8 @@ export interface Project {
   status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
-  maxRounds: number;
-  sprints: number;
   hasStartedRounds?: boolean;
   isDeleted?: boolean;
-  attachments?: Attachment[];
   createdAt: number;
 }
 
@@ -47,7 +34,7 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'pending' | 'estimating' | 'consensus' | 'finalized';
+  status: 'pending' | 'estimating' | 'consensus';
   finalEstimate?: number;
   completionPercentage?: number;
 }
@@ -71,8 +58,6 @@ export interface Round {
   startTime: number;
   endTime?: number;
   stats?: RoundStats;
-  maxRounds?: number;
-  sprints?: number;
   estimations: Estimation[];
 }
 
@@ -84,9 +69,6 @@ export interface RoundStats {
   coefficientOfVariation: number;
   range: [number, number] | number;
   iqr: number;
-  q1?: number;
-  q3?: number;
-  outliers?: number[];
   outlierEstimationIds: string[]; // IDs of outlier estimations
   metricaResultados?: Record<string, any>;
 }

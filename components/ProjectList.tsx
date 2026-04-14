@@ -35,8 +35,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects = [], onProjectSelec
                 project.status === 'active' ? 'bg-delphi-celadon/20 text-delphi-keppel border-delphi-keppel/20' : 
                 project.status === 'kickoff' ? 'bg-delphi-orange/20 text-delphi-giants border-delphi-giants/20' : 
                 project.status === 'finished' ? 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/30' :
-                project.status === 'preparation' ? 'bg-slate-200 text-slate-600 border-slate-300' :
-                'bg-slate-100 text-slate-400 border-slate-200'}`}>
+                'bg-slate-200 text-slate-600 border-slate-300'}`}>
                 {project.status === 'preparation' ? 'Preparación' : project.status === 'kickoff' ? 'Kickoff' : project.status === 'active' ? 'Activo' : project.status === 'finished' ? 'Finalizado' : project.status}
               </span>
             </div>

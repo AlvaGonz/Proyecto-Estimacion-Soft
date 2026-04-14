@@ -25,8 +25,6 @@ import { z } from 'zod';
 import { roundService } from '../services/roundService';
 import { estimationService } from '../services/estimationService';
 import { convergenceService, type ConvergenceResult, type EstimationWithExpert } from '../services/convergence.service';
-import { taskService } from '../services/taskService';
-import { projectService } from '../services/projectService';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
 import { AppErrorBoundary } from './ui/AppErrorBoundary';
@@ -70,7 +68,6 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [analysis, setAnalysis] = useState<ConvergenceAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [convergenceResult, setConvergenceResult] = useState<ConvergenceResult | null>(null);
-  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -327,10 +324,50 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
+  const roundIsOpen = activeRound?.status === 'open';
+  const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
+  const canClose = activeRound && isFacilitator; // Solo el facilitador puede cerrar
+
+  const renderEstimationInput = () => {
+    switch (estimationMethod) {
+      case 'wideband-delphi':
+        return (
+          <DelphiInput
+            value={delphiValue}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
+      case 'planning-poker':
+        return (
+          <PokerCards
+            selectedCard={pokerCard}
+            justification={justification}
+            onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
+      case 'three-point':
+        return (
+          <ThreePointInput
+            values={threePoint}
+            justification={justification}
+            unit={unit}
+            onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
+            disabled={!canEstimate}
+          />
+        );
+    }
+  };
+
   const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
-  const viewedRound = rounds.find(r => (r.id || (r as any)?._id) === selectedRoundId);
   const currentRoundEstimations = estimations.filter(e => {
-    return String(e.roundId) === String(selectedRoundId);
+    const activeId = activeRound?.id || (activeRound as any)?._id || '';
+    const closedId = lastClosedRound?.id || (lastClosedRound as any)?._id || '';
+    const targetId = activeRound ? activeId : closedId;
+    return String(e.roundId) === String(targetId);
   });
 
   // RF019: Add anonymous expert labels
@@ -339,22 +376,20 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
   // RF020: Calculate convergence when viewing a closed round
   useEffect(() => {
-    if (viewedRound?.status === 'closed' && viewedRound.stats && currentRoundEstimations.length > 0) {
+    if (lastClosedRound?.stats && currentRoundEstimations.length > 0) {
       const cv = convergenceService.calculateCV(currentRoundEstimations);
       const convResult = convergenceService.evaluateConvergence(
         cv,
         currentRoundEstimations.length,
-        viewedRound.stats.outlierEstimationIds?.length || 0
+        lastClosedRound.stats.outlierEstimationIds?.length || 0
       );
       setConvergenceResult(convResult);
 
+      // Also set analysis for the panel display
       const analysisResult = convergenceService.getRecommendation(convResult);
       setAnalysis(analysisResult);
-    } else if (viewedRound?.status === 'open') {
-      setConvergenceResult(null);
-      setAnalysis(null);
     }
-  }, [selectedRoundId, currentRoundEstimations.length, viewedRound]);
+  }, [lastClosedRound?.id, currentRoundEstimations.length]);
 
   const distributionData = currentRoundEstimations
     .reduce((acc: any[], curr) => {
@@ -374,7 +409,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }));
 
   const isOutlier = (estimationId: string) => {
-    return viewedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
+    return lastClosedRound?.stats?.outlierEstimationIds?.includes(estimationId) || false;
   };
 
   if (isLoading) {
@@ -403,24 +438,19 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar w-full sm:w-auto">
-              {rounds.map(r => {
-                const rId = r.id || (r as any)._id;
-                const isSelected = rId === selectedRoundId;
-                const isOpen = r.status === 'open';
-
-                return (
-                  <button
-                    key={rId}
-                    onClick={() => setSelectedRoundId(rId)}
-                    className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${isSelected
-                      ? (isOpen ? 'bg-delphi-keppel text-white border-delphi-keppel' : 'bg-slate-900 text-white border-slate-900 shadow-lg')
-                      : 'bg-white border-slate-200 text-slate-400 hover:border-delphi-keppel hover:text-delphi-keppel'
-                      }`}
-                  >
-                    R{r.roundNumber}
-                  </button>
-                );
-              })}
+              {rounds.map(r => (
+                <div
+                  key={r.id}
+                  className={`w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px] transition-all border-2 ${r.status === 'open'
+                    ? 'bg-delphi-keppel text-white border-delphi-keppel'
+                    : activeRound === null && r.id === lastClosedRound?.id
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'bg-white border-slate-200 text-slate-400'
+                    }`}
+                >
+                  R{r.roundNumber}
+                </div>
+              ))}
               {!activeRound && (
                 <button
                   onClick={handleStartNextRound}
@@ -548,7 +578,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
               )}
             </div>
 
-            {canClose && viewedRound?.id === (activeRound?.id || (activeRound as any)?._id) && (
+            {canClose && (
               <div className="mt-6 space-y-2">
                 <button
                   onClick={handleCloseRound}
@@ -574,57 +604,23 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                 </h4>
                 <div className="space-y-4">
                   {canEstimate ? renderEstimationInput() : (
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-4">
-                      {isFacilitator ? (
-                        <>
-                          <div className="flex justify-center mb-2">
-                            <div className="bg-delphi-keppel/10 p-4 rounded-full">
-                              <Users className="w-8 h-8 text-delphi-keppel" />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-slate-900 font-black text-sm uppercase tracking-widest">Estado de Participación</p>
-                            <p className="text-slate-500 text-xs font-medium leading-relaxed">
-                              {estimations.filter(e => e.roundId === activeRound.id).length} de {(projectService as any).getProject?.expertIds?.length || '?'} expertos han estimado en esta ronda.
-                            </p>
-                          </div>
-                          <div className="pt-2">
-                             <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-delphi-keppel transition-all duration-500" 
-                                  style={{ width: `${Math.min(100, (estimations.filter(e => e.roundId === activeRound.id).length / (projectService as any).getProject?.expertIds?.length || 0) * 100)}%` }}
-                                ></div>
-                             </div>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-slate-500 text-sm font-medium">
-                          La ronda está cerrada. Espera a que el facilitador abra una nueva ronda.
-                        </p>
-                      )}
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                      <p className="text-slate-500 text-sm font-medium">
+                        {isFacilitator
+                          ? "Como facilitador, no puedes registrar estimaciones. Esta acción es exclusiva de los expertos."
+                          : "La ronda está cerrada. Espera a que el facilitador abra una nueva ronda."}
+                      </p>
                     </div>
                   )}
-                  {!isFacilitator && (
-                    <>
-                      {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
-                      {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
-                      <button
-                        onClick={handleSubmitEstimate}
-                        disabled={!canSubmit()}
-                        className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
-                      >
-                        Enviar Estimación
-                      </button>
-                    </>
-                  )}
-                  {isFacilitator && (
-                    <button
-                      onClick={handleCloseRound}
-                      className="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-[1.02] transition-all"
-                    >
-                      Cerrar Ronda Actual
-                    </button>
-                  )}
+                  {errors.value && <p id="value-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.value}</p>}
+                  {errors.justification && <p id="justification-error" role="alert" className="text-red-500 text-xs mt-1 ml-1">{errors.justification}</p>}
+                  <button
+                    onClick={handleSubmitEstimate}
+                    disabled={!canSubmit()}
+                    className="w-full bg-delphi-keppel text-white py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
+                  >
+                    Enviar Estimación
+                  </button>
                 </div>
               </div>
             ) : !showBoxPlot ? (
@@ -653,11 +649,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Media</p>
-                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.mean?.toFixed(2) || '-'}</p>
+                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.mean?.toFixed(2) || '-'}</p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mediana</p>
-                          <p className="text-lg font-black text-slate-900">{viewedRound?.stats?.median?.toFixed(2) || '-'}</p>
+                          <p className="text-lg font-black text-slate-900">{lastClosedRound?.stats?.median?.toFixed(2) || '-'}</p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-xl text-center">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Desviación (CV)</p>
@@ -677,11 +673,11 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
                     </p>
 
                     {/* RF015b/c: Resultados específicos del método */}
-                    {!activeRound && viewedRound?.stats?.metricaResultados && (
+                    {!activeRound && rounds.length > 0 && rounds[rounds.length - 1].stats?.metricaResultados && (
                       <div className="bg-delphi-keppel/5 p-6 rounded-[2rem] border border-delphi-keppel/10 space-y-4 animate-in slide-in-from-top-4">
                         <h4 className="text-sm font-black text-slate-900 border-b border-delphi-keppel/10 pb-2">Métricas del Método</h4>
                         <div className="space-y-3">
-                          {Object.entries(viewedRound.stats.metricaResultados)
+                          {Object.entries(rounds[rounds.length - 1].stats!.metricaResultados!)
                             .filter(([key]) => key !== 'distribucion') // RF031 Skip distribution object
                             .map(([key, val]) => (
                               <div key={key} className="flex justify-between items-center text-xs">

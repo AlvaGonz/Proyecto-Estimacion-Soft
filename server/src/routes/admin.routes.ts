@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, deactivateUser, activateUser, deleteUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
+import { getUsers, createUser, updateUser, deactivateUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole, requirePermission } from '../middleware/rbac.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';
@@ -22,5 +22,11 @@ router.delete('/users/:id', requireRole(ROLES.ADMIN, ROLES.FACILITADOR), require
 // Project management endpoints: ADMIN (global default previously, now explicit)
 router.get('/projects', requireRole(ROLES.ADMIN), getProjects);
 router.patch('/projects/:id/restore', requireRole(ROLES.ADMIN), restoreProject);
+
+// GET /api/admin/projects
+router.get('/projects', getProjects);
+
+// PATCH /api/admin/projects/:id/restore
+router.patch('/projects/:id/restore', restoreProject);
 
 export default router;

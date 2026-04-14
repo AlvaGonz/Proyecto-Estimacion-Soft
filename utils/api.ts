@@ -37,27 +37,9 @@ export async function fetchApi<T = any>(endpoint: string, options: ApiRequestIni
 
     const response = await fetch(fullUrl, config);
 
-    // Handle 401 Unauthorized by attempting to refresh the token once
-    if (response.status === 401 && retries > 0 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/register') && !endpoint.includes('/auth/logout')) {
-        if (!isRefreshing) {
-            isRefreshing = true;
-            refreshPromise = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
-                .then(res => res.ok)
-                .catch(() => false)
-                .finally(() => {
-                    isRefreshing = false;
-                });
-        }
-
-        const refreshSuccess = await refreshPromise;
-        if (refreshSuccess) {
-            // Retry the original request
-            return fetchApi<T>(endpoint, options, 0);
-        } else {
-            // If refresh fails, emit the unauthorized event to log the user out globally
-            window.dispatchEvent(new Event('auth:unauthorized'));
-            throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
-        }
+    if (response.status === 401 && !endpoint.includes('/auth/')) {
+        // window.location.href = '/'; // Commented out to avoid reloading the page
+        throw new Error('Sesión expirada. Por favor inicia sesión nuevamente.');
     }
 
     if (response.status === 401 && retries === 0 && !endpoint.includes('/auth/login')) {

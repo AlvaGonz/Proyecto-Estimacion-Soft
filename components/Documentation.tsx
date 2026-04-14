@@ -3,10 +3,9 @@ import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
-interface DocumentationProps {
-  projectId: string;
-  role: UserRole;
-}
+import React from 'react';
+import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search } from 'lucide-react';
+import { UserRole } from '../types';
 
 const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
   const isFacilitator = String(role).toLowerCase() === 'admin' || String(role).toLowerCase() === 'facilitador';
@@ -109,6 +108,14 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
+interface DocumentationProps {
+  projectId: string;
+  role: UserRole;
+}
+
+const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
+  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
@@ -127,23 +134,10 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
             />
           </div>
           {isFacilitator && (
-            <>
-              <input 
-                 type="file" 
-                 ref={fileInputRef} 
-                 onChange={handleFileChange} 
-                 className="hidden" 
-                 accept=".pdf,.doc,.docx" 
-              />
-              <button 
-                 onClick={handleUploadClick} 
-                 disabled={isUploading}
-                 className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50"
-              >
-                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
-                {isUploading ? 'Subiendo...' : 'Subir Archivo'}
-              </button>
-            </>
+            <button className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all">
+              <Plus className="w-5 h-5" />
+              Subir Archivo
+            </button>
           )}
         </div>
       </div>
@@ -208,15 +202,18 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                     </div>
                   </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {isFacilitator && (
-        <div className="mt-8 bg-amber-50 border border-amber-200 p-6 rounded-[2rem] flex items-start gap-4 animate-in slide-in-from-bottom duration-700">
-          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-6 h-6 text-amber-600" />
+              <button aria-label={`Descargar ${doc.name}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {isFacilitator && (
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants">
+                   <FileArchive className="w-4 h-4 rotate-45" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="text-left">
             <h5 className="font-black text-amber-900 leading-tight">Advisor de Carga</h5>
@@ -228,16 +225,13 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
         </div>
       )}
 
-      {isFacilitator && attachments.length > 0 && (
-        <div 
-          onClick={handleUploadClick}
-          className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center cursor-pointer hover:bg-delphi-vanilla/60 transition-colors mt-8"
-        >
+      {isFacilitator && (
+        <div className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center">
            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4">
               <Plus className="w-10 h-10 text-delphi-orange" />
            </div>
-           <p className="font-black text-delphi-orange tracking-tight text-lg">Haz click aquí para seleccionar más archivos</p>
-           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo. Solo Word y PDF.</p>
+           <p className="font-black text-delphi-orange tracking-tight text-lg">Suelta archivos aquí para subir</p>
+           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo</p>
         </div>
       )}
     </div>

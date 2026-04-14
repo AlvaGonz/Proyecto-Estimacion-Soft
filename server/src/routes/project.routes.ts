@@ -2,8 +2,7 @@ import { Router } from 'express';
 import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
-    createTask, getTasksByProject, updateTask, deleteProject, finalizeTask,
-    uploadAttachment, deleteAttachment
+    createTask, getTasksByProject, updateTask, deleteProject
 } from '../controllers/project.controller.js';
 import { upload } from '../middleware/upload.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -56,21 +55,6 @@ router.delete(
     '/:id',
     requireRole(ROLES.ADMIN),
     deleteProject
-);
-
-// POST /api/projects/:id/upload - Upload reference document
-router.post(
-    '/:id/upload',
-    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
-    upload.single('file'),
-    uploadAttachment
-);
-
-// DELETE /api/projects/:id/attachments/:attachmentId
-router.delete(
-    '/:id/attachments/:attachmentId',
-    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
-    deleteAttachment
 );
 
 // PATCH /api/projects/:id/experts

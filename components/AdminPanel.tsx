@@ -191,29 +191,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       }
    };
 
-   const handleActivate = async (user: AdminUser) => {
-      try {
-         await adminService.activateUser(user.id || user._id || '');
-         setSuccessMessage(`Usuario ${user.name} habilitado.`);
-         setTimeout(() => setSuccessMessage(null), 4000);
-         await loadUsers();
-      } catch (err: any) {
-         setError(err.message || 'Error al habilitar usuario');
-      }
-   };
-
-   const handleDelete = async (user: AdminUser) => {
-      if (!window.confirm(`¿ESTÁS SEGURO? Esta acción eliminará permanentemente a ${user.name} y no se puede deshacer.`)) return;
-      try {
-         await adminService.deleteUser(user.id || user._id || '');
-         setSuccessMessage(`Usuario ${user.name} eliminado del sistema.`);
-         setTimeout(() => setSuccessMessage(null), 4000);
-         await loadUsers();
-      } catch (err: any) {
-         setError(err.message || 'Error al eliminar usuario');
-      }
-   };
-
    const handleRestoreProject = async (id: string, name: string) => {
       if (!window.confirm(`¿Restaurar el proyecto "${name}"?`)) return;
       try {
