@@ -69,6 +69,23 @@ router.patch(
 // GET /api/projects/:id/audit-logs
 router.get('/:id/audit-logs', getProjectAuditLogs);
 
+// ─── Project Attachments ──────────────────────────────────────────
+
+// POST /api/projects/:id/attachments
+router.post(
+    '/:id/attachments',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    upload.single('file'),
+    uploadAttachment
+);
+
+// DELETE /api/projects/:id/attachments/:attachmentId
+router.delete(
+    '/:id/attachments/:attachmentId',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    deleteAttachment
+);
+
 // ─── Nested Task Endpoints ──────────────────────────────────────────
 
 // GET /api/projects/:id/tasks

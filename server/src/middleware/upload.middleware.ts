@@ -14,7 +14,13 @@ if (!fs.existsSync(uploadDir)) {
 const allowedMiMeTypes = [
     'application/pdf',
     'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/zip',
+    'application/x-zip-compressed',
+    'image/png',
+    'image/jpeg'
 ];
 
 const storage = multer.diskStorage({
@@ -33,7 +39,7 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
     if (allowedMiMeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(ApiError.badRequest('Invalid file type. Only PDF and Word documents are allowed.') as any, false);
+        cb(ApiError.badRequest('Tipo de archivo no permitido. Solo se aceptan PDF, Word, Excel, ZIP e imágenes (PNG/JPG).') as any, false);
     }
 };
 

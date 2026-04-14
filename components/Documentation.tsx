@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
+import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2, AlertTriangle, Trash2, Image, FileSpreadsheet } from 'lucide-react';
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
@@ -38,18 +38,30 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Check if DOC, DOCX or PDF
-    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    // Check if valid types: PDF, Word, Excel, Zip, Images
+    const validTypes = [
+      'application/pdf', 
+      'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/zip',
+      'application/x-zip-compressed',
+      'image/png',
+      'image/jpeg'
+    ];
+    
     if (!validTypes.includes(file.type)) {
-      alert("Solo se admiten documentos PDF y Word (.doc, .docx)");
+      alert("Formato no permitido. Solo se aceptan PDF, Word, Excel, ZIP e imágenes (PNG/JPG).");
       return;
     }
 
     try {
       setIsUploading(true);
       const res = await projectService.uploadAttachment(projectId, file);
-      if (res.data) {
-        setAttachments(prev => [...prev, res.data]);
+      // Backend returns the attachment directly in res when using fetchApi
+      if (res) {
+        setAttachments(prev => [...prev, res]);
       } else {
          const proj = await projectService.getProject(projectId);
          setAttachments(proj.attachments || []);
@@ -76,6 +88,8 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
   const getDocTypeIcon = (mimeType: string) => {
     if (mimeType === 'application/pdf') return 'PDF';
     if (mimeType.includes('word') || mimeType.includes('document')) return 'DOCX';
+    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'EXCEL';
+    if (mimeType.includes('image')) return 'IMAGE';
     if (mimeType.includes('zip') || mimeType.includes('compress')) return 'ZIP';
     if (mimeType.includes('json')) return 'JSON';
     return 'FILE';
@@ -132,7 +146,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                 ref={fileInputRef} 
                 onChange={handleFileChange} 
                 className="hidden" 
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.png,.jpg,.jpeg"
               />
               <button 
                 onClick={handleUploadClick}
@@ -167,12 +181,16 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
                     extType === 'PDF' ? 'bg-delphi-giants/10 text-delphi-giants' :
                     extType === 'ZIP' ? 'bg-delphi-orange/10 text-delphi-orange' :
+                    extType === 'EXCEL' ? 'bg-green-100 text-green-600' :
+                    extType === 'IMAGE' ? 'bg-purple-100 text-purple-600' :
                     extType === 'JSON' ? 'bg-delphi-keppel/10 text-delphi-keppel' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {extType === 'PDF' && <FileText className="w-7 h-7" />}
                     {extType === 'ZIP' && <FileArchive className="w-7 h-7" />}
                     {extType === 'JSON' && <FileCode className="w-7 h-7" />}
                     {extType === 'DOCX' && <FileText className="w-7 h-7 text-blue-500" />}
+                    {extType === 'EXCEL' && <FileSpreadsheet className="w-7 h-7" />}
+                    {extType === 'IMAGE' && <Image className="w-7 h-7" />}
                     {extType === 'FILE' && <FileText className="w-7 h-7" />}
                   </div>
                   
@@ -222,8 +240,8 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
         <div className="text-left">
           <h5 className="font-black text-amber-900 leading-tight">Advisor de Carga</h5>
           <p className="text-amber-800/70 text-sm font-medium mt-1">
-            Para garantizar el rendimiento de la plataforma, asegúrate de que los archivos no superen los <strong>100 MB</strong>. 
-            Recuerda que solo se admiten formatos <strong>PDF</strong> y <strong>Word</strong> (.doc, .docx).
+            Para garantizar el rendimiento de la plataforma, asegúrese de que los archivos no superen los 100 MB. 
+            Formatos admitidos: PDF, Word (.doc, .docx), Excel (.xls, .xlsx), ZIP e imágenes (PNG/JPG).
           </p>
         </div>
       </div>
