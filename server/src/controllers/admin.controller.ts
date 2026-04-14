@@ -29,6 +29,16 @@ export const deactivateUser = asyncHandler(async (req: Request, res: Response) =
     res.json({ success: true, message: 'Usuario desactivado exitosamente' });
 });
 
+export const activateUser = asyncHandler(async (req: Request, res: Response) => {
+    await adminService.activateUser(req.params.id, req.user!.id);
+    res.json({ success: true, message: 'Usuario activado exitosamente' });
+});
+
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+    await adminService.deleteUser(req.params.id, req.user!.id);
+    res.json({ success: true, message: 'Usuario eliminado exitosamente' });
+});
+
 export const getProjects = asyncHandler(async (req: Request, res: Response) => {
     const projects = await projectService.findAllAdmin();
     res.json({ success: true, data: projects });

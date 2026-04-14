@@ -161,5 +161,47 @@ export const projectService = {
             resourceId: id
         });
         return project as IProject;
+    },
+
+    async deleteAttachment(projectId: string, attachmentId: string, requesterId: string): Promise<IProject> {
+        const project = await Project.findById(projectId);
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado');
+        }
+
+        const attachmentIndex = project.attachments.findIndex(
+            (a: any) => String(a._id) === attachmentId || String(a.id) === attachmentId
+        );
+
+        if (attachmentIndex === -1) {
+            throw ApiError.notFound('Archivo no encontrado en el proyecto');
+        }
+
+        const attachment = project.attachments[attachmentIndex];
+        const filePath = path.join(process.cwd(), 'uploads', attachment.filename);
+
+        // Intenta borrar el archivo físico
+        try {
+            if (fs.existsSync(filePath)) {
+                await fs.promises.unlink(filePath);
+            }
+        } catch (err) {
+            console.error(`Error deleting physical file ${filePath}:`, err);
+            // Seguimos adelante aunque falle el borrado físico para limpiar la DB
+        }
+
+        // Eliminar de la base de datos
+        project.attachments.splice(attachmentIndex, 1);
+        await project.save();
+
+        await auditService.log({
+            userId: requesterId,
+            action: 'project:delete_attachment',
+            resource: 'Project',
+            resourceId: projectId,
+            details: { filename: attachment.filename, originalName: attachment.originalName }
+        });
+
+        return project.toObject() as IProject;
     }
 };

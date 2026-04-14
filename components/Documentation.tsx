@@ -3,9 +3,10 @@ import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search, Loader2
 import { UserRole, Attachment } from '../types';
 import { projectService } from '../services/projectService';
 
-import React from 'react';
-import { FileText, Download, Clock, Plus, FileCode, FileArchive, Search } from 'lucide-react';
-import { UserRole } from '../types';
+interface DocumentationProps {
+  projectId: string;
+  role: UserRole;
+}
 
 const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
   const isFacilitator = String(role).toLowerCase() === 'admin' || String(role).toLowerCase() === 'facilitador';
@@ -50,7 +51,6 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
       if (res.data) {
         setAttachments(prev => [...prev, res.data]);
       } else {
-         // Fallback if data is not correctly structured
          const proj = await projectService.getProject(projectId);
          setAttachments(proj.attachments || []);
       }
@@ -108,16 +108,9 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-interface DocumentationProps {
-  projectId: string;
-  role: UserRole;
-}
-
-const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
-  const isFacilitator = role === UserRole.FACILITATOR || role === UserRole.ADMIN;
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
         <div>
           <h3 className="text-2xl font-black text-slate-900 tracking-tight">Repositorio de Documentación</h3>
@@ -128,20 +121,33 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
             <input 
               type="text" 
-              aria-label="Buscar archivos"
               placeholder="Buscar archivos..." 
               className="w-full pl-12 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-delphi-keppel/30 transition-all"
             />
           </div>
           {isFacilitator && (
-            <button className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all">
-              <Plus className="w-5 h-5" />
-              Subir Archivo
-            </button>
+            <>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                className="hidden" 
+                accept=".pdf,.doc,.docx"
+              />
+              <button 
+                onClick={handleUploadClick}
+                disabled={isUploading}
+                className="bg-delphi-keppel text-white px-6 py-3 rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-delphi-keppel/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+                {isUploading ? 'Subiendo...' : 'Subir Archivo'}
+              </button>
+            </>
           )}
         </div>
       </div>
 
+      {/* Attachments Grid */}
       {isLoading ? (
          <div className="flex justify-center p-12">
             <Loader2 className="w-8 h-8 text-delphi-keppel animate-spin" />
@@ -156,7 +162,7 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
           {attachments.map(doc => {
             const extType = getDocTypeIcon(doc.mimeType);
             return (
-              <div key={doc.id || doc.filename} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden flex flex-col justify-between">
+              <div key={doc.id || doc._id || doc.filename} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden flex flex-col justify-between">
                 <div className="mb-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-colors ${
                     extType === 'PDF' ? 'bg-delphi-giants/10 text-delphi-giants' :
@@ -178,60 +184,58 @@ const Documentation: React.FC<DocumentationProps> = ({ projectId, role }) => {
                   </div>
                 </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                      <Clock className="w-3.5 h-3.5" />
-                      {formatDate(doc.uploadedAt)}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isFacilitator ? (
-                        <button 
-                          onClick={() => handleDeleteAttachment(doc)} 
-                          title="Eliminar archivo"
-                          className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        /* Debug hidden state if needed: <span className="text-[8px] opacity-10">R:{String(role)}</span> */
-                        null
-                      )}
-                      <button onClick={() => handleDownload(doc)} aria-label={`Descargar ${doc.originalName}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-auto">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                    <Clock className="w-3.5 h-3.5" />
+                    {formatDate(doc.uploadedAt)}
                   </div>
+                  <div className="flex items-center gap-2">
+                    {isFacilitator && (
+                      <button 
+                        onClick={() => handleDeleteAttachment(doc)} 
+                        title="Eliminar archivo"
+                        className="p-2.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleDownload(doc)} 
+                      title="Descargar archivo"
+                      className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all shadow-sm border border-slate-100"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button aria-label={`Descargar ${doc.name}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-delphi-keppel hover:text-white transition-all">
-                <Download className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {isFacilitator && (
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button aria-label={`Eliminar ${doc.name}`} className="text-slate-300 hover:text-delphi-giants">
-                   <FileArchive className="w-4 h-4 rotate-45" />
-                </button>
-              </div>
-            )}
-          </div>
-          <div className="text-left">
-            <h5 className="font-black text-amber-900 leading-tight">Advisor de Carga</h5>
-            <p className="text-amber-800/70 text-sm font-medium mt-1">
-              Para garantizar el rendimiento de la plataforma, asegúrate de que los archivos no superen los <strong>100 MB</strong>. 
-              Recuerda que solo se admiten formatos <strong>PDF</strong> y <strong>Word</strong> (.doc, .docx).
-            </p>
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {isFacilitator && (
+      {/* Info Advisor */}
+      <div className="bg-amber-50/50 p-6 rounded-[2rem] border border-amber-100 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+          <AlertTriangle className="w-5 h-5 text-amber-600" />
+        </div>
+        <div className="text-left">
+          <h5 className="font-black text-amber-900 leading-tight">Advisor de Carga</h5>
+          <p className="text-amber-800/70 text-sm font-medium mt-1">
+            Para garantizar el rendimiento de la plataforma, asegúrate de que los archivos no superen los <strong>100 MB</strong>. 
+            Recuerda que solo se admiten formatos <strong>PDF</strong> y <strong>Word</strong> (.doc, .docx).
+          </p>
+        </div>
+      </div>
+
+      {/* Empty State / Upload Dropzone Hint */}
+      {isFacilitator && attachments.length > 0 && (
         <div className="bg-delphi-vanilla/40 p-8 rounded-[2.5rem] border-2 border-dashed border-delphi-vanilla flex items-center justify-center flex-col text-center">
-           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4">
+           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg shadow-delphi-vanilla/50 mb-4 transition-transform hover:scale-110 cursor-pointer" onClick={handleUploadClick}>
               <Plus className="w-10 h-10 text-delphi-orange" />
            </div>
-           <p className="font-black text-delphi-orange tracking-tight text-lg">Suelta archivos aquí para subir</p>
-           <p className="text-slate-500 font-medium text-sm mt-1">Máximo 100MB por archivo</p>
+           <p className="font-black text-delphi-orange tracking-tight text-lg">Añadir más documentación</p>
+           <p className="text-slate-500 font-medium text-sm mt-1">Selecciona o arrastra archivos para ampliar el repositorio</p>
         </div>
       )}
     </div>

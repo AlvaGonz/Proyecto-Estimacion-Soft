@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, deactivateUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
+import { getUsers, createUser, updateUser, deactivateUser, activateUser, deleteUser, getProjects, restoreProject } from '../controllers/admin.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { requireRole, requirePermission } from '../middleware/rbac.middleware.js';
 import { validate } from '../middleware/validate.middleware.js';

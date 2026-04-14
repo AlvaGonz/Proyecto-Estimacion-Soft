@@ -71,7 +71,8 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
   const [showEvolution, setShowEvolution] = useState(false);
   const [showBoxPlot, setShowBoxPlot] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<{ value?: string; justification?: string }>({});
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ value?: string; justification?: string; submit?: string }>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -324,43 +325,7 @@ const EstimationRounds: React.FC<EstimationRoundsProps> = ({
     }
   };
 
-  const roundIsOpen = activeRound?.status === 'open';
-  const canEstimate = roundIsOpen && !isFacilitator; // Solo expertos pueden estimar
-  const canClose = activeRound && isFacilitator; // Solo el facilitador puede cerrar
-
-  const renderEstimationInput = () => {
-    switch (estimationMethod) {
-      case 'wideband-delphi':
-        return (
-          <DelphiInput
-            value={delphiValue}
-            justification={justification}
-            unit={unit}
-            onChange={(v, j) => { setDelphiValue(v); setJustification(j); }}
-            disabled={!canEstimate}
-          />
-        );
-      case 'planning-poker':
-        return (
-          <PokerCards
-            selectedCard={pokerCard}
-            justification={justification}
-            onChange={(c, j) => { setPokerCard(c); setJustification(j); }}
-            disabled={!canEstimate}
-          />
-        );
-      case 'three-point':
-        return (
-          <ThreePointInput
-            values={threePoint}
-            justification={justification}
-            unit={unit}
-            onChange={(v, j) => { setThreePoint(v); setJustification(j); }}
-            disabled={!canEstimate}
-          />
-        );
-    }
-  };
+  const viewedRound = rounds.find(r => (r.id || (r as any)._id) === selectedRoundId) || lastClosedRound || activeRound;
 
   const lastClosedRound = [...rounds].reverse().find(r => r.status === 'closed');
   const currentRoundEstimations = estimations.filter(e => {

@@ -144,7 +144,7 @@ export const roundService = {
             }
         });
 
-        return result;
+        return result as unknown as { round: IRound; convergence: ConvergenceResult };
     },
 
     async findByTask(taskId: string): Promise<IRound[]> {
