@@ -439,7 +439,12 @@ const App: React.FC = () => {
 
             {view === 'create-project' && (
               <div className="max-w-4xl mx-auto">
-                <ProjectForm onSubmit={handleCreateProject} onCancel={() => setView('projects')} />
+                <ProjectForm
+                  onSubmit={handleCreateProject}
+                  onCancel={() => setView('projects')}
+                  currentUserRole={currentUser?.role}
+                  currentUserId={currentUser?.id}
+                />
               </div>
             )}
 

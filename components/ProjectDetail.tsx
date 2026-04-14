@@ -16,7 +16,7 @@ import {
   History,
   ShieldCheck
 } from 'lucide-react';
-import { Task, UserRole, AuditEntry, Project, Round } from '../types';
+import { Task, UserRole, AuditEntry, Project, Round, User } from '../types';
 import EstimationRounds from './EstimationRounds';
 import Documentation from './Documentation';
 import DiscussionSpace from './DiscussionSpace';
@@ -26,6 +26,7 @@ import { LoadingSpinner } from './ui/LoadingSpinner';
 import { projectService } from '../services/projectService';
 import { taskService } from '../services/taskService';
 import { roundService } from '../services/roundService';
+import { userService } from '../services/userService';
 
 // TODO: Connect Discussion, Team, and AuditLog to actual endpoints when ready
 const MOCK_AUDIT: AuditEntry[] = [
@@ -73,9 +74,12 @@ export default function ProjectDetail({
     description: '',
     unit: 'hours',
     estimationMethod: 'wideband-delphi',
+    facilitatorId: '',
     cvThreshold: 0.25,
     maxOutlierPercent: 30
   });
+  const [allFacilitators, setAllFacilitators] = useState<User[]>([]);
+  const [isLoadingFacilitators, setIsLoadingFacilitators] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configError, setConfigError] = useState('');
 
@@ -143,12 +147,31 @@ export default function ProjectDetail({
         description: project.description || '',
         unit: project.unit || 'hours',
         estimationMethod: project.estimationMethod || 'wideband-delphi',
+        facilitatorId: typeof project.facilitatorId === 'object' ? (project.facilitatorId as any).id || (project.facilitatorId as any)._id : project.facilitatorId || '',
         cvThreshold: project.convergenceConfig?.cvThreshold || 0.25,
         maxOutlierPercent: (project.convergenceConfig?.maxOutlierPercent || 0.30) * 100
       });
       setConfigError('');
     }
   }, [project, showConfigModal]);
+
+  // Load facilitators for admins when modal opens
+  React.useEffect(() => {
+    if (showConfigModal && role === UserRole.ADMIN) {
+      const fetchFacs = async () => {
+        setIsLoadingFacilitators(true);
+        try {
+          const facs = await userService.getActiveFacilitators();
+          setAllFacilitators(facs);
+        } catch (err) {
+          console.error("Error fetching facilitators", err);
+        } finally {
+          setIsLoadingFacilitators(false);
+        }
+      };
+      fetchFacs();
+    }
+  }, [showConfigModal, role]);
   
   // RF021: El método es inmutable si ya hay tareas estimándose o consensuadas
   const isMethodImmutable = tasks.some(t => t.status !== 'Pendiente');
@@ -168,6 +191,7 @@ export default function ProjectDetail({
         description: configForm.description,
         unit: configForm.unit,
         estimationMethod: configForm.estimationMethod,
+        facilitatorId: configForm.facilitatorId,
         convergenceConfig: {
           cvThreshold: configForm.cvThreshold,
           maxOutlierPercent: configForm.maxOutlierPercent / 100
