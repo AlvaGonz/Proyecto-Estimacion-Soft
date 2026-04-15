@@ -98,6 +98,7 @@ export interface AuditEntry {
   projectId: string;
   userId: string;
   userName?: string;
+  userEmail?: string;
   userRole?: string;
   action: string;
   timestamp: number | string;

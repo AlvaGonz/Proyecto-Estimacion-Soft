@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Shield, Users, Send, Flag, ThumbsUp, Sparkles } from 'lucide-react';
+import { MessageSquare, Shield, Users, Send, Flag, Sparkles } from 'lucide-react';
 import { discussionCommentSchema } from '../utils/schemas';
 import { z } from 'zod';
 import { EmptyState } from './ui/EmptyState';
@@ -23,22 +23,32 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
    const [submitError, setSubmitError] = useState('');
 
    const getRoleLabel = (rawRole?: string): string => {
-      if (!rawRole) return 'Expert';
+      if (!rawRole) return 'Experto';
       const normalized = rawRole.toLowerCase();
-      if (normalized === 'admin' || normalized === 'administrator') return 'Administrator';
-      if (normalized === 'facilitador' || normalized === 'facilitator') return 'Facilitator';
-      return 'Expert';
+      if (normalized === 'admin' || normalized === 'administrator' || normalized === 'administrador') return 'Administrador';
+      if (normalized === 'facilitador' || normalized === 'facilitator') return 'Facilitador';
+      return 'Experto';
    };
 
    const getRoleClass = (rawRole?: string): string => {
       const role = getRoleLabel(rawRole);
-      if (role === 'Administrator') return 'bg-slate-900 text-white';
-      if (role === 'Facilitator') return 'bg-delphi-keppel text-white';
+      if (role === 'Administrador') return 'bg-slate-900 text-white';
+      if (role === 'Facilitador') return 'bg-delphi-keppel text-white';
       return 'bg-delphi-vanilla text-delphi-orange';
    };
 
    const formatDateTime = (value?: string | number): string => {
-      const date = new Date(value || Date.now());
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) {
+        const fallback = new Date();
+        const d = String(fallback.getDate()).padStart(2, '0');
+        const m = String(fallback.getMonth() + 1).padStart(2, '0');
+        const y = fallback.getFullYear();
+        const h = String(fallback.getHours()).padStart(2, '0');
+        const min = String(fallback.getMinutes()).padStart(2, '0');
+        const s = String(fallback.getSeconds()).padStart(2, '0');
+        return `${d}/${m}/${y} ${h}:${min}:${s}`;
+      }
       const d = String(date.getDate()).padStart(2, '0');
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const y = date.getFullYear();
@@ -128,26 +138,28 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
                      ) : (
                         <>
                            {comments.map((c) => (
-                              <div key={c.id} className="flex gap-6">
-                                 <div className={`shrink-0 w-14 h-14 rounded-3xl text-xl flex items-center justify-center font-black shadow-inner ${getRoleClass(c.userRole)}`}>
+                              <div key={c.id} className="flex gap-4 md:gap-6 animate-in slide-in-from-left-4 duration-300">
+                                 <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-3xl text-lg md:text-xl flex items-center justify-center font-black shadow-inner ${getRoleClass(c.userRole)}`}>
                                     {getRoleLabel(c.userRole).substring(0, 2).toUpperCase()}
                                  </div>
-                                 <div className="flex-1 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                       <div className="flex items-center gap-3">
-                                          <span className="text-sm font-black text-slate-900">
-                                            {c.isAnonymous ? getRoleLabel(c.userRole) : (c as any).userId?.name}
-                                          </span>
-                                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            {formatDateTime(c.createdAt || c.timestamp)}
-                                          </span>
-                                       </div>
-                                       <button className="text-slate-300 hover:text-delphi-orange transition-colors"><Flag className="w-4 h-4" /></button>
+                                 <div className="flex-1 space-y-2">
+                                    <div className="flex items-center">
+                                       <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">
+                                          {c.isAnonymous ? getRoleLabel(c.userRole) : (c as any).userId?.name}
+                                       </span>
                                     </div>
-                                    <div className="bg-slate-50 border-slate-100 p-6 rounded-[2rem] rounded-tl-none border relative">
-                                       <p className="text-slate-600 font-medium leading-relaxed">
+                                    <div className="bg-slate-50 border-slate-100 p-5 md:p-6 rounded-2xl md:rounded-[2rem] rounded-tl-none border relative group/msg transition-all hover:border-delphi-keppel/20">
+                                       <div className="text-slate-600 font-medium leading-relaxed mb-4">
                                           {c.content}
-                                       </p>
+                                       </div>
+                                       <div className="flex items-center justify-end gap-3 mt-auto pt-3 border-t border-slate-200/50">
+                                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.15em]">
+                                             {formatDateTime(c.createdAt || c.timestamp)}
+                                          </span>
+                                          <button className="text-slate-300 hover:text-delphi-orange transition-colors" aria-label="Reportar mensaje">
+                                             <Flag className="w-3.5 h-3.5" />
+                                          </button>
+                                       </div>
                                     </div>
                                  </div>
                               </div>

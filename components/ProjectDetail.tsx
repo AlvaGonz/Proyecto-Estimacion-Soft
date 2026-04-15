@@ -82,6 +82,7 @@ export default function ProjectDetail({
   const [isLoadingFacilitators, setIsLoadingFacilitators] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configError, setConfigError] = useState('');
+  const [facilitatorSearch, setFacilitatorSearch] = useState('');
 
   React.useEffect(() => {
     const fetchLogs = async () => {
@@ -151,6 +152,14 @@ export default function ProjectDetail({
         cvThreshold: project.convergenceConfig?.cvThreshold || 0.25,
         maxOutlierPercent: (project.convergenceConfig?.maxOutlierPercent || 0.30) * 100
       });
+      const currentFacilitator = typeof project.facilitatorId === 'object'
+        ? (project.facilitatorId as unknown as { name?: string; email?: string } | null)
+        : null;
+      setFacilitatorSearch(
+        currentFacilitator?.name
+          ? `${currentFacilitator.name}${currentFacilitator.email ? ` (${currentFacilitator.email})` : ''}`
+          : ''
+      );
       setConfigError('');
     }
   }, [project, showConfigModal]);
@@ -205,6 +214,14 @@ export default function ProjectDetail({
       
       setProject(updated);
       setShowConfigModal(false);
+      const updatedFacilitator = typeof updated.facilitatorId === 'object'
+        ? (updated.facilitatorId as unknown as { name?: string; email?: string } | null)
+        : null;
+      setFacilitatorSearch(
+        updatedFacilitator?.name
+          ? `${updatedFacilitator.name}${updatedFacilitator.email ? ` (${updatedFacilitator.email})` : ''}`
+          : ''
+      );
     } catch (err: any) {
       setConfigError(err.message || 'Error al guardar la configuración');
     } finally {
@@ -292,6 +309,26 @@ export default function ProjectDetail({
   if (!project) {
     return <div className="p-8 text-center text-slate-500">Proyecto no encontrado.</div>;
   }
+
+  const visibleFacilitators = allFacilitators.filter((f) => {
+    const text = facilitatorSearch.trim().toLowerCase();
+    if (!text) return true;
+    return (
+      f.name.toLowerCase().includes(text) ||
+      f.email.toLowerCase().includes(text)
+    );
+  });
+
+  const currentFacilitatorInfo = (() => {
+    if (!project?.facilitatorId) return 'Sin facilitador asignado';
+    if (typeof project.facilitatorId === 'object') {
+      const facilitatorObj = project.facilitatorId as unknown as { name?: string; email?: string };
+      if (facilitatorObj.name) {
+        return `${facilitatorObj.name}${facilitatorObj.email ? ` (${facilitatorObj.email})` : ''}`;
+      }
+    }
+    return 'Sin facilitador asignado';
+  })();
 
   return (
     <div className="space-y-8 md:space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -452,6 +489,13 @@ export default function ProjectDetail({
                   <p className="text-red-600 text-sm font-bold">{configError}</p>
                 </div>
               )}
+
+              {role === UserRole.ADMIN && (
+                <div className="bg-delphi-keppel/10 border border-delphi-keppel/30 rounded-2xl p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-delphi-keppel">Facilitador actual</p>
+                  <p className="text-sm font-bold text-slate-700 mt-1">{currentFacilitatorInfo}</p>
+                </div>
+              )}
               
               <div className="space-y-2">
                 <label htmlFor="configName" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Nombre del Proyecto</label>
@@ -491,7 +535,62 @@ export default function ProjectDetail({
                   <option value="personDays">Días Persona</option>
                 </select>
               </div>
-              
+
+              {/* Facilitador — visible y editable por administrador */}
+              {role === UserRole.ADMIN && (
+                <div className="space-y-2">
+                  <label htmlFor="facilitatorSearch" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-delphi-keppel" />
+                    Facilitador del Proyecto
+                  </label>
+                  {isLoadingFacilitators ? (
+                    <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm text-slate-400 font-bold animate-pulse">
+                      Cargando facilitadores...
+                    </div>
+                  ) : allFacilitators.length === 0 ? (
+                    <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-sm text-amber-700 font-bold">
+                      No hay facilitadores activos disponibles.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <input
+                        id="facilitatorSearch"
+                        type="text"
+                        value={facilitatorSearch}
+                        onChange={(e) => setFacilitatorSearch(e.target.value)}
+                        placeholder="Buscar facilitador por nombre o correo..."
+                        className="w-full bg-white border-2 border-delphi-keppel/30 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:border-delphi-keppel focus:ring-4 focus:ring-delphi-keppel/10 transition-all"
+                      />
+                      <select
+                        id="configFacilitator"
+                        value={configForm.facilitatorId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedFacilitator = allFacilitators.find((f) => f.id === selectedId);
+                          setConfigForm({ ...configForm, facilitatorId: selectedId });
+                          setFacilitatorSearch(
+                            selectedFacilitator
+                              ? `${selectedFacilitator.name} (${selectedFacilitator.email})`
+                              : ''
+                          );
+                        }}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:border-delphi-keppel focus:ring-4 focus:ring-delphi-keppel/10 transition-all"
+                      >
+                        <option value="">— Selecciona un facilitador —</option>
+                        {visibleFacilitators.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.name} ({f.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 ml-2">
+                    Campo visible en Configuración, entre Unidad y Método. Solo admin puede cambiarlo.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label htmlFor="configMethod" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Método de Estimación</label>
                 <select
@@ -506,42 +605,6 @@ export default function ProjectDetail({
                   <option value="three-point">Estimación de Tres Puntos</option>
                 </select>
               </div>
-
-              {/* Facilitator reassignment — Admin only — Positioned between method and threshold */}
-              {role === UserRole.ADMIN && (
-                <div className="space-y-2">
-                  <label htmlFor="configFacilitator" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-2">
-                    <ShieldCheck className="w-3.5 h-3.5 text-delphi-keppel" />
-                    Facilitador del Proyecto
-                  </label>
-                  {isLoadingFacilitators ? (
-                    <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm text-slate-400 font-bold animate-pulse">
-                      Cargando facilitadores...
-                    </div>
-                  ) : allFacilitators.length === 0 ? (
-                    <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-sm text-amber-700 font-bold">
-                      No hay facilitadores activos disponibles.
-                    </div>
-                  ) : (
-                    <select
-                      id="configFacilitator"
-                      value={configForm.facilitatorId}
-                      onChange={(e) => setConfigForm({ ...configForm, facilitatorId: e.target.value })}
-                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:border-delphi-keppel focus:ring-4 focus:ring-delphi-keppel/10 transition-all"
-                    >
-                      <option value="">— Sin facilitador asignado —</option>
-                      {allFacilitators.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name} ({f.email})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <p className="text-[10px] text-slate-400 ml-2">
-                    Solo los administradores pueden reasignar el facilitador.
-                  </p>
-                </div>
-              )}
 
               
               <div className="space-y-2">
@@ -631,73 +694,75 @@ export default function ProjectDetail({
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-        {activeTab === 'tasks' && (
-          <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
-            <div className="lg:col-span-4 space-y-8">
-              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-8 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="font-black text-xl tracking-tight">Tareas del Sprint</h3>
-                  <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    {tasks.length} items
-                  </div>
-                </div>
-
-                <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
-                  {tasks.map(task => (
-                    <button
-                      key={task.id}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className={`w-full text-left p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all ${selectedTaskId === task.id
-                        ? 'border-delphi-keppel bg-delphi-keppel/[0.03]'
-                        : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
-                        }`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
-                          {task.status === 'consensus' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
-                            {task.title}
-                          </h4>
-                          {task.status === 'consensus' ? (
-                            <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
-                              <Award className="w-3 h-3" />
-                              <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-1.5 mt-2">
-                              <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'estimating' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
-                              </div>
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+        {(activeTab === 'tasks' || activeTab === 'discussion') && (
+          <div className="lg:col-span-4 space-y-8 animate-in slide-in-from-left-4 duration-500">
+            <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-8 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="font-black text-xl tracking-tight">Tareas del Sprint</h3>
+                <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {tasks.length} items
                 </div>
               </div>
 
-              {isFacilitator && (
-                <div className="bg-slate-900 p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 relative overflow-hidden group">
-                  <div className="relative z-10">
-                    <h4 className="flex items-center gap-3 text-delphi-keppel font-black mb-3 md:mb-4 text-base">
-                      <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
-                      Facilitador
-                    </h4>
-                    <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
-                      Supervisión activa del flujo iterativo.
-                    </p>
-                  </div>
-                </div>
-              )}
+              <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar">
+                {tasks.map(task => (
+                  <button
+                    key={task.id}
+                    onClick={() => setSelectedTaskId(task.id)}
+                    className={`w-full text-left p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border-2 transition-all ${selectedTaskId === task.id
+                      ? 'border-delphi-keppel bg-delphi-keppel/[0.03]'
+                      : 'border-slate-50 bg-slate-50/30 hover:border-slate-200'
+                      }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`shrink-0 mt-1 transition-colors ${selectedTaskId === task.id ? 'text-delphi-keppel' : 'text-slate-300'}`}>
+                        {task.status === 'consensus' ? <CheckCircle2 className="w-6 h-6" /> : <Circle className="w-6 h-6" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm md:text-base font-black leading-tight mb-2 truncate ${selectedTaskId === task.id ? 'text-slate-900' : 'text-slate-500 font-bold'}`}>
+                          {task.title}
+                        </h4>
+                        {task.status === 'consensus' ? (
+                          <div className="flex items-center gap-2 text-delphi-keppel bg-delphi-keppel/10 w-fit px-2 py-0.5 rounded-lg">
+                            <Award className="w-3 h-3" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">{task.finalEstimate} {project.unit === 'hours' ? 'h' : project.unit === 'storyPoints' ? 'pts' : 'd'}</span>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5 mt-2">
+                            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                              <div className={`h-full bg-delphi-keppel transition-all duration-1000 ${selectedTaskId === task.id ? (task.status === 'estimating' ? 'w-2/3' : 'w-1/4') : 'w-0'}`}></div>
+                            </div>
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              {task.status === 'pending' ? 'Pendiente' : task.status === 'estimating' ? 'Estimando' : task.status}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="lg:col-span-8 space-y-10">
+            {isFacilitator && (
+              <div className="bg-slate-900 p-8 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 relative overflow-hidden group">
+                <div className="relative z-10">
+                  <h4 className="flex items-center gap-3 text-delphi-keppel font-black mb-3 md:mb-4 text-base">
+                    <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
+                    Facilitador
+                  </h4>
+                  <p className="text-xs md:text-sm text-slate-400 leading-relaxed font-bold">
+                    Supervisión activa del flujo iterativo.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className={(activeTab === 'tasks' || activeTab === 'discussion') ? "lg:col-span-8 space-y-10" : "lg:col-span-12"}>
+          {activeTab === 'tasks' && (
+            <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks" className="animate-in fade-in duration-500">
               {currentTask ? (
                 <EstimationRounds
                   taskId={currentTask.id}
@@ -716,28 +781,32 @@ export default function ProjectDetail({
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab !== 'tasks' && (
-          <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
-            {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
-            {activeTab === 'discussion' && selectedTaskId ? (
-              <DiscussionSpace 
-                projectId={projectId} 
-                taskId={selectedTaskId} 
-                roundId={activeRound?.id} 
-              />
-            ) : activeTab === 'discussion' ? (
-              <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
-                <MessageSquare className="w-12 h-12 opacity-20" />
-                <p className="font-bold">Selecciona una tarea para ver su debate técnico independiente.</p>
-              </div>
-            ) : null}
-            {activeTab === 'team' && <TeamPanel expertIds={project?.expertIds} />}
-            {activeTab === 'audit' && <ProjectAuditLog entries={logs} />}
-          </div>
-        )}
+          {activeTab === 'discussion' && (
+            <div role="tabpanel" id="panel-discussion" aria-labelledby="tab-discussion" className="animate-in fade-in duration-500">
+              {selectedTaskId ? (
+                <DiscussionSpace 
+                  projectId={projectId} 
+                  taskId={selectedTaskId} 
+                  roundId={activeRound?.id} 
+                />
+              ) : (
+                <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
+                  <MessageSquare className="w-12 h-12 opacity-20" />
+                  <p className="font-bold">Selecciona una tarea para ver su debate técnico independiente.</p>
+                </div>
+              )}
+            </div>
+          )}
+          {(activeTab !== 'tasks' && activeTab !== 'discussion') && (
+            <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
+              {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
+              {activeTab === 'team' && <TeamPanel expertIds={project?.expertIds} />}
+              {activeTab === 'audit' && <ProjectAuditLog entries={logs} />}
+            </div>
+          )}
+        </div>
       </div>
 
       {showFinalizeModal && (

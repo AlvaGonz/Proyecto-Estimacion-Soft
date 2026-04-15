@@ -47,7 +47,12 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
     if (!entry.details) return 'Sin detalles adicionales.';
 
     const details = entry.details as Record<string, any>;
-    if (details.whatManaged) return String(details.whatManaged);
+    if (details.whatManaged) {
+      if (Array.isArray(details.changedItems) && details.changedItems.length > 0) {
+        return `${String(details.whatManaged)} (${details.changedItems.join(', ')})`;
+      }
+      return String(details.whatManaged);
+    }
 
     if (details.changes?.facilitator) {
       const fromName = details.changes.facilitator?.from?.name || 'Sin facilitador';
@@ -64,7 +69,11 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
       return `Actualización de campos: ${details.updatedFields.join(', ')}`;
     }
 
-    return JSON.stringify(entry.details);
+    if (details.changes && typeof details.changes === 'object') {
+      return `Cambio detectado en: ${Object.keys(details.changes).join(', ')}`;
+    }
+
+    return 'Actualización registrada.';
   };
 
   const normalizedEntries = [...entries].sort((a, b) => {
@@ -120,13 +129,18 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                         'bg-delphi-orange'
                       }`} />
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
-                        {entry.userName || 'Sistema'} 
+                        {`Nombre: ${entry.userName || entry.userEmail || 'Sistema'}`}
                         <span className="text-slate-400 ml-1">({roleToLabel(entry.userRole)})</span>
                       </span>
                     </div>
                   </div>
-                  <div className="text-sm text-slate-500 leading-relaxed font-medium">
-                    {renderManagedDetails(entry)}
+                  <div className="text-sm text-slate-600 leading-relaxed font-medium space-y-2">
+                    <p>
+                      <span className="font-black text-slate-700">Fecha:</span> {formatDateTime(entry.timestamp)}
+                    </p>
+                    <p>
+                      <span className="font-black text-slate-700">Qué cambió:</span> {renderManagedDetails(entry)}
+                    </p>
                   </div>
                 </div>
               </div>

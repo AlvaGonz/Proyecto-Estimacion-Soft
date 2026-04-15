@@ -26,9 +26,10 @@ export const projectService = {
         const query: any = { isDeleted: { $ne: true } };
 
         // Data isolation based on role
-        if (role === ROLES.FACILITADOR) {
+        const upperRole = role.toUpperCase();
+        if (upperRole === ROLES.FACILITADOR.toUpperCase()) {
             query.facilitatorId = userId;
-        } else if (role === ROLES.EXPERTO) {
+        } else if (upperRole === ROLES.EXPERTO.toUpperCase()) {
             query.expertIds = userId;
         }
         // Admin gets all projects, so no query restriction
@@ -57,7 +58,7 @@ export const projectService = {
         const taskIds = await Task.find({ projectId: id }).distinct('_id');
         const count = await Round.countDocuments({ taskId: { $in: taskIds } });
         
-        const projectObj = project.toObject() as IProject;
+        const projectObj = project.toJSON() as unknown as IProject;
         (projectObj as any).hasStartedRounds = count > 0;
 
         return projectObj;
@@ -100,9 +101,11 @@ export const projectService = {
             }
         }
 
+        const changeSummary: string[] = [];
         const logDetails: Record<string, unknown> = {
             updatedFields: Object.keys(data),
-            changes: {}
+            changes: {},
+            changedItems: changeSummary
         };
 
         if (incomingFacilitatorId !== undefined && incomingFacilitatorId !== previousFacilitatorId) {
@@ -111,7 +114,7 @@ export const projectService = {
                 from: { id: previousFacilitatorId, name: previousFacilitatorName },
                 to: { id: incomingFacilitatorId, name: nextFacilitator?.name || incomingFacilitatorId }
             };
-            logDetails.whatManaged = 'Cambio de facilitador del proyecto';
+            changeSummary.push('facilitador');
         }
 
         if (data.estimationMethod && data.estimationMethod !== (project.estimationMethod as any)) {
@@ -119,7 +122,7 @@ export const projectService = {
                 from: project.estimationMethod,
                 to: data.estimationMethod
             };
-            logDetails.whatManaged = logDetails.whatManaged || 'Cambio de método de estimación';
+            changeSummary.push('método de estimación');
         }
 
         if (data.convergenceConfig) {
@@ -127,7 +130,29 @@ export const projectService = {
                 from: project.convergenceConfig,
                 to: data.convergenceConfig
             };
-            logDetails.whatManaged = logDetails.whatManaged || 'Cambio de métrica/umbral de convergencia';
+            changeSummary.push('métricas de convergencia');
+        }
+
+        if (data.unit && data.unit !== project.unit) {
+            (logDetails.changes as Record<string, unknown>).unit = {
+                from: project.unit,
+                to: data.unit
+            };
+            changeSummary.push('unidad de estimación');
+        }
+
+        if (typeof data.sprints === 'number' && data.sprints !== project.sprints) {
+            (logDetails.changes as Record<string, unknown>).sprints = {
+                from: project.sprints,
+                to: data.sprints
+            };
+            changeSummary.push('sprints');
+        }
+
+        if (changeSummary.length > 0) {
+            logDetails.whatManaged = `Cambio de ${changeSummary.join(', ')}`;
+        } else {
+            logDetails.whatManaged = 'Actualización general del proyecto';
         }
 
         const updatedProject = await Project.findByIdAndUpdate(
@@ -235,7 +260,7 @@ export const projectService = {
     },
 
     async findAllAdmin(): Promise<IProject[]> {
-        return await Project.find({})
+        return await Project.find() // Full fetch, including potentially soft-deleted if we want, but controller implies it
             .populate('facilitatorId', 'name email')
             .populate('expertIds', 'name email')
             .sort({ createdAt: -1 });

@@ -4,6 +4,7 @@ import { IAuditLog } from '../types/models.types.js';
 const auditLogSchema = new Schema<IAuditLog>({
     userId: { type: String, required: true, index: true },
     userName: { type: String },         // Historical name
+    userEmail: { type: String },        // Historical email
     userRole: { type: String },         // Historical role
     action: { type: String, required: true },
     resource: { type: String, required: true },

@@ -23,6 +23,7 @@ export interface IUserModel extends Model<IUser> {
 export interface IAuditLog extends Document {
     userId: string;
     userName?: string;         // Name of the user at the time of the activity
+    userEmail?: string;        // Email snapshot at the time of the activity
     userRole?: string;         // Role of the user at the time of the activity
     action: string;
     resource: string;

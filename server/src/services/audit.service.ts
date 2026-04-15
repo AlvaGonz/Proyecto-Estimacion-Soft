@@ -4,6 +4,7 @@ import { User } from '../models/User.model.js';
 interface AuditLogData {
     userId: string;
     userName?: string;
+    userEmail?: string;
     userRole?: string;
     action: string;
     resource: string;
@@ -22,14 +23,16 @@ export class AuditService {
         try {
             let userSnapshot = {
                 userName: data.userName,
+                userEmail: data.userEmail,
                 userRole: data.userRole
             };
 
-            if ((!userSnapshot.userName || !userSnapshot.userRole) && data.userId) {
-                const user = await User.findById(data.userId).select('name role');
+            if ((!userSnapshot.userName || !userSnapshot.userRole || !userSnapshot.userEmail) && data.userId) {
+                const user = await User.findById(data.userId).select('name email role');
                 if (user) {
                     userSnapshot = {
                         userName: userSnapshot.userName || user.name,
+                        userEmail: userSnapshot.userEmail || user.email,
                         userRole: userSnapshot.userRole || user.role
                     };
                 }

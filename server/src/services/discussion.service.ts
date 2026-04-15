@@ -88,19 +88,27 @@ export const discussionService = {
 
     processComments(comments: any[]): any[] {
         const roleToLabel = (role?: string): string => {
-            if (role === ROLES.ADMIN) return 'Administrator';
-            if (role === ROLES.FACILITADOR) return 'Facilitator';
-            return 'Expert';
+            if (role === ROLES.ADMIN || role === 'Administrator') return 'Administrador';
+            if (role === ROLES.FACILITADOR || role === 'Facilitator') return 'Facilitador';
+            return 'Experto';
         };
 
         return comments.map(c => {
             const doc = c.toObject();
+            doc.id = String(doc._id || doc.id);
+            doc.timestamp = doc.createdAt || doc.timestamp || new Date();
+            
+            // Map raw role to Spanish label
+            const role = doc.userRole || (doc.userId as any)?.role || 'experto';
+            const roleLabel = roleToLabel(role);
+            doc.userClassification = roleLabel; // New field for clarity
+
             if (doc.isAnonymous) {
-                // If it has historical role, use it; otherwise use current populated role
-                const role = doc.userRole || (doc.userId as any)?.role || 'experto';
-                const roleLabel = roleToLabel(role);
                 doc.userRole = roleLabel;
-                (doc.userId as any).name = roleLabel;
+                if (doc.userId) {
+                    (doc.userId as any).name = roleLabel;
+                    (doc.userId as any).email = undefined; // Mask email too
+                }
             }
             return doc;
         });

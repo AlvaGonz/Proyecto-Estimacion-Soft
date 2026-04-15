@@ -5,6 +5,7 @@ import { Task } from './models/Task.model.js';
 import { Round } from './models/Round.model.js';
 import { Estimation } from './models/Estimation.model.js';
 import { Comment } from './models/Comment.model.js';
+import { AuditLog } from './models/AuditLog.model.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -47,7 +48,7 @@ const seedDatabase = async () => {
 
         const admin = await User.create(adminData);
         const facilitator = await User.create(facilitatorData);
-        await User.create(facilitator2Data);
+        const facilitator2 = await User.create(facilitator2Data);
         const expert1 = await User.create(expert1Data);
         const expert2 = await User.create(expert2Data);
         const expert3 = await User.create(expert3Data);
@@ -125,6 +126,216 @@ const seedDatabase = async () => {
         });
 
         console.log(`✅ Created 3 estimations. (Ready to be closed when expert 4 finishes, or force-closed)`);
+        console.log('--- Starting Dummy Projects Generation ---');
+
+        // 6. Dummy/Mock data: 10 projects + logs with visible changes
+        const expertPool = [expert1, expert2, expert3, expert4, expert5];
+        const facilitatorPool = [facilitator, facilitator2];
+        const units: Array<'hours' | 'storyPoints' | 'personDays'> = ['hours', 'storyPoints', 'personDays'];
+        const methods: Array<'wideband-delphi' | 'planning-poker' | 'three-point'> = ['wideband-delphi', 'planning-poker', 'three-point'];
+
+        for (let i = 1; i <= 10; i++) {
+            const projectName = `Proyecto Dummy ${i.toString().padStart(2, '0')}`;
+            console.log(`🔨 Generating ${projectName}...`);
+
+            const baseFacilitator = facilitatorPool[i % facilitatorPool.length];
+            const updatedFacilitator = facilitatorPool[(i + 1) % facilitatorPool.length];
+            const baseExperts = expertPool.slice(0, 3 + (i % 2));
+            const newExpert = expertPool[(i + 2) % expertPool.length];
+
+            const dummyProject = await Project.create({
+                name: projectName,
+                description: `Proyecto de prueba ${i} para validación de configuración, discusión y auditoría.`,
+                unit: units[i % units.length],
+                status: 'active',
+                facilitatorId: baseFacilitator._id,
+                expertIds: baseExperts.map((expert) => expert._id),
+                estimationMethod: methods[i % methods.length],
+                convergenceConfig: {
+                    cvThreshold: 0.2 + (i % 3) * 0.05,
+                    maxOutlierPercent: 0.25 + (i % 3) * 0.05
+                },
+                sprints: 1 + (i % 4)
+            });
+
+            const dummyTaskA = await Task.create({
+                projectId: dummyProject._id,
+                title: `Tarea A - Proyecto ${i}`,
+                description: `Tarea inicial para proyecto dummy ${i}.`,
+                status: 'estimating'
+            });
+
+            const dummyTaskB = await Task.create({
+                projectId: dummyProject._id,
+                title: `Tarea B - Proyecto ${i}`,
+                description: `Tarea de refinamiento para proyecto dummy ${i}.`,
+                status: 'pending'
+            });
+
+            const openRound = await Round.create({
+                taskId: dummyTaskA._id,
+                roundNumber: 1,
+                status: 'open',
+                startTime: new Date()
+            });
+
+            await Estimation.create({
+                roundId: openRound._id,
+                taskId: dummyTaskA._id,
+                expertId: baseExperts[0]._id,
+                value: 5 + i,
+                justification: `Estimación inicial dummy ${i}.`
+            });
+
+            await Comment.create({
+                taskId: dummyTaskA._id,
+                roundId: openRound._id,
+                userId: baseExperts[0]._id,
+                userRole: 'experto',
+                content: `Comentario anónimo de experto para ${projectName}.`,
+                isAnonymous: true
+            });
+
+            await Comment.create({
+                taskId: dummyTaskA._id,
+                roundId: openRound._id,
+                userId: baseFacilitator._id,
+                userRole: 'facilitador',
+                content: `Comentario de facilitación para ${projectName}.`,
+                isAnonymous: true
+            });
+
+            // Apply explicit changes so logs show what changed
+            const oldMethod = dummyProject.estimationMethod;
+            const newMethod = methods[(i + 1) % methods.length];
+            const oldSprints = dummyProject.sprints;
+            const newSprints = oldSprints + 1;
+            const oldExperts = dummyProject.expertIds.map((id) => String(id));
+
+            dummyProject.estimationMethod = newMethod;
+            dummyProject.facilitatorId = updatedFacilitator._id as any;
+            dummyProject.expertIds = [...dummyProject.expertIds, newExpert._id as any];
+            dummyProject.sprints = newSprints;
+            dummyProject.convergenceConfig = {
+                cvThreshold: Math.min(0.45, (dummyProject.convergenceConfig?.cvThreshold || 0.25) + 0.05),
+                maxOutlierPercent: Math.min(0.5, (dummyProject.convergenceConfig?.maxOutlierPercent || 0.3) + 0.05)
+            } as any;
+            await dummyProject.save();
+
+            await AuditLog.create({
+                userId: String(admin._id),
+                userName: admin.name,
+                userEmail: admin.email,
+                userRole: admin.role,
+                action: 'project:create',
+                resource: 'Project',
+                resourceId: String(dummyProject._id),
+                details: {
+                    whatManaged: 'Creación de proyecto',
+                    changedItems: ['nombre', 'descripción', 'unidad', 'facilitador', 'expertos iniciales']
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (20 + i))
+            });
+
+            await AuditLog.create({
+                userId: String(admin._id),
+                userName: admin.name,
+                userEmail: admin.email,
+                userRole: admin.role,
+                action: 'project:update',
+                resource: 'Project',
+                resourceId: String(dummyProject._id),
+                details: {
+                    whatManaged: 'Cambio de método de estimación',
+                    changedItems: ['método de estimación'],
+                    changes: {
+                        estimationMethod: { from: oldMethod, to: newMethod }
+                    }
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (15 + i))
+            });
+
+            await AuditLog.create({
+                userId: String(admin._id),
+                userName: admin.name,
+                userEmail: admin.email,
+                userRole: admin.role,
+                action: 'project:update',
+                resource: 'Project',
+                resourceId: String(dummyProject._id),
+                details: {
+                    whatManaged: 'Cambio de facilitador',
+                    changedItems: ['facilitador'],
+                    changes: {
+                        facilitator: {
+                            from: { id: String(baseFacilitator._id), name: baseFacilitator.name },
+                            to: { id: String(updatedFacilitator._id), name: updatedFacilitator.name }
+                        }
+                    }
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (10 + i))
+            });
+
+            await AuditLog.create({
+                userId: String(baseFacilitator._id),
+                userName: baseFacilitator.name,
+                userEmail: baseFacilitator.email,
+                userRole: baseFacilitator.role,
+                action: 'project:experts_add',
+                resource: 'Project',
+                resourceId: String(dummyProject._id),
+                details: {
+                    whatManaged: 'Asignación de expertos al proyecto',
+                    changedItems: ['expertos'],
+                    actionType: 'add',
+                    experts: [
+                        { id: String(newExpert._id), name: newExpert.name, email: newExpert.email }
+                    ],
+                    previousExperts: oldExperts
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (8 + i))
+            });
+
+            await AuditLog.create({
+                userId: String(updatedFacilitator._id),
+                userName: updatedFacilitator.name,
+                userEmail: updatedFacilitator.email,
+                userRole: updatedFacilitator.role,
+                action: 'project:update',
+                resource: 'Project',
+                resourceId: String(dummyProject._id),
+                details: {
+                    whatManaged: 'Cambio de sprints del proyecto',
+                    changedItems: ['sprints'],
+                    changes: {
+                        sprints: { from: oldSprints, to: newSprints }
+                    }
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (5 + i))
+            });
+
+            await AuditLog.create({
+                userId: String(baseExperts[0]._id),
+                userName: baseExperts[0].name,
+                userEmail: baseExperts[0].email,
+                userRole: baseExperts[0].role,
+                action: 'comment:create',
+                resource: 'Comment',
+                resourceId: String(dummyTaskA._id),
+                details: {
+                    whatManaged: 'Mensaje enviado en debate anónimo',
+                    changedItems: ['discusión'],
+                    taskId: String(dummyTaskA._id),
+                    isAnonymous: true
+                },
+                timestamp: new Date(Date.now() - 1000 * 60 * (2 + i))
+            });
+
+            // Keep taskB referenced as part of seeded structure
+            void dummyTaskB;
+        }
+
+        console.log('✅ Created 10 dummy projects with task/round/comment data and rich audit logs.');
 
         // Cerrar conexión explícitamente para que el contenedor termine
         await mongoose.connection.close();
