@@ -11,7 +11,8 @@ nestedDiscussionRoutes.use(authenticate);
 
 // Handlers check for taskId or roundId in req.params
 nestedDiscussionRoutes.get('/', (req, res, next) => {
-    if (req.params.taskId) {
+    const { taskId } = req.params as { taskId?: string };
+    if (taskId) {
         return getCommentsByTask(req, res, next);
     }
     return getCommentsByRound(req, res, next);

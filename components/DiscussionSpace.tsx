@@ -20,6 +20,33 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
    const [errors, setErrors] = useState<Record<string, string>>({});
    const [comments, setComments] = useState<Comment[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [submitError, setSubmitError] = useState('');
+
+   const getRoleLabel = (rawRole?: string): string => {
+      if (!rawRole) return 'Expert';
+      const normalized = rawRole.toLowerCase();
+      if (normalized === 'admin' || normalized === 'administrator') return 'Administrator';
+      if (normalized === 'facilitador' || normalized === 'facilitator') return 'Facilitator';
+      return 'Expert';
+   };
+
+   const getRoleClass = (rawRole?: string): string => {
+      const role = getRoleLabel(rawRole);
+      if (role === 'Administrator') return 'bg-slate-900 text-white';
+      if (role === 'Facilitator') return 'bg-delphi-keppel text-white';
+      return 'bg-delphi-vanilla text-delphi-orange';
+   };
+
+   const formatDateTime = (value?: string | number): string => {
+      const date = new Date(value || Date.now());
+      const d = String(date.getDate()).padStart(2, '0');
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const y = date.getFullYear();
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}:${s}`;
+   };
 
    useEffect(() => {
       let isMounted = true;
@@ -50,6 +77,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
          
          setComments([...comments, newComment]);
          setComment('');
+         setSubmitError('');
       } catch (error: any) {
          if (error instanceof z.ZodError) {
             const newErrors: Record<string, string> = {};
@@ -59,6 +87,9 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
                }
             });
             setErrors(newErrors);
+            setSubmitError('');
+         } else {
+            setSubmitError(error?.message || 'No se pudo enviar el comentario.');
          }
       }
    };
@@ -98,30 +129,17 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
                         <>
                            {comments.map((c) => (
                               <div key={c.id} className="flex gap-6">
-                                 <div className={`shrink-0 w-14 h-14 rounded-3xl text-xl flex items-center justify-center font-black shadow-inner ${
-                                    c.userRole === 'admin' ? 'bg-slate-900 text-white' : 
-                                    c.userRole === 'facilitador' ? 'bg-delphi-keppel text-white' : 
-                                    'bg-delphi-vanilla text-delphi-orange'
-                                 }`}>
-                                    {c.userRole?.substring(0, 2).toUpperCase() || 'EX'}
+                                 <div className={`shrink-0 w-14 h-14 rounded-3xl text-xl flex items-center justify-center font-black shadow-inner ${getRoleClass(c.userRole)}`}>
+                                    {getRoleLabel(c.userRole).substring(0, 2).toUpperCase()}
                                  </div>
                                  <div className="flex-1 space-y-3">
                                     <div className="flex items-center justify-between">
                                        <div className="flex items-center gap-3">
                                           <span className="text-sm font-black text-slate-900">
-                                            {c.isAnonymous ? (c.userRole ? c.userRole.charAt(0).toUpperCase() + c.userRole.slice(1) : 'Experto') : (c as any).userId?.name}
+                                            {c.isAnonymous ? getRoleLabel(c.userRole) : (c as any).userId?.name}
                                           </span>
                                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                            {(() => {
-                                              const date = new Date(c.timestamp);
-                                              const d = String(date.getDate()).padStart(2, '0');
-                                              const m = String(date.getMonth() + 1).padStart(2, '0');
-                                              const y = date.getFullYear();
-                                              const h = String(date.getHours()).padStart(2, '0');
-                                              const min = String(date.getMinutes()).padStart(2, '0');
-                                              const s = String(date.getSeconds()).padStart(2, '0');
-                                              return `${d}/${m}/${y} ${h}:${min}:${s}`;
-                                            })()}
+                                            {formatDateTime(c.createdAt || c.timestamp)}
                                           </span>
                                        </div>
                                        <button className="text-slate-300 hover:text-delphi-orange transition-colors"><Flag className="w-4 h-4" /></button>
@@ -162,6 +180,7 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, ro
                               <Send className="w-5 h-5" />
                            </button>
                            {errors.content && <p id="comment-error" role="alert" className="text-red-500 text-xs mt-1 ml-4 absolute -bottom-6">{errors.content}</p>}
+                           {submitError && <p role="alert" className="text-red-500 text-xs mt-2 ml-4">{submitError}</p>}
                         </div>
                      </div>
                   </div>

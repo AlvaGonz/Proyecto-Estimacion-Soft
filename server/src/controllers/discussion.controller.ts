@@ -27,7 +27,9 @@ export const addComment = asyncHandler(async (req: Request, res: Response) => {
 
 export const getCommentsByTask = asyncHandler(async (req: Request, res: Response) => {
     const { taskId } = req.params;
-    const comments = await discussionService.getCommentsByTask(taskId);
+    const userId = req.user?.id as string;
+    const userRole = req.user?.role as string | undefined;
+    const comments = await discussionService.getCommentsByTask(taskId, userId, userRole);
 
     res.json({
         success: true,

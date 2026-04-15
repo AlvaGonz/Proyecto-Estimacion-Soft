@@ -1,14 +1,78 @@
 
 import React from 'react';
 import { AuditEntry } from '../types';
-// Added ShieldCheck to the imports to fix the error: Cannot find name 'ShieldCheck'
-import { History, User, Clock, FileText, ArrowRight, ShieldCheck } from 'lucide-react';
+import { History, FileText, ShieldCheck } from 'lucide-react';
 
 interface ProjectAuditLogProps {
   entries: AuditEntry[];
 }
 
 const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
+  const formatDateTime = (value: string | number): string => {
+    const date = new Date(value);
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${d}/${m}/${y} ${h}:${min}:${s}`;
+  };
+
+  const roleToLabel = (role?: string): string => {
+    if (!role) return 'System';
+    const normalized = role.toLowerCase();
+    if (normalized === 'admin' || normalized === 'administrator') return 'Administrator';
+    if (normalized === 'facilitador' || normalized === 'facilitator') return 'Facilitator';
+    if (normalized === 'experto' || normalized === 'expert') return 'Expert';
+    return role;
+  };
+
+  const actionToLabel = (action: string): string => {
+    const dictionary: Record<string, string> = {
+      'project:create': 'Creación de proyecto',
+      'project:update': 'Actualización de proyecto',
+      'project:archive': 'Archivado de proyecto',
+      'project:delete': 'Eliminación lógica de proyecto',
+      'project:restore': 'Restauración de proyecto',
+      'project:experts_add': 'Asignación de expertos',
+      'project:experts_remove': 'Remoción de expertos',
+      'comment:create': 'Mensaje en discusión'
+    };
+    return dictionary[action] || action;
+  };
+
+  const renderManagedDetails = (entry: AuditEntry): string => {
+    if (typeof entry.details === 'string') return entry.details;
+    if (!entry.details) return 'Sin detalles adicionales.';
+
+    const details = entry.details as Record<string, any>;
+    if (details.whatManaged) return String(details.whatManaged);
+
+    if (details.changes?.facilitator) {
+      const fromName = details.changes.facilitator?.from?.name || 'Sin facilitador';
+      const toName = details.changes.facilitator?.to?.name || 'Sin facilitador';
+      return `Cambio de facilitador: ${fromName} -> ${toName}`;
+    }
+
+    if (Array.isArray(details.experts)) {
+      const names = details.experts.map((expert: { name?: string }) => expert.name || 'Sin nombre').join(', ');
+      return `${details.actionType === 'remove' ? 'Expertos removidos' : 'Expertos asignados'}: ${names}`;
+    }
+
+    if (Array.isArray(details.updatedFields)) {
+      return `Actualización de campos: ${details.updatedFields.join(', ')}`;
+    }
+
+    return JSON.stringify(entry.details);
+  };
+
+  const normalizedEntries = [...entries].sort((a, b) => {
+    const ta = new Date(a.timestamp).getTime();
+    const tb = new Date(b.timestamp).getTime();
+    return tb - ta;
+  });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
@@ -27,29 +91,17 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
           <div className="absolute left-[23px] top-4 bottom-4 w-px bg-slate-100 hidden md:block" />
 
           <div className="space-y-12">
-            {entries.sort((a, b) => b.timestamp - a.timestamp).map((entry, i) => (
+            {normalizedEntries.map((entry) => (
               <div key={entry.id} className="relative flex flex-col md:flex-row gap-8 group">
                 {/* Timeline dot */}
                 <div className="absolute left-[16px] top-4 w-4 h-4 rounded-full border-4 border-white bg-delphi-keppel shadow-[0_0_10px_rgba(43,186,165,0.4)] z-10 hidden md:block group-hover:scale-125 transition-transform" />
 
                 <div className="md:w-40 pt-2 shrink-0">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    {(() => {
-                      const date = new Date(entry.timestamp);
-                      const d = String(date.getDate()).padStart(2, '0');
-                      const m = String(date.getMonth() + 1).padStart(2, '0');
-                      const y = date.getFullYear();
-                      return `${d}/${m}/${y}`;
-                    })()}
+                    {formatDateTime(entry.timestamp).split(' ')[0]}
                   </p>
                   <p className="text-xs font-bold text-slate-300">
-                    {(() => {
-                      const date = new Date(entry.timestamp);
-                      const h = String(date.getHours()).padStart(2, '0');
-                      const min = String(date.getMinutes()).padStart(2, '0');
-                      const s = String(date.getSeconds()).padStart(2, '0');
-                      return `${h}:${min}:${s}`;
-                    })()}
+                    {formatDateTime(entry.timestamp).split(' ')[1]}
                   </p>
                 </div>
 
@@ -59,7 +111,7 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                       <div className="bg-white p-2.5 rounded-xl border border-slate-100 text-delphi-keppel">
                         <FileText className="w-5 h-5" />
                       </div>
-                      <h4 className="text-lg font-black text-slate-900">{entry.action}</h4>
+                      <h4 className="text-lg font-black text-slate-900">{actionToLabel(entry.action)}</h4>
                     </div>
                     <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
                       <div className={`w-2 h-2 rounded-full ${
@@ -69,30 +121,12 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                       }`} />
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
                         {entry.userName || 'Sistema'} 
-                        <span className="text-slate-400 ml-1">({entry.userRole || 'BOT'})</span>
+                        <span className="text-slate-400 ml-1">({roleToLabel(entry.userRole)})</span>
                       </span>
                     </div>
                   </div>
                   <div className="text-sm text-slate-500 leading-relaxed font-medium">
-                    {(() => {
-                      if (typeof entry.details === 'string') return entry.details;
-                      
-                      const details = entry.details as any;
-                      if (details?.facilitatorChange) {
-                        return (
-                          <div className="flex flex-col gap-1">
-                            <span className="text-slate-700 font-black tracking-tight">{details.message || 'Cambio de facilitador'}</span>
-                            <span className="text-xs opacity-70 italic">ID Nuevo: {details.facilitatorChange.new}</span>
-                          </div>
-                        );
-                      }
-                      
-                      if (details?.updatedFields) {
-                        return `Actualización de campos: ${details.updatedFields.join(', ')}`;
-                      }
-                      
-                      return entry.details ? JSON.stringify(entry.details) : 'Sin detalles adicionales.';
-                    })()}
+                    {renderManagedDetails(entry)}
                   </div>
                 </div>
               </div>

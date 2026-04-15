@@ -1,6 +1,7 @@
 import { Project } from '../models/Project.model.js';
 import { Round } from '../models/Round.model.js';
 import { Task } from '../models/Task.model.js';
+import { User } from '../models/User.model.js';
 import { IProject } from '../types/models.types.js';
 import { ApiError } from '../utils/ApiError.js';
 import { PROJECT_STATUS, ROLES, Role } from '../config/constants.js';
@@ -82,14 +83,51 @@ export const projectService = {
             }
         }
 
-        // Detect facilitator change for specific logging
-        let logDetails: any = { updatedFields: Object.keys(data) };
-        if (data.facilitatorId && String(data.facilitatorId) !== String((project.facilitatorId as any)._id || project.facilitatorId)) {
-            logDetails.facilitatorChange = {
-                previous: (project.facilitatorId as any).name || project.facilitatorId,
-                new: data.facilitatorId
+        const facilitatorInProject = project.facilitatorId as any;
+        const previousFacilitatorId = String(facilitatorInProject?._id || facilitatorInProject || '');
+        const previousFacilitatorName = facilitatorInProject?.name || previousFacilitatorId;
+
+        const incomingFacilitatorId = data.facilitatorId ? String(data.facilitatorId) : undefined;
+        if (incomingFacilitatorId !== undefined && incomingFacilitatorId !== previousFacilitatorId) {
+            const nextFacilitator = await User.findOne({
+                _id: incomingFacilitatorId,
+                role: ROLES.FACILITADOR,
+                isActive: true
+            }).select('name email role');
+
+            if (!nextFacilitator) {
+                throw ApiError.badRequest('El facilitador seleccionado no existe o no está activo');
+            }
+        }
+
+        const logDetails: Record<string, unknown> = {
+            updatedFields: Object.keys(data),
+            changes: {}
+        };
+
+        if (incomingFacilitatorId !== undefined && incomingFacilitatorId !== previousFacilitatorId) {
+            const nextFacilitator = await User.findById(incomingFacilitatorId).select('name email');
+            (logDetails.changes as Record<string, unknown>).facilitator = {
+                from: { id: previousFacilitatorId, name: previousFacilitatorName },
+                to: { id: incomingFacilitatorId, name: nextFacilitator?.name || incomingFacilitatorId }
             };
-            logDetails.message = `Cambio de facilitador: ${(project.facilitatorId as any).name || project.facilitatorId} -> ${data.facilitatorId}`;
+            logDetails.whatManaged = 'Cambio de facilitador del proyecto';
+        }
+
+        if (data.estimationMethod && data.estimationMethod !== (project.estimationMethod as any)) {
+            (logDetails.changes as Record<string, unknown>).estimationMethod = {
+                from: project.estimationMethod,
+                to: data.estimationMethod
+            };
+            logDetails.whatManaged = logDetails.whatManaged || 'Cambio de método de estimación';
+        }
+
+        if (data.convergenceConfig) {
+            (logDetails.changes as Record<string, unknown>).convergenceConfig = {
+                from: project.convergenceConfig,
+                to: data.convergenceConfig
+            };
+            logDetails.whatManaged = logDetails.whatManaged || 'Cambio de métrica/umbral de convergencia';
         }
 
         const updatedProject = await Project.findByIdAndUpdate(
@@ -118,11 +156,32 @@ export const projectService = {
         return project;
     },
 
-    async manageExperts(id: string, action: 'add' | 'remove', expertIds: string[], requesterId: string): Promise<IProject> {
+    async manageExperts(
+        id: string,
+        action: 'add' | 'remove',
+        expertIds: string[],
+        requesterId: string,
+        requesterName?: string,
+        requesterRole?: string
+    ): Promise<IProject> {
         const project = await this.findById(id);
 
         if (project.status === PROJECT_STATUS.ARCHIVED) {
             throw ApiError.forbidden('No se puede modificar un proyecto archivado');
+        }
+
+        if (project.status === PROJECT_STATUS.FINISHED) {
+            throw ApiError.forbidden('No se puede modificar expertos en un proyecto finalizado');
+        }
+
+        const validExperts = await User.find({
+            _id: { $in: expertIds },
+            role: ROLES.EXPERTO,
+            isActive: true
+        }).select('name email role');
+
+        if (validExperts.length !== expertIds.length) {
+            throw ApiError.badRequest('Uno o más expertos seleccionados no existen o no están activos');
         }
 
         const updateOp = action === 'add'
@@ -137,7 +196,23 @@ export const projectService = {
             .populate('facilitatorId', 'name email')
             .populate('expertIds', 'name email');
 
-        await auditService.log({ userId: requesterId, action: `project:experts_${action}`, resource: 'Project', resourceId: id, details: { expertIds } });
+        await auditService.log({
+            userId: requesterId,
+            userName: requesterName,
+            userRole: requesterRole,
+            action: `project:experts_${action}`,
+            resource: 'Project',
+            resourceId: id,
+            details: {
+                whatManaged: action === 'add' ? 'Asignación de expertos al proyecto' : 'Remoción de expertos del proyecto',
+                actionType: action,
+                experts: validExperts.map((expert) => ({
+                    id: expert.id,
+                    name: expert.name,
+                    email: expert.email
+                }))
+            }
+        });
         return updatedProject as IProject;
     },
 

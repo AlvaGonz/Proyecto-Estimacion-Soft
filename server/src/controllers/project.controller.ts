@@ -124,16 +124,15 @@ export const deleteAttachment = asyncHandler(async (req: Request, res: Response)
 
 export const manageExperts = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { expertIds } = req.body;
+    const { action, expertIds } = req.body;
     const requesterId = req.user?.id as string;
     const requesterName = (req as any).user?.name || 'Usuario';
-    const requesterRole = req.user?.role;
-
-    const project = await projectService.update(id, { expertIds }, requesterId, requesterName, requesterRole);
+    const requesterRole = req.user?.role as string | undefined;
+    const project = await projectService.manageExperts(id, action, expertIds, requesterId, requesterName, requesterRole);
 
     res.json({
         success: true,
-        message: 'Lista de expertos actualizada',
+        message: action === 'add' ? 'Expertos agregados correctamente' : 'Expertos removidos correctamente',
         data: project
     });
 });

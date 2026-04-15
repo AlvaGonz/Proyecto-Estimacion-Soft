@@ -100,7 +100,7 @@ export interface AuditEntry {
   userName?: string;
   userRole?: string;
   action: string;
-  timestamp: number;
+  timestamp: number | string;
   details: any; // Allow object or string
 }
 
@@ -112,7 +112,8 @@ export interface Comment {
   userRole?: string; // Classification for display
   content: string;
   isAnonymous: boolean;
-  timestamp: number;
+  timestamp?: number | string;
+  createdAt?: string;
 }
 
 // ─── RF031/032/034 — Estimation Methods ──────────────────────────

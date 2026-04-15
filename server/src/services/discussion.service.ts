@@ -1,6 +1,10 @@
 import { Comment } from '../models/Comment.model.js';
+import { Task } from '../models/Task.model.js';
+import { Project } from '../models/Project.model.js';
 import { IComment } from '../types/models.types.js';
 import { auditService } from './audit.service.js';
+import { ApiError } from '../utils/ApiError.js';
+import { ROLES, TASK_STATUS } from '../config/constants.js';
 
 export const discussionService = {
     async addComment(
@@ -11,6 +15,31 @@ export const discussionService = {
         roundId?: string,
         userRole?: string
     ): Promise<IComment> {
+        if (!taskId) {
+            throw ApiError.badRequest('La discusión debe estar asociada a una tarea');
+        }
+
+        const task = await Task.findById(taskId).select('projectId status');
+        if (!task) {
+            throw ApiError.notFound('Tarea no encontrada');
+        }
+
+        if (task.status === TASK_STATUS.FINALIZED) {
+            throw ApiError.forbidden('No se puede participar en discusión de una tarea finalizada');
+        }
+
+        const project = await Project.findById(task.projectId).select('facilitatorId expertIds status');
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado para esta tarea');
+        }
+
+        const isAdmin = userRole === ROLES.ADMIN;
+        const isFacilitator = String(project.facilitatorId) === userId;
+        const isExpert = project.expertIds.some((expertId) => String(expertId) === userId);
+        if (!isAdmin && !isFacilitator && !isExpert) {
+            throw ApiError.forbidden('No tienes permiso para participar en esta discusión de proyecto');
+        }
+
         const comment = await Comment.create({
             roundId,
             taskId,
@@ -30,7 +59,24 @@ export const discussionService = {
         return comment;
     },
 
-    async getCommentsByTask(taskId: string): Promise<any[]> {
+    async getCommentsByTask(taskId: string, userId: string, userRole?: string): Promise<any[]> {
+        const task = await Task.findById(taskId).select('projectId');
+        if (!task) {
+            throw ApiError.notFound('Tarea no encontrada');
+        }
+
+        const project = await Project.findById(task.projectId).select('facilitatorId expertIds');
+        if (!project) {
+            throw ApiError.notFound('Proyecto no encontrado para esta tarea');
+        }
+
+        const isAdmin = userRole === ROLES.ADMIN;
+        const isFacilitator = String(project.facilitatorId) === userId;
+        const isExpert = project.expertIds.some((expertId) => String(expertId) === userId);
+        if (!isAdmin && !isFacilitator && !isExpert) {
+            throw ApiError.forbidden('No tienes permiso para ver esta discusión');
+        }
+
         const comments = await Comment.find({ taskId }).populate('userId', 'name role').sort({ createdAt: 1 });
         return this.processComments(comments);
     },
@@ -41,12 +87,19 @@ export const discussionService = {
     },
 
     processComments(comments: any[]): any[] {
+        const roleToLabel = (role?: string): string => {
+            if (role === ROLES.ADMIN) return 'Administrator';
+            if (role === ROLES.FACILITADOR) return 'Facilitator';
+            return 'Expert';
+        };
+
         return comments.map(c => {
             const doc = c.toObject();
             if (doc.isAnonymous) {
                 // If it has historical role, use it; otherwise use current populated role
                 const role = doc.userRole || (doc.userId as any)?.role || 'experto';
-                const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+                const roleLabel = roleToLabel(role);
+                doc.userRole = roleLabel;
                 (doc.userId as any).name = roleLabel;
             }
             return doc;

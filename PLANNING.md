@@ -79,3 +79,34 @@ npm run e2e
 ## Preguntas Pendientes
 1. ¿La "Clasificación" en el chat debe ser el nombre del rol (ej. "Experto")?
 2. ¿Los logs deben guardar el nombre del responsable como texto estático o link dinámico? -->
+
+<!-- ---
+
+# PLANNING.md — Polishing Project Settings, Discussion, and Logs
+
+## Estado: 🟡 EN PLANIFICACIÓN
+
+## Alcance confirmado
+1. Permitir que **Administrador** asigne/cambie facilitador en `Project Settings` (entre método y umbral), solo si el proyecto no está finalizado.
+2. Persistir correctamente asignación de facilitador/expertos para que aparezca en la pestaña de proyectos de cada usuario.
+3. Implementar chat de discusión anónimo por tarea activa de sprint:
+   - Participan solo usuarios activos/seleccionados del proyecto (expert/facilitator/administrator).
+   - Persistencia en DB por tarea (aislado entre tareas).
+   - Mostrar clasificación (`Expert`/`Facilitator`/`Administrator`), mensaje y fecha/hora `dd/mm/YYYY HH:MM:SS`.
+4. Ampliar logs de actividad para incluir:
+   - Responsable (snapshot histórico: nombre + rol al momento de la acción).
+   - Fecha/hora `dd/mm/YYYY HH:MM:SS`.
+   - Qué se gestionó (cambio de experto/facilitador/métrica/etc.).
+   - Evidencia de cambio de facilitador en log.
+
+## Fases
+- [ ] Fase 1 — Diagnóstico de modelos, relaciones y endpoints actuales.
+- [ ] Fase 2 — Backend: modelos/controladores/rutas para persistencia de asignaciones, discusión y logs.
+- [ ] Fase 3 — Frontend: Project Settings, Discussion tab y Logs tab.
+- [ ] Fase 4 — Validación técnica (lint/tests rápidas) y ajustes.
+- [ ] Fase 5 — Actualizar plan a completado y preparar resumen final.
+
+## Riesgos y validaciones
+- Validar permisos por rol en backend para evitar cambios no autorizados.
+- Validar transición por estado de proyecto para bloquear cambios en `Finished`.
+- Mantener compatibilidad con datos ya existentes en colecciones actuales. -->
