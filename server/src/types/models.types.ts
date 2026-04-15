@@ -22,10 +22,12 @@ export interface IUserModel extends Model<IUser> {
 // ─── AuditLog ──────────────────────────────────────────────────────
 export interface IAuditLog extends Document {
     userId: string;
+    userName?: string;         // Name of the user at the time of the activity
+    userRole?: string;         // Role of the user at the time of the activity
     action: string;
     resource: string;
     resourceId?: string;
-    details?: Record<string, unknown>;
+    details?: Record<string, unknown> | string;
     ipAddress?: string;
     userAgent?: string;
     timestamp: Date;
@@ -114,8 +116,10 @@ export interface IEstimation extends Document {
 
 // ─── Comment (Discussion) ──────────────────────────────────────────
 export interface IComment extends Document {
-    roundId: Types.ObjectId;
+    roundId?: Types.ObjectId; // Optional for global task discussion
+    taskId?: Types.ObjectId;  // Specific task for the discussion
     userId: Types.ObjectId;
+    userRole?: string;         // Classification of the user (Expert, Facilitator, Admin)
     content: string;
     isAnonymous: boolean;
     createdAt: Date;

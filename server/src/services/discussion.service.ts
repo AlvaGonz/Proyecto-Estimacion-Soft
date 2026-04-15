@@ -3,28 +3,51 @@ import { IComment } from '../types/models.types.js';
 import { auditService } from './audit.service.js';
 
 export const discussionService = {
-    async addComment(roundId: string, userId: string, content: string, isAnonymous: boolean): Promise<IComment> {
+    async addComment(
+        userId: string, 
+        content: string, 
+        isAnonymous: boolean, 
+        taskId?: string, 
+        roundId?: string,
+        userRole?: string
+    ): Promise<IComment> {
         const comment = await Comment.create({
             roundId,
+            taskId,
             userId,
+            userRole,
             content,
             isAnonymous
         });
 
-        await auditService.log({ userId, action: 'comment:create', resource: 'Comment', resourceId: comment.id, details: { roundId, isAnonymous } });
+        await auditService.log({ 
+            userId, 
+            action: 'comment:create', 
+            resource: 'Comment', 
+            resourceId: comment.id, 
+            details: { taskId, roundId, isAnonymous } 
+        });
         return comment;
+    },
+
+    async getCommentsByTask(taskId: string): Promise<any[]> {
+        const comments = await Comment.find({ taskId }).populate('userId', 'name role').sort({ createdAt: 1 });
+        return this.processComments(comments);
     },
 
     async getCommentsByRound(roundId: string): Promise<any[]> {
         const comments = await Comment.find({ roundId }).populate('userId', 'name role').sort({ createdAt: 1 });
+        return this.processComments(comments);
+    },
 
-        // Process results to hide names if anonymous
+    processComments(comments: any[]): any[] {
         return comments.map(c => {
             const doc = c.toObject();
             if (doc.isAnonymous) {
-                // Determine display string based on role optionally, or just leave as Anónimo
-                const roleString = (doc.userId as any)?.role ? ` (${(doc.userId as any).role})` : '';
-                (doc.userId as any).name = `Anónimo${roleString}`;
+                // If it has historical role, use it; otherwise use current populated role
+                const role = doc.userRole || (doc.userId as any)?.role || 'experto';
+                const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
+                (doc.userId as any).name = roleLabel;
             }
             return doc;
         });

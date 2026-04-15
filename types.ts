@@ -97,15 +97,19 @@ export interface AuditEntry {
   id: string;
   projectId: string;
   userId: string;
+  userName?: string;
+  userRole?: string;
   action: string;
   timestamp: number;
-  details: string;
+  details: any; // Allow object or string
 }
 
 export interface Comment {
   id: string;
-  roundId: string;
+  roundId?: string; // Optional for task-level discussions
+  taskId?: string;  // Explicit task context
   userId?: string;
+  userRole?: string; // Classification for display
   content: string;
   isAnonymous: boolean;
   timestamp: number;

@@ -181,6 +181,11 @@ export default function ProjectDetail({
       setConfigError('El nombre del proyecto es requerido');
       return;
     }
+
+    if (project?.status === 'finished') {
+      setConfigError('No se puede modificar un proyecto finalizado');
+      return;
+    }
     
     setIsSavingConfig(true);
     setConfigError('');
@@ -357,6 +362,33 @@ export default function ProjectDetail({
             )}
           </div>
         )}
+
+        {/* Orphaned facilitator warning — shown to admins when project has no valid facilitator */}
+        {role === UserRole.ADMIN && (() => {
+          const fId = typeof project.facilitatorId === 'object'
+            ? (project.facilitatorId as unknown as { id?: string; _id?: string } | null)?.id ?? (project.facilitatorId as unknown as { id?: string; _id?: string } | null)?._id
+            : project.facilitatorId;
+          return !fId;
+        })() && project.status !== 'finished' && project.status !== 'archived' && (
+          <div className="flex items-start gap-4 bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 animate-in fade-in duration-300">
+            <div className="shrink-0 w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-amber-800">Este proyecto no tiene facilitador asignado</p>
+              <p className="text-xs text-amber-600 font-medium mt-1">
+                Sin facilitador, nadie puede gestionar las rondas. Abre la configuración para reasignar uno.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowConfigModal(true)}
+              className="shrink-0 px-4 py-2 bg-amber-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-700 transition-all"
+            >
+              Configurar
+            </button>
+          </div>
+        )}
+
       </div>
 
       {showTaskForm && (
@@ -474,6 +506,43 @@ export default function ProjectDetail({
                   <option value="three-point">Estimación de Tres Puntos</option>
                 </select>
               </div>
+
+              {/* Facilitator reassignment — Admin only — Positioned between method and threshold */}
+              {role === UserRole.ADMIN && (
+                <div className="space-y-2">
+                  <label htmlFor="configFacilitator" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-delphi-keppel" />
+                    Facilitador del Proyecto
+                  </label>
+                  {isLoadingFacilitators ? (
+                    <div className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm text-slate-400 font-bold animate-pulse">
+                      Cargando facilitadores...
+                    </div>
+                  ) : allFacilitators.length === 0 ? (
+                    <div className="w-full bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-sm text-amber-700 font-bold">
+                      No hay facilitadores activos disponibles.
+                    </div>
+                  ) : (
+                    <select
+                      id="configFacilitator"
+                      value={configForm.facilitatorId}
+                      onChange={(e) => setConfigForm({ ...configForm, facilitatorId: e.target.value })}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:border-delphi-keppel focus:ring-4 focus:ring-delphi-keppel/10 transition-all"
+                    >
+                      <option value="">— Sin facilitador asignado —</option>
+                      {allFacilitators.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} ({f.email})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <p className="text-[10px] text-slate-400 ml-2">
+                    Solo los administradores pueden reasignar el facilitador.
+                  </p>
+                </div>
+              )}
+
               
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
@@ -653,12 +722,16 @@ export default function ProjectDetail({
         {activeTab !== 'tasks' && (
           <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} className="lg:col-span-12">
             {activeTab === 'docs' && <Documentation projectId={projectId} role={role} />}
-            {activeTab === 'discussion' && activeRound ? (
-              <DiscussionSpace roundId={activeRound.id} />
+            {activeTab === 'discussion' && selectedTaskId ? (
+              <DiscussionSpace 
+                projectId={projectId} 
+                taskId={selectedTaskId} 
+                roundId={activeRound?.id} 
+              />
             ) : activeTab === 'discussion' ? (
               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
                 <MessageSquare className="w-12 h-12 opacity-20" />
-                <p className="font-bold">Selecciona una tarea con rondas activas para ver el debate.</p>
+                <p className="font-bold">Selecciona una tarea para ver su debate técnico independiente.</p>
               </div>
             ) : null}
             {activeTab === 'team' && <TeamPanel expertIds={project?.expertIds} />}

@@ -83,4 +83,12 @@ export const adminService = {
             method: 'PATCH',
         });
     },
+
+    /** Reassign a project's facilitator — Admin only. Uses the existing PATCH /projects/:id endpoint. */
+    async reassignFacilitator(projectId: string, facilitatorId: string): Promise<void> {
+        await fetchApi<void>(`/projects/${projectId}`, {
+            method: 'PATCH',
+            body: { facilitatorId },
+        });
+    },
 };

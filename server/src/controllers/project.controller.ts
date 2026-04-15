@@ -53,8 +53,10 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role;
 
-    const project = await projectService.update(id, req.body, requesterId);
+    const project = await projectService.update(id, req.body, requesterId, requesterName, requesterRole);
 
     res.json({
         success: true,
@@ -66,6 +68,8 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
 export const archiveProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role;
 
     const project = await projectService.archive(id, requesterId);
 
@@ -84,22 +88,21 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
 
     res.json({
         success: true,
-        message: 'Proyecto eliminado correctamente'
+        message: 'Proyecto eliminado correctamente (soft-delete)'
     });
 });
 
 export const uploadAttachment = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
-    const file = req.file;
 
-    if (!file) {
-        throw ApiError.badRequest('No se proporcionó ningún archivo o el formato es incorrecto');
+    if (!req.file) {
+        throw ApiError.badRequest('No se ha subido ningún archivo');
     }
 
-    const attachment = await projectService.addAttachment(id, file, requesterId);
+    const attachment = await projectService.addAttachment(id, req.file, requesterId);
 
-    res.status(201).json({
+    res.json({
         success: true,
         message: 'Archivo subido correctamente',
         data: attachment
@@ -119,22 +122,14 @@ export const deleteAttachment = asyncHandler(async (req: Request, res: Response)
     });
 });
 
-
 export const manageExperts = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { expertIds } = req.body;
     const requesterId = req.user?.id as string;
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role;
 
-    // In project.service.ts it's manageExperts(id, action, expertIds, requesterId)
-    // But currently called as updateExperts in my previous attempt.
-    // I will use updateProject or fix projectService to have updateExperts.
-    // Wait, let's check project.service.ts again. It has manageExperts(id, action, expertIds, requesterId).
-    // The request body usually contains the full list of expertIds in my FE.
-    // Let's assume manageExperts in service handles 'add'/'remove'.
-    // If FE sends full list, I should probably have a 'set' action or use update().
-    
-    // Attempting to use update() for simple expert list replacement
-    const project = await projectService.update(id, { expertIds }, requesterId);
+    const project = await projectService.update(id, { expertIds }, requesterId, requesterName, requesterRole);
 
     res.json({
         success: true,

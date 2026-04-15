@@ -2,10 +2,12 @@ import { AuditLog } from '../models/index.js';
 
 interface AuditLogData {
     userId: string;
+    userName?: string;
+    userRole?: string;
     action: string;
     resource: string;
     resourceId?: string;
-    details?: Record<string, unknown>;
+    details?: Record<string, unknown> | string;
     ipAddress?: string;
     userAgent?: string;
 }

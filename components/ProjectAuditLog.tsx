@@ -32,12 +32,24 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                 {/* Timeline dot */}
                 <div className="absolute left-[16px] top-4 w-4 h-4 rounded-full border-4 border-white bg-delphi-keppel shadow-[0_0_10px_rgba(43,186,165,0.4)] z-10 hidden md:block group-hover:scale-125 transition-transform" />
 
-                <div className="md:w-32 pt-2">
+                <div className="md:w-40 pt-2 shrink-0">
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    {new Date(entry.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                    {(() => {
+                      const date = new Date(entry.timestamp);
+                      const d = String(date.getDate()).padStart(2, '0');
+                      const m = String(date.getMonth() + 1).padStart(2, '0');
+                      const y = date.getFullYear();
+                      return `${d}/${m}/${y}`;
+                    })()}
                   </p>
                   <p className="text-xs font-bold text-slate-300">
-                    {new Date(entry.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {(() => {
+                      const date = new Date(entry.timestamp);
+                      const h = String(date.getHours()).padStart(2, '0');
+                      const min = String(date.getMinutes()).padStart(2, '0');
+                      const s = String(date.getSeconds()).padStart(2, '0');
+                      return `${h}:${min}:${s}`;
+                    })()}
                   </p>
                 </div>
 
@@ -49,18 +61,39 @@ const ProjectAuditLog: React.FC<ProjectAuditLogProps> = ({ entries }) => {
                       </div>
                       <h4 className="text-lg font-black text-slate-900">{entry.action}</h4>
                     </div>
-                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100">
-                      <User className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">ID: {entry.userId}</span>
+                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
+                      <div className={`w-2 h-2 rounded-full ${
+                        entry.userRole === 'admin' ? 'bg-slate-900' : 
+                        entry.userRole === 'facilitador' ? 'bg-delphi-keppel' : 
+                        'bg-delphi-orange'
+                      }`} />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+                        {entry.userName || 'Sistema'} 
+                        <span className="text-slate-400 ml-1">({entry.userRole || 'BOT'})</span>
+                      </span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                    {typeof entry.details === 'object' ? JSON.stringify(entry.details) : entry.details}
-                  </p>
-                  <button aria-label={`Ver datos crudos de ${entry.action}`} className="mt-6 flex items-center gap-2 text-delphi-keppel opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 outline-none">
-                    <span className="text-[10px] font-black uppercase tracking-widest">Ver datos crudos</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  <div className="text-sm text-slate-500 leading-relaxed font-medium">
+                    {(() => {
+                      if (typeof entry.details === 'string') return entry.details;
+                      
+                      const details = entry.details as any;
+                      if (details?.facilitatorChange) {
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-slate-700 font-black tracking-tight">{details.message || 'Cambio de facilitador'}</span>
+                            <span className="text-xs opacity-70 italic">ID Nuevo: {details.facilitatorChange.new}</span>
+                          </div>
+                        );
+                      }
+                      
+                      if (details?.updatedFields) {
+                        return `Actualización de campos: ${details.updatedFields.join(', ')}`;
+                      }
+                      
+                      return entry.details ? JSON.stringify(entry.details) : 'Sin detalles adicionales.';
+                    })()}
+                  </div>
                 </div>
               </div>
             ))}

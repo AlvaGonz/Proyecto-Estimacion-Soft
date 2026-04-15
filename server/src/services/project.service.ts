@@ -62,11 +62,15 @@ export const projectService = {
         return projectObj;
     },
 
-    async update(id: string, data: Partial<IProject>, requesterId: string): Promise<IProject> {
+    async update(id: string, data: Partial<IProject>, requesterId: string, requesterName?: string, requesterRole?: string): Promise<IProject> {
         const project = await this.findById(id);
 
         if (project.status === PROJECT_STATUS.ARCHIVED) {
             throw ApiError.forbidden('No se puede modificar un proyecto archivado');
+        }
+
+        if (project.status === PROJECT_STATUS.FINISHED) {
+            throw ApiError.forbidden('No se puede modificar un proyecto finalizado');
         }
 
         // RF034: Bloqueo de cambio de método tras inicio de rondas
@@ -78,6 +82,16 @@ export const projectService = {
             }
         }
 
+        // Detect facilitator change for specific logging
+        let logDetails: any = { updatedFields: Object.keys(data) };
+        if (data.facilitatorId && String(data.facilitatorId) !== String((project.facilitatorId as any)._id || project.facilitatorId)) {
+            logDetails.facilitatorChange = {
+                previous: (project.facilitatorId as any).name || project.facilitatorId,
+                new: data.facilitatorId
+            };
+            logDetails.message = `Cambio de facilitador: ${(project.facilitatorId as any).name || project.facilitatorId} -> ${data.facilitatorId}`;
+        }
+
         const updatedProject = await Project.findByIdAndUpdate(
             id,
             { $set: data },
@@ -86,7 +100,15 @@ export const projectService = {
             .populate('facilitatorId', 'name email')
             .populate('expertIds', 'name email');
 
-        await auditService.log({ userId: requesterId, action: 'project:update', resource: 'Project', resourceId: id, details: { updatedFields: Object.keys(data) } });
+        await auditService.log({ 
+            userId: requesterId, 
+            userName: requesterName,
+            userRole: requesterRole,
+            action: 'project:update', 
+            resource: 'Project', 
+            resourceId: id, 
+            details: logDetails 
+        });
         return updatedProject as IProject;
     },
 

@@ -20,6 +20,7 @@ import {
 import { UserRole, User as AppUser } from '../types';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 import { adminService, AdminUser } from '../services/adminService';
+import { userService } from '../services/userService';
 
 // Role badge colors matching existing design tokens
 const roleBadgeClass = (role: string) => {
@@ -124,6 +125,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    const [modalLoading, setModalLoading] = useState(false);
    const [modalError, setModalError] = useState<string | null>(null);
    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+   // Facilitator reassignment state (Projects tab)
+   const [facilitators, setFacilitators] = useState<{ id: string; name: string; email: string }[]>([]);
+   const [reassigning, setReassigning] = useState<Record<string, { open: boolean; selected: string; loading: boolean }>>({});
 
 
    const loadUsers = useCallback(async () => {
@@ -148,8 +152,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       try {
          setIsLoading(true);
          setError(null);
-         const data = await adminService.listProjects();
+         const [data, facs] = await Promise.all([
+            adminService.listProjects(),
+            userService.getActiveFacilitators()
+         ]);
          setProjects(data);
+         setFacilitators(facs.map(f => ({ id: f.id, name: f.name, email: f.email })));
       } catch (err: any) {
          setError(err.message || 'Error al cargar proyectos');
       } finally {
@@ -214,6 +222,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
          await loadUsers();
       } catch (err: any) {
          setError(err.message || 'Error al eliminar usuario');
+      }
+   };
+
+   const handleReassignFacilitator = async (projectId: string, projectName: string) => {
+      const state = reassigning[projectId];
+      if (!state?.selected) return;
+      setReassigning(prev => ({ ...prev, [projectId]: { ...prev[projectId], loading: true } }));
+      try {
+         await adminService.reassignFacilitator(projectId, state.selected);
+         const facilitatorName = facilitators.find(f => f.id === state.selected)?.name ?? 'Facilitador';
+         setSuccessMessage(`Facilitador de "${projectName}" reasignado a ${facilitatorName}.`);
+         setTimeout(() => setSuccessMessage(null), 5000);
+         setReassigning(prev => ({ ...prev, [projectId]: { open: false, selected: '', loading: false } }));
+         await loadProjects();
+      } catch (err: any) {
+         setError(err.message || 'Error al reasignar facilitador');
+         setReassigning(prev => ({ ...prev, [projectId]: { ...prev[projectId], loading: false } }));
       }
    };
 
@@ -430,64 +455,123 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                         <p className="font-black">No hay proyectos registrados</p>
                      </div>
                   ) : (
-                     <table className="w-full min-w-[800px]">
+                     <table className="w-full min-w-[900px]">
                         <thead>
                            <tr className="bg-slate-50">
                               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Proyecto</th>
                               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Facilitador</th>
                               <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Estado</th>
+                              <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Reasignar Facilitador</th>
                               <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Acciones</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                           {projects.map(project => (
-                              <tr key={project.id || project._id} className={`hover:bg-slate-50 transition-colors group ${project.isDeleted ? 'bg-red-50/30' : ''}`}>
-                                 <td className="px-8 py-6">
-                                    <div>
-                                       <p className="font-black text-slate-900">{project.name}</p>
-                                       <p className="text-xs text-slate-400 font-bold line-clamp-1">{project.description}</p>
-                                    </div>
-                                 </td>
-                                 <td className="px-8 py-6">
-                                    <div className="flex flex-col">
-                                       <span className="text-sm font-black text-slate-700">{project.facilitatorId?.name}</span>
-                                       <span className="text-[10px] text-slate-400 font-bold">{project.facilitatorId?.email}</span>
-                                    </div>
-                                 </td>
-                                 <td className="px-8 py-6">
-                                    <div className="flex items-center gap-2">
-                                       {project.isDeleted ? (
-                                          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-red-200">
-                                             <Trash2 className="w-3 h-3" /> Eliminado
-                                          </span>
-                                       ) : (
-                                          <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${
-                                             project.status === 'archived' 
-                                                ? 'bg-slate-100 text-slate-500 border-slate-200' 
-                                                : 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/20'
-                                          }`}>
-                                             {project.status}
-                                          </span>
+                           {projects.map(project => {
+                              const pid = project.id || project._id;
+                              const rState = reassigning[pid] || { open: false, selected: '', loading: false };
+                              return (
+                                 <tr key={pid} className={`hover:bg-slate-50 transition-colors group ${project.isDeleted ? 'bg-red-50/30' : ''}`}>
+                                    <td className="px-8 py-6">
+                                       <div>
+                                          <p className="font-black text-slate-900">{project.name}</p>
+                                          <p className="text-xs text-slate-400 font-bold line-clamp-1">{project.description}</p>
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                       <div className="flex flex-col gap-1">
+                                          {project.facilitatorId?.name ? (
+                                             <>
+                                                <span className="text-sm font-black text-slate-700">{project.facilitatorId.name}</span>
+                                                <span className="text-[10px] text-slate-400 font-bold">{project.facilitatorId.email}</span>
+                                             </>
+                                          ) : (
+                                             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-amber-200 w-fit">
+                                                <AlertCircle className="w-3 h-3" /> Sin facilitador
+                                             </span>
+                                          )}
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                       <div className="flex items-center gap-2">
+                                          {project.isDeleted ? (
+                                             <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-red-200">
+                                                <Trash2 className="w-3 h-3" /> Eliminado
+                                             </span>
+                                          ) : (
+                                             <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg border ${
+                                                project.status === 'archived'
+                                                   ? 'bg-slate-100 text-slate-500 border-slate-200'
+                                                   : 'bg-delphi-keppel/10 text-delphi-keppel border-delphi-keppel/20'
+                                             }`}>
+                                                {project.status}
+                                             </span>
+                                          )}
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                       {!project.isDeleted && (
+                                          rState.open ? (
+                                             <div className="flex items-center gap-2 flex-wrap">
+                                                <select
+                                                   aria-label="Seleccionar nuevo facilitador"
+                                                   value={rState.selected}
+                                                   onChange={e => setReassigning(prev => ({ ...prev, [pid]: { ...prev[pid], selected: e.target.value } }))}
+                                                   className="px-3 py-2 bg-white border-2 border-delphi-keppel/40 rounded-xl text-xs font-bold outline-none focus:border-delphi-keppel transition-all min-w-[160px]"
+                                                >
+                                                   <option value="">— Seleccionar —</option>
+                                                   {facilitators.map(f => (
+                                                      <option key={f.id} value={f.id}>{f.name}</option>
+                                                   ))}
+                                                </select>
+                                                <button
+                                                   disabled={!rState.selected || rState.loading}
+                                                   onClick={() => handleReassignFacilitator(pid, project.name)}
+                                                   className="px-3 py-2 bg-delphi-keppel text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-delphi-keppel/20"
+                                                >
+                                                   {rState.loading ? '...' : 'Guardar'}
+                                                </button>
+                                                <button
+                                                   onClick={() => setReassigning(prev => ({ ...prev, [pid]: { open: false, selected: '', loading: false } }))}
+                                                   className="p-2 rounded-xl bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                                                   aria-label="Cancelar reasignación"
+                                                >
+                                                   <X className="w-3.5 h-3.5" />
+                                                </button>
+                                             </div>
+                                          ) : (
+                                             <button
+                                                onClick={() => setReassigning(prev => ({ ...prev, [pid]: { open: true, selected: project.facilitatorId?.id || project.facilitatorId?._id || '', loading: false } }))}
+                                                className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                                                   !project.facilitatorId?.name
+                                                      ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200'
+                                                      : 'bg-slate-100 text-slate-500 hover:bg-delphi-keppel/10 hover:text-delphi-keppel'
+                                                }`}
+                                             >
+                                                <UserCheck className="w-3.5 h-3.5" />
+                                                {!project.facilitatorId?.name ? 'Asignar' : 'Cambiar'}
+                                             </button>
+                                          )
                                        )}
-                                    </div>
-                                 </td>
-                                 <td className="px-8 py-6 text-right">
-                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                       {project.isDeleted && (
-                                          <button
-                                             aria-label={`Restaurar ${project.name}`}
-                                             title="Restaurar proyecto"
-                                             onClick={() => handleRestoreProject(project.id || project._id, project.name)}
-                                             className="p-2.5 rounded-xl bg-delphi-keppel text-white hover:scale-105 transition-all shadow-lg shadow-delphi-keppel/20">
-                                             <RotateCcw className="w-4 h-4" />
-                                          </button>
-                                       )}
-                                    </div>
-                                 </td>
-                              </tr>
-                           ))}
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          {project.isDeleted && (
+                                             <button
+                                                aria-label={`Restaurar ${project.name}`}
+                                                title="Restaurar proyecto"
+                                                onClick={() => handleRestoreProject(project.id || project._id, project.name)}
+                                                className="p-2.5 rounded-xl bg-delphi-keppel text-white hover:scale-105 transition-all shadow-lg shadow-delphi-keppel/20">
+                                                <RotateCcw className="w-4 h-4" />
+                                             </button>
+                                          )}
+                                       </div>
+                                    </td>
+                                 </tr>
+                              );
+                           })}
                         </tbody>
                      </table>
+
                   )}
                </div>
             </div>

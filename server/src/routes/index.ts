@@ -19,6 +19,7 @@ router.use('/admin', adminRouter);
 
 // Nested routes
 projectRoutes.use('/:pid/rounds', nestedRoundRoutes);
+projectRoutes.use('/:id/tasks/:taskId/comments', nestedDiscussionRoutes);
 roundRoutes.use('/:id/estimations', nestedEstimationRoutes);
 roundRoutes.use('/:id/comments', nestedDiscussionRoutes);
 

@@ -55,3 +55,27 @@ npm run e2e
 ```
 
 ## Tests: 43 listados correctamente ✅
+<!-- # PLANNING.md — Enhanced Project Management & Discussion
+
+## Estado: 🟡 EN PLANIFICACIÓN
+
+## Objetivos
+1. **Gestión de Facilitador**: Permitir a los Administradores cambiar el facilitador en la configuración del proyecto (ubicado entre el método y el umbral).
+2. **Persistencia de Asignaciones**: Asegurar que las asignaciones de facilitadores y expertos se guarden en la DB y se reflejen en la vista del usuario.
+3. **Chat de Discusión Anónimo**: Implementar un debate técnico por tarea con persistencia en DB, mostrando solo la clasificación (rol) del usuario.
+4. **Logs de Actividad Mejorados**: Expandir el registro de auditoría para incluir el responsable, fecha/hora formateada, y detalles específicos de lo que se gestionó.
+
+## Tareas Identificadas
+- [ ] Actualizar modelos `Comment` y `AuditLog`.
+- [ ] Crear endpoints de backend para discusiones por tarea.
+- [ ] Reposicionar selector de facilitador en `ProjectDetail.tsx`.
+- [ ] Implementar lógica de persistencia y roles en `DiscussionSpace.tsx`.
+- [ ] Formatear y expandir `ProjectAuditLog.tsx`.
+
+## Decisiones de Diseño
+- Usar el campo `userRole` en los comentarios para mantener el anonimato pero proveer contexto.
+- Los logs almacenarán el nombre del responsable en el momento de la acción para trazabilidad histórica rápida.
+
+## Preguntas Pendientes
+1. ¿La "Clasificación" en el chat debe ser el nombre del rol (ej. "Experto")?
+2. ¿Los logs deben guardar el nombre del responsable como texto estático o link dinámico? -->
