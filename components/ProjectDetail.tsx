@@ -58,6 +58,7 @@ export default function ProjectDetail({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showExpertsModal, setShowExpertsModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDesc, setNewTaskDesc] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -357,10 +358,17 @@ export default function ProjectDetail({
                 Unidad: {project.unit === 'hours' ? 'Horas' : project.unit === 'storyPoints' ? 'Puntos de Historia' : project.unit === 'personDays' ? 'Días Persona' : project.unit}
               </p>
               <div className="hidden sm:block h-4 w-px bg-slate-200" />
-              <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2">
-                <Users className="w-4 h-4 text-delphi-orange" />
-                {project.expertIds?.length || 0} Expertos
-              </p>
+              <button 
+                type="button"
+                onClick={() => setShowExpertsModal(true)}
+                className="relative z-10 text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center gap-2 hover:text-delphi-orange transition-colors group/experts cursor-pointer pointer-events-auto"
+                data-testid="experts-list-trigger"
+              >
+                <Users className="w-4 h-4 text-delphi-orange group-hover/experts:scale-110 transition-transform" />
+                <span className="border-b-2 border-transparent group-hover/experts:border-delphi-orange/30 transition-all pb-0.5">
+                  Expertos ({project.expertIds ? project.expertIds.length : 0})
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -872,6 +880,66 @@ export default function ProjectDetail({
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Lista de Expertos */}
+      {showExpertsModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowExpertsModal(false)} />
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-10 relative shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-delphi-orange/10 flex items-center justify-center text-delphi-orange shadow-inner">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight">Panel de Expertos</h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest leading-none mt-1">Equipo asignado</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowExpertsModal(false)} 
+                className="p-3 bg-slate-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {project.expertIds && project.expertIds.length > 0 ? (
+                project.expertIds.map((item, idx) => {
+                  const expert = typeof item === 'object' ? item : { name: 'Experto', email: item } as User;
+                  const expertId = typeof item === 'object' ? (item.id || item._id || String(idx)) : item;
+                  
+                  return (
+                    <div key={expertId} className="p-5 rounded-2xl border-2 border-slate-50 bg-slate-50/30 flex items-center gap-4 group hover:border-delphi-orange/20 transition-all">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center font-black text-slate-400 group-hover:bg-delphi-orange group-hover:text-white group-hover:border-delphi-orange transition-all">
+                        {(expert.name || 'U').charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-slate-900 truncate">{expert.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold truncate">{expert.email}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-10 text-center space-y-3 opacity-40">
+                  <Users className="w-12 h-12 mx-auto text-slate-300" />
+                  <p className="text-xs font-bold text-slate-400 italic">No hay expertos asignados a este proyecto</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-slate-100">
+              <button 
+                onClick={() => setShowExpertsModal(false)}
+                className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl shadow-slate-900/10"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

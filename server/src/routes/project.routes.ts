@@ -3,7 +3,7 @@ import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
     createTask, getTasksByProject, updateTask, deleteProject,
-    deleteAttachment, uploadAttachment, finalizeTask
+    deleteAttachment, uploadAttachment, finalizeTask, restoreProject
 } from '../controllers/project.controller.js';
 import { upload } from '../middleware/upload.middleware.js';
 import { authenticate } from '../middleware/auth.middleware.js';

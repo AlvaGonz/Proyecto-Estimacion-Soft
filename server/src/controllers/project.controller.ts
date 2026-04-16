@@ -3,19 +3,29 @@ import { projectService } from '../services/project.service.js';
 import { taskService } from '../services/task.service.js';
 import { auditService } from '../services/audit.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { Role } from '../config/constants.js';
+import { Role, ROLES } from '../config/constants.js';
 import { ApiError } from '../utils/ApiError.js';
 
 // ─── Proyectos ───────────────────────────────────────────────────────
 
 export const createProject = asyncHandler(async (req: Request, res: Response) => {
     const projectData = req.body;
-    const facilitatorId = req.user?.id as string;
+    const requesterId = req.user?.id as string;
+
+    let facilitatorId: string;
+    if (req.user?.role === ROLES.ADMIN) {
+        if (!projectData.facilitatorId) {
+            throw ApiError.badRequest('Se debe asignar un facilitador al proyecto');
+        }
+        facilitatorId = projectData.facilitatorId;
+    } else {
+        facilitatorId = requesterId;
+    }
 
     const project = await projectService.create({ 
         ...projectData, 
         facilitatorId 
-    }, facilitatorId);
+    }, requesterId);
 
     res.status(201).json({
         success: true,
@@ -185,6 +195,19 @@ export const finalizeTask = asyncHandler(async (req: Request, res: Response) => 
         success: true,
         message: 'Tarea finalizada correctamente',
         data: task
+    });
+});
+
+export const restoreProject = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const requesterId = req.user?.id as string;
+
+    const project = await projectService.restore(id, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Proyecto restaurado correctamente',
+        data: project
     });
 });
 

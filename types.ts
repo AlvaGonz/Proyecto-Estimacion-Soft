@@ -19,8 +19,8 @@ export interface Project {
   name: string;
   description: string;
   unit: 'hours' | 'storyPoints' | 'personDays';
-  facilitatorId: string;
-  expertIds: string[];
+  facilitatorId: string | User;
+  expertIds: (string | User)[];
   status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;

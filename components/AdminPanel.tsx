@@ -122,6 +122,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    const [users, setUsers] = useState<AdminUser[]>([]);
    const [projects, setProjects] = useState<any[]>([]);
    const [error, setError] = useState<string | null>(null);
+   const [successMessage, setSuccessMessage] = useState<string | null>(null);
    const [roleFilter, setRoleFilter] = useState<string>('');
    const [showInactive, setShowInactive] = useState(false);
    const [showCreateModal, setShowCreateModal] = useState(false);
@@ -343,8 +344,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       }
    };
 
-   };
-
    return (
       <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
          {showCreateModal && (
@@ -561,7 +560,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                         <tbody className="divide-y divide-slate-100">
                            {Array.isArray(projects) && projects.filter(p => p !== null && p !== undefined).map(project => {
                               // ALWAYS prioritize _id for MongoDB backend operations
-                              const pid = project._id || project.id;
+                              const pid = String(project._id || project.id || "");
                               const facilitator = project.facilitatorId;
                               const rState = reassigning[pid] || { open: false, selected: '', loading: false };
                               return (
@@ -649,7 +648,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                        )}
                                     </td>
                                     <td className="px-8 py-6 text-right">
-                                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                                           {project.isDeleted ? (
                                              <button
                                                 aria-label={`Restaurar ${project.name}`}
@@ -737,6 +736,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-delphi-giants/10 rounded-bl-[80px] pointer-events-none" />
                </div>
             </div>
+         )}
          {/* Confirmation Modal */}
          {confirmAction && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
