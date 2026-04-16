@@ -22,6 +22,7 @@ import { Project, Task, Round, UserRole } from '../types';
 import { reportService } from '../services/reportService';
 import { taskService } from '../services/taskService';
 import { roundService } from '../services/roundService';
+import { estimationService } from '../services/estimationService';
 
 interface ReportGeneratorProps {
   projects: Project[];
@@ -104,7 +105,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
         
         // Fetch estimations for each round
         const roundsWithEstimations = await Promise.all(rounds.map(async (r) => {
-          const estimations = await (window as any).estimationService.getEstimationsByRound(r.id);
+          const estimations = await estimationService.getEstimationsByRound(r.id);
           return { ...r, estimations };
         }));
 

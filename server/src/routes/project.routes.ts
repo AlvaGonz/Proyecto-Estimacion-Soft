@@ -44,8 +44,8 @@ router.patch(
     updateProject
 );
 
-// POST /api/projects/:id/archive - Soft delete (archive status)
-router.post(
+// PATCH /api/projects/:id/archive - Soft delete (archive status)
+router.patch(
     '/:id/archive',
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     archiveProject
@@ -57,6 +57,9 @@ router.delete(
     requireRole(ROLES.ADMIN),
     deleteProject
 );
+
+// PATCH /api/projects/:id/restore - Restore soft-deleted project
+router.patch('/:id/restore', requireRole(ROLES.ADMIN), restoreProject);
 
 // PATCH /api/projects/:id/experts
 router.patch(

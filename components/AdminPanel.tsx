@@ -102,6 +102,9 @@ const CreateUserModal: React.FC<UserModalProps> = ({ onClose, onSave, isLoading,
                      {isLoading ? 'Creando...' : 'Crear Usuario'}
                   </button>
                </div>
+               <p className="text-[10px] text-slate-400 font-bold text-center mt-4">
+                  * La contraseña debe tener 8+ caracteres, una mayúscula y un número.
+               </p>
             </form>
          </div>
       </div>
@@ -124,41 +127,74 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
    const [showCreateModal, setShowCreateModal] = useState(false);
    const [modalLoading, setModalLoading] = useState(false);
    const [modalError, setModalError] = useState<string | null>(null);
-   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+   const [confirmAction, setConfirmAction] = useState<{
+      type: 'archive' | 'delete' | 'restore';
+      id: string;
+      name: string;
+   } | null>(null);
    // Facilitator reassignment state (Projects tab)
    const [facilitators, setFacilitators] = useState<{ id: string; name: string; email: string }[]>([]);
    const [reassigning, setReassigning] = useState<Record<string, { open: boolean; selected: string; loading: boolean }>>({});
 
-
    const loadUsers = useCallback(async () => {
-      if (activeTab !== 'users') return;
+      setIsLoading(true);
+      setError(null);
       try {
-         setIsLoading(true);
-         setError(null);
+         // Clear projects to avoid confusion during state transition
+         setProjects([]); 
          const filters: { role?: string; isActive?: boolean } = {};
          if (roleFilter) filters.role = roleFilter;
          if (!showInactive) filters.isActive = true;
+         
          const result = await adminService.listUsers(filters);
-         setUsers(result.users);
+         // Ensuring setUsers always receives an array
+         const usersData = (result && Array.isArray(result.users)) ? result.users : [];
+         setUsers(usersData);
       } catch (err: any) {
+         console.error('Error loading users:', err);
          setError(err.message || 'Error al cargar usuarios');
       } finally {
          setIsLoading(false);
       }
-   }, [activeTab, roleFilter, showInactive]);
+    }, [activeTab, roleFilter, showInactive]);
 
    const loadProjects = useCallback(async () => {
-      if (activeTab !== 'projects') return;
+      setIsLoading(true);
+      setError(null);
       try {
-         setIsLoading(true);
-         setError(null);
+         // Clear users to avoid confusion during state transition
+         setUsers([]); 
          const [data, facs] = await Promise.all([
             adminService.listProjects(),
             userService.getActiveFacilitators()
          ]);
-         setProjects(data);
-         setFacilitators(facs.map(f => ({ id: f.id, name: f.name, email: f.email })));
+         
+         // Robustly handle different response formats
+         const projectsData = Array.isArray(data) ? data : (data as any)?.projects || (data as any)?.data || [];
+         
+         // [DEBUG] Trace project structure to catch ID leakage
+         console.log('App: Projects loaded:', projectsData.length);
+         if (projectsData.length > 0) {
+            console.log('App: First project structure sample:', {
+               name: projectsData[0].name,
+               _id: projectsData[0]._id,
+               id: projectsData[0].id,
+               facId: projectsData[0].facilitatorId?._id || projectsData[0].facilitatorId
+            });
+         }
+         
+         const facilitatorsData = Array.isArray(facs) ? facs : (facs as any)?.users || (facs as any)?.data || [];
+         
+         console.log(`Loaded ${projectsData.length} projects and ${facilitatorsData.length} facilitators`);
+         
+         setProjects(projectsData);
+         setFacilitators(facilitatorsData.map((f: any) => ({ 
+            id: f.id || f._id, 
+            name: f.name || 'Sin nombre', 
+            email: f.email || '' 
+         })));
       } catch (err: any) {
+         console.error('Error loading projects:', err);
          setError(err.message || 'Error al cargar proyectos');
       } finally {
          setIsLoading(false);
@@ -181,77 +217,132 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
          setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
-         setModalError(err.message || 'Error al crear usuario');
+         console.error('Error in handleCreateUser:', err);
+         // Support structured error messages from API
+         let msg = 'Error al crear usuario';
+         if (err.errors && typeof err.errors === 'object') {
+            msg = Object.values(err.errors).flat().join(', ');
+         } else if (err.message) {
+            msg = err.message;
+         }
+         setModalError(msg);
       } finally {
          setModalLoading(false);
       }
    };
 
-   const handleDeactivate = async (user: AdminUser) => {
-      if (!window.confirm(`¿Desactivar a ${user.name}?`)) return;
+   const handleDeactivate = async (user: any) => {
+      const uid = user.id || user._id;
+      console.log(`Deactivating user: ${uid} (${user.name})`);
       try {
-         await adminService.deactivateUser(user.id || user._id || '');
+         await adminService.deactivateUser(uid);
+         console.log('Deactivation successful');
          setSuccessMessage(`Usuario ${user.name} desactivado.`);
          setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
+         console.error('Error in handleDeactivate:', err);
          setError(err.message || 'Error al desactivar usuario');
       }
    };
 
-   const handleActivate = async (user: AdminUser) => {
-      if (!window.confirm(`¿Habilitar a ${user.name}?`)) return;
+   const handleActivate = async (user: any) => {
+      const uid = user.id || user._id;
+      console.log(`Activating user: ${uid} (${user.name})`);
       try {
-         await adminService.activateUser(user.id || user._id || '');
-         setSuccessMessage(`Usuario ${user.name} habilitado exitosamente.`);
+         await adminService.activateUser(uid);
+         console.log('Activation successful');
+         setSuccessMessage(`Usuario ${user.name} activado.`);
          setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
-         setError(err.message || 'Error al habilitar usuario');
+         console.error('Error in handleActivate:', err);
+         setError(err.message || 'Error al activar usuario');
       }
    };
 
-   const handleDelete = async (user: AdminUser) => {
-      const userId = user.id || user._id || '';
-      if (!window.confirm(`¿Eliminar permanentemente a "${user.name}" (${user.email})? Esta acción no se puede deshacer.`)) return;
-      if (user.role !== 'experto' && !window.confirm(`¡Atención! Estás eliminando a un ${user.role}. ¿Confirmas esta acción?`)) return;
+   const handleDelete = async (user: any) => {
+      const uid = user.id || user._id;
+      console.log(`Deleting user: ${uid} (${user.name})`);
       try {
-         await adminService.deleteUser(userId);
-         setSuccessMessage(`Usuario ${user.name} eliminado permanentemente.`);
+         await adminService.deleteUser(uid);
+         console.log('Deletion successful');
+         setSuccessMessage(`Usuario ${user.name} eliminado.`);
          setTimeout(() => setSuccessMessage(null), 4000);
          await loadUsers();
       } catch (err: any) {
+         console.error('Error in handleDelete:', err);
          setError(err.message || 'Error al eliminar usuario');
       }
    };
 
    const handleReassignFacilitator = async (projectId: string, projectName: string) => {
       const state = reassigning[projectId];
-      if (!state?.selected) return;
+      if (!state?.selected) {
+         console.warn('No facilitator selected for reassignment');
+         return;
+      }
+      console.log(`Reassigning facilitator for project ${projectId} (${projectName}) to ${state.selected}`);
       setReassigning(prev => ({ ...prev, [projectId]: { ...prev[projectId], loading: true } }));
       try {
          await adminService.reassignFacilitator(projectId, state.selected);
-         const facilitatorName = facilitators.find(f => f.id === state.selected)?.name ?? 'Facilitador';
+         const facilitatorsArray = Array.isArray(facilitators) ? facilitators : [];
+         const facilitatorName = facilitatorsArray.find(f => f.id === state.selected)?.name ?? 'Facilitador';
+         console.log('Reassignment successful');
          setSuccessMessage(`Facilitador de "${projectName}" reasignado a ${facilitatorName}.`);
          setTimeout(() => setSuccessMessage(null), 5000);
          setReassigning(prev => ({ ...prev, [projectId]: { open: false, selected: '', loading: false } }));
          await loadProjects();
       } catch (err: any) {
+         console.error('Error in reassignFacilitator:', err);
          setError(err.message || 'Error al reasignar facilitador');
          setReassigning(prev => ({ ...prev, [projectId]: { ...prev[projectId], loading: false } }));
       }
    };
 
    const handleRestoreProject = async (id: string, name: string) => {
-      if (!window.confirm(`¿Restaurar el proyecto "${name}"?`)) return;
+      console.log(`[Admin] Attempting to RESTORE: name="${name}", id="${id}"`);
       try {
          await adminService.restoreProject(id);
-         setSuccessMessage(`Proyecto "${name}" restaurado exitosamente.`);
-         setTimeout(() => setSuccessMessage(null), 4000);
+         setSuccessMessage(`Proyecto "${name}" restaurado correctamente`);
+         setTimeout(() => setSuccessMessage(null), 3000);
          await loadProjects();
       } catch (err: any) {
+         console.error('Error restoring project:', err);
          setError(err.message || 'Error al restaurar proyecto');
       }
+   };
+   
+   const handleArchiveProject = async (id: string, name: string) => {
+      console.log(`[Admin] Attempting to ARCHIVE: name="${name}", id="${id}"`);
+      try {
+         await adminService.archiveProject(id);
+         setSuccessMessage(`Proyecto "${name}" archivado correctamente`);
+         setTimeout(() => setSuccessMessage(null), 3000);
+         await loadProjects();
+      } catch (err: any) {
+         console.error('Error archiving project:', err);
+         setError(err.message || 'Error al archivar proyecto');
+      } finally {
+         setConfirmAction(null);
+      }
+   };
+
+   const handleDeleteProject = async (id: string, name: string) => {
+      console.log(`[Admin] Attempting to DELETE: name="${name}", id="${id}"`);
+      try {
+         await adminService.deleteProject(id);
+         setSuccessMessage(`Proyecto "${name}" eliminado correctamente`);
+         setTimeout(() => setSuccessMessage(null), 3000);
+         await loadProjects();
+      } catch (err: any) {
+         console.error('Error deleting project:', err);
+         setError(err.message || 'Error al eliminar proyecto');
+      } finally {
+         setConfirmAction(null);
+      }
+   };
+
    };
 
    return (
@@ -341,12 +432,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                      <div className="flex items-center justify-center h-full py-20">
                         <LoadingSpinner size="lg" label="Cargando usuarios..." />
                      </div>
-                  ) : users.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-4">
-                        <Users className="w-12 h-12 opacity-30" />
-                        <p className="font-black">No hay usuarios registrados</p>
-                     </div>
-                  ) : (
+                   ) : (!users || !Array.isArray(users) || users.length === 0) ? (
+                      <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-4">
+                         <Users className="w-12 h-12 opacity-30" />
+                         <p className="font-black">No hay usuarios registrados</p>
+                      </div>
+                   ) : (
                      <table className="w-full min-w-[800px]">
                         <thead>
                            <tr className="bg-slate-50">
@@ -357,10 +448,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                           {users.map(user => {
-                              const isSelf = currentUser?.id === (user.id || user._id);
+                           {Array.isArray(users) && users.filter(u => u !== null && u !== undefined).map(user => {
+                              const userId = user.id || user._id;
+                              if (!userId) return null;
+                              const isSelf = currentUser?.id === userId;
                               return (
-                                 <tr key={user.id || user._id} className="hover:bg-slate-50 transition-colors group">
+                                 <tr key={userId} className="hover:bg-slate-50 transition-colors group">
                                     <td className="px-8 py-6">
                                        <div className="flex items-center gap-4">
                                           <div className="w-12 h-12 rounded-2xl bg-gradient-delphi flex items-center justify-center font-black text-white text-lg shadow-inner">
@@ -449,7 +542,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                      <div className="flex items-center justify-center h-full py-20">
                         <LoadingSpinner size="lg" label="Cargando proyectos..." />
                      </div>
-                  ) : projects.length === 0 ? (
+                  ) : !Array.isArray(projects) || projects.length === 0 ? (
                      <div className="flex flex-col items-center justify-center py-24 text-slate-400 gap-4">
                         <FolderArchive className="w-12 h-12 opacity-30" />
                         <p className="font-black">No hay proyectos registrados</p>
@@ -466,11 +559,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                           {projects.map(project => {
-                              const pid = project.id || project._id;
+                           {Array.isArray(projects) && projects.filter(p => p !== null && p !== undefined).map(project => {
+                              // ALWAYS prioritize _id for MongoDB backend operations
+                              const pid = project._id || project.id;
+                              const facilitator = project.facilitatorId;
                               const rState = reassigning[pid] || { open: false, selected: '', loading: false };
                               return (
-                                 <tr key={pid} className={`hover:bg-slate-50 transition-colors group ${project.isDeleted ? 'bg-red-50/30' : ''}`}>
+                                 <tr key={pid} className={`hover:bg-slate-50 transition-colors ${project.isDeleted ? 'bg-red-50/30' : ''}`}>
                                     <td className="px-8 py-6">
                                        <div>
                                           <p className="font-black text-slate-900">{project.name}</p>
@@ -519,9 +614,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                                    className="px-3 py-2 bg-white border-2 border-delphi-keppel/40 rounded-xl text-xs font-bold outline-none focus:border-delphi-keppel transition-all min-w-[160px]"
                                                 >
                                                    <option value="">— Seleccionar —</option>
-                                                   {facilitators.map(f => (
-                                                      <option key={f.id} value={f.id}>{f.name}</option>
-                                                   ))}
+                                                    {Array.isArray(facilitators) && facilitators.map(f => (
+                                                       <option key={f.id} value={f.id}>{f.name}</option>
+                                                    ))}
                                                 </select>
                                                 <button
                                                    disabled={!rState.selected || rState.loading}
@@ -555,14 +650,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                                     </td>
                                     <td className="px-8 py-6 text-right">
                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          {project.isDeleted && (
+                                          {project.isDeleted ? (
                                              <button
                                                 aria-label={`Restaurar ${project.name}`}
                                                 title="Restaurar proyecto"
-                                                onClick={() => handleRestoreProject(project.id || project._id, project.name)}
+                                                onClick={() => handleRestoreProject(pid, project.name)}
                                                 className="p-2.5 rounded-xl bg-delphi-keppel text-white hover:scale-105 transition-all shadow-lg shadow-delphi-keppel/20">
                                                 <RotateCcw className="w-4 h-4" />
                                              </button>
+                                          ) : (
+                                             <>
+                                                {project.status !== 'archived' && (
+                                                   <button
+                                                      aria-label={`Archivar ${project.name}`}
+                                                      title="Archivar proyecto (Solo lectura)"
+                                                      onClick={() => setConfirmAction({ type: 'archive', id: pid, name: project.name })}
+                                                      className="p-2.5 rounded-xl bg-slate-100 text-slate-400 hover:text-amber-600 transition-all">
+                                                      <FolderArchive className="w-4 h-4" />
+                                                   </button>
+                                                )}
+                                                <button
+                                                   aria-label={`Borrar ${project.name}`}
+                                                   title="Eliminar proyecto (Soft-delete)"
+                                                   onClick={() => setConfirmAction({ type: 'delete', id: pid, name: project.name })}
+                                                   className="p-2.5 rounded-xl bg-slate-100 text-slate-400 hover:text-red-600 transition-all">
+                                                   <Trash2 className="w-4 h-4" />
+                                                </button>
+                                             </>
                                           )}
                                        </div>
                                     </td>
@@ -621,6 +735,41 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                      </div>
                   </div>
                   <div className="absolute top-0 right-0 w-32 h-32 bg-delphi-giants/10 rounded-bl-[80px] pointer-events-none" />
+               </div>
+            </div>
+         {/* Confirmation Modal */}
+         {confirmAction && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+               <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
+                  <div className="bg-amber-100 w-16 h-16 rounded-3xl flex items-center justify-center mb-6 mx-auto">
+                     <AlertCircle className="w-8 h-8 text-amber-600" />
+                  </div>
+                  <h3 className="text-2xl font-black text-slate-900 text-center mb-2">¿Estás seguro?</h3>
+                  <p className="text-slate-500 text-center font-bold mb-8">
+                     Estás a punto de {confirmAction.type === 'archive' ? 'archivar' : 'eliminar'} el proyecto 
+                     <span className="text-slate-900 block mt-1">"{confirmAction.name}"</span>
+                  </p>
+                  <div className="flex flex-col gap-3">
+                     <button
+                        onClick={() => confirmAction.type === 'archive' 
+                           ? handleArchiveProject(confirmAction.id, confirmAction.name)
+                           : handleDeleteProject(confirmAction.id, confirmAction.name)
+                        }
+                        className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white transition-all hover:scale-[1.02] shadow-xl ${
+                           confirmAction.type === 'archive' 
+                              ? 'bg-amber-500 shadow-amber-500/20' 
+                              : 'bg-red-500 shadow-red-500/20'
+                        }`}
+                     >
+                        Confirmar {confirmAction.type === 'archive' ? 'Archivado' : 'Eliminación'}
+                     </button>
+                     <button
+                        onClick={() => setConfirmAction(null)}
+                        className="w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                     >
+                        Cancelar
+                     </button>
+                  </div>
                </div>
             </div>
          )}

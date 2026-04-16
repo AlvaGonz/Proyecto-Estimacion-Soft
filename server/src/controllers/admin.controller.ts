@@ -48,3 +48,13 @@ export const restoreProject = asyncHandler(async (req: Request, res: Response) =
     const project = await projectService.restore(req.params.id, req.user!.id);
     res.json({ success: true, data: project, message: 'Proyecto restaurado exitosamente' });
 });
+
+export const archiveProject = asyncHandler(async (req: Request, res: Response) => {
+    const project = await projectService.archive(req.params.id, req.user!.id);
+    res.json({ success: true, data: project, message: 'Proyecto archivado exitosamente' });
+});
+
+export const deleteProject = asyncHandler(async (req: Request, res: Response) => {
+    await projectService.softDelete(req.params.id, req.user!.id);
+    res.json({ success: true, message: 'Proyecto eliminado exitosamente' });
+});

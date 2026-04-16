@@ -74,8 +74,19 @@ export const adminService = {
     },
 
     async listProjects(): Promise<any[]> {
-        const result = await fetchApi<any>('/admin/projects');
-        return result.data;
+        return await fetchApi<any[]>('/admin/projects');
+    },
+
+    async archiveProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}/archive`, {
+            method: 'PATCH',
+        });
+    },
+
+    async deleteProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}`, {
+            method: 'DELETE',
+        });
     },
 
     async restoreProject(id: string): Promise<void> {

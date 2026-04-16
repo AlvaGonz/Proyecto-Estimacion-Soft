@@ -95,10 +95,12 @@ const projectSchema = new Schema<IProject>(
         timestamps: true,
         toJSON: {
             virtuals: true,
-            transform: (_doc, ret: any) => {
-                ret.id = ret._id?.toString() || ret.id;
+            versionKey: false,
+            transform: (doc, ret: any) => {
+                // Ensure the string id always comes from the project's own _id
+                // Use doc._id because ret._id might have been transformed already
+                ret.id = doc._id.toString();
                 delete ret._id;
-                delete ret.__v;
                 return ret;
             }
         },

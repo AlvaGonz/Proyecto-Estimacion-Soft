@@ -8,7 +8,7 @@ import { RegisterDTO, LoginDTO } from '../types/api.types.js';
 const REFRESH_TOKEN_COOKIE_OPTIONS = {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
 };
@@ -16,7 +16,7 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
 const ACCESS_TOKEN_COOKIE_OPTIONS = {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
     maxAge: 15 * 60 * 1000, // 15 minutes
     path: '/',
 };
@@ -85,7 +85,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict' as const,
+        sameSite: 'lax' as const,
         path: '/',
     });
 
