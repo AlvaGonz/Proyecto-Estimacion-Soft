@@ -2,17 +2,18 @@ import { Router } from 'express';
 import {
     createProject, getProjects, getProjectById, updateProject,
     archiveProject, manageExperts, getProjectAuditLogs,
-    createTask, getTasksByProject, updateTask, deleteProject, 
-    finalizeTask, restoreProject
-} from './project.controller.js';
-import { authenticate } from '../../middleware/auth.middleware.js';
-import { requireRole } from '../../middleware/rbac.middleware.js';
-import { validate } from '../../middleware/validate.middleware.js';
-import { ROLES } from '../../config/constants.js';
+    createTask, getTasksByProject, updateTask, deleteProject,
+    deleteAttachment, uploadAttachment, finalizeTask, restoreProject
+} from '../controllers/project.controller.js';
+import { upload } from '../middleware/upload.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import { requireRole } from '../middleware/rbac.middleware.js';
+import { validate } from '../middleware/validate.middleware.js';
+import { ROLES } from '../config/constants.js';
 import {
     createProjectSchema, updateProjectSchema, manageExpertsSchema,
     createTaskSchema, updateTaskSchema
-} from '../../types/api.types.js';
+} from '../types/api.types.js';
 
 const router = Router();
 
@@ -43,12 +44,13 @@ router.patch(
     updateProject
 );
 
-// POST /api/projects/:id/archive - Soft delete (archive status)
-router.post(
+// PATCH /api/projects/:id/archive - Soft delete (archive status)
+router.patch(
     '/:id/archive',
     requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
     archiveProject
 );
+
 // DELETE /api/projects/:id - Permanent soft delete (isDeleted flag)
 router.delete(
     '/:id',
@@ -56,12 +58,8 @@ router.delete(
     deleteProject
 );
 
-// PATCH /api/projects/:id/restore - Admin only restore
-router.patch(
-    '/:id/restore',
-    requireRole(ROLES.ADMIN),
-    restoreProject
-);
+// PATCH /api/projects/:id/restore - Restore soft-deleted project
+router.patch('/:id/restore', requireRole(ROLES.ADMIN), restoreProject);
 
 // PATCH /api/projects/:id/experts
 router.patch(
@@ -73,6 +71,23 @@ router.patch(
 
 // GET /api/projects/:id/audit-logs
 router.get('/:id/audit-logs', getProjectAuditLogs);
+
+// ─── Project Attachments ──────────────────────────────────────────
+
+// POST /api/projects/:id/attachments
+router.post(
+    '/:id/attachments',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    upload.single('file'),
+    uploadAttachment
+);
+
+// DELETE /api/projects/:id/attachments/:attachmentId
+router.delete(
+    '/:id/attachments/:attachmentId',
+    requireRole(ROLES.ADMIN, ROLES.FACILITADOR),
+    deleteAttachment
+);
 
 // ─── Nested Task Endpoints ──────────────────────────────────────────
 

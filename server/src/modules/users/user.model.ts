@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
-import bcrypt from 'bcrypt';
-import { IUser, IUserModel } from '../../types/models.types.js';
+import bcrypt from 'bcryptjs';
+import { IUser, IUserModel } from '../types/models.types.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -48,7 +48,7 @@ userSchema.methods.comparePassword = async function (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 userSchema.set('toJSON', {
     transform: (_doc, ret: any) => {
-        ret.id = ret._id.toString();
+        ret.id = ret._id?.toString() || ret.id;
         delete ret._id;
         delete ret.password;
         delete ret.refreshToken;

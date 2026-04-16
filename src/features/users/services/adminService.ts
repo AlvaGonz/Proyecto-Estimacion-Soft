@@ -61,14 +61,45 @@ export const adminService = {
         });
     },
 
+    async activateUser(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/users/${id}/activate`, {
+            method: 'PATCH',
+        });
+    },
+
+    async deleteUser(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/users/${id}`, {
+            method: 'DELETE',
+        });
+    },
+
     async listProjects(): Promise<any[]> {
-        const result = await fetchApi<any>('/admin/projects');
-        return result.data;
+        return await fetchApi<any[]>('/admin/projects');
+    },
+
+    async archiveProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}/archive`, {
+            method: 'PATCH',
+        });
+    },
+
+    async deleteProject(id: string): Promise<void> {
+        await fetchApi<void>(`/admin/projects/${id}`, {
+            method: 'DELETE',
+        });
     },
 
     async restoreProject(id: string): Promise<void> {
         await fetchApi<void>(`/admin/projects/${id}/restore`, {
             method: 'PATCH',
+        });
+    },
+
+    /** Reassign a project's facilitator — Admin only. Uses the existing PATCH /projects/:id endpoint. */
+    async reassignFacilitator(projectId: string, facilitatorId: string): Promise<void> {
+        await fetchApi<void>(`/projects/${projectId}`, {
+            method: 'PATCH',
+            body: { facilitatorId },
         });
     },
 };

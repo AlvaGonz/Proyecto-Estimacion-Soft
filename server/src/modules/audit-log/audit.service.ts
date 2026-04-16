@@ -1,11 +1,15 @@
-import { AuditLog } from './audit-log.model.js';
+import { AuditLog } from '../models/index.js';
+import { User } from '../models/User.model.js';
 
 interface AuditLogData {
     userId: string;
+    userName?: string;
+    userEmail?: string;
+    userRole?: string;
     action: string;
     resource: string;
     resourceId?: string;
-    details?: Record<string, unknown>;
+    details?: Record<string, unknown> | string;
     ipAddress?: string;
     userAgent?: string;
 }
@@ -17,8 +21,26 @@ export class AuditService {
      */
     async log(data: AuditLogData): Promise<void> {
         try {
+            let userSnapshot = {
+                userName: data.userName,
+                userEmail: data.userEmail,
+                userRole: data.userRole
+            };
+
+            if ((!userSnapshot.userName || !userSnapshot.userRole || !userSnapshot.userEmail) && data.userId) {
+                const user = await User.findById(data.userId).select('name email role');
+                if (user) {
+                    userSnapshot = {
+                        userName: userSnapshot.userName || user.name,
+                        userEmail: userSnapshot.userEmail || user.email,
+                        userRole: userSnapshot.userRole || user.role
+                    };
+                }
+            }
+
             await AuditLog.create({
                 ...data,
+                ...userSnapshot,
                 timestamp: new Date(),
             });
         } catch (error) {

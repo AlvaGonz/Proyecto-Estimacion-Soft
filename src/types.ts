@@ -1,8 +1,8 @@
 
 export enum UserRole {
-  ADMIN = 'Administrador',
-  FACILITATOR = 'Facilitador',
-  EXPERT = 'Experto'
+  ADMIN = 'admin',
+  FACILITATOR = 'facilitador',
+  EXPERT = 'experto'
 }
 
 export interface User {
@@ -19,17 +19,28 @@ export interface Project {
   name: string;
   description: string;
   unit: 'hours' | 'storyPoints' | 'personDays';
-  facilitatorId: string;
-  expertIds: string[];
-  status: 'activo' | 'finalizado' | 'archivado';
+  facilitatorId: string | User;
+  expertIds: (string | User)[];
+  status: 'preparation' | 'kickoff' | 'active' | 'finished' | 'archived';
   estimationMethod?: EstimationMethod;
   convergenceConfig?: ConvergenceConfig;
-  maxRounds: number;
-  sprints: number;
   hasStartedRounds?: boolean;
-  sprintIsLocked?: boolean;
   isDeleted?: boolean;
   createdAt: number;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: string;
+  _id?: string; // Compatibility with MongoDB
+  projectId: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  path: string;
+  uploadedBy: string;
+  uploadedAt: number;
 }
 
 export interface Task {
@@ -37,31 +48,9 @@ export interface Task {
   projectId: string;
   title: string;
   description: string;
-  status: 'pending' | 'estimating' | 'consensus' | 'finalized';
+  status: 'pending' | 'estimating' | 'consensus';
   finalEstimate?: number;
   completionPercentage?: number;
-}
-
-export type NotificationType = 
-  | 'project_invite' 
-  | 'round_opened' 
-  | 'round_closed' 
-  | 'consensus_reached' 
-  | 'system'
-  | 'expert_submission'
-  | 'results_revealed'
-  | 'new_round'
-  | 'reminder';
-
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  message: string;
-  projectId?: string;
-  taskId?: string;
-  targetUserId?: string;
-  read: boolean;
-  createdAt: number;
 }
 
 export interface Estimation {
@@ -79,13 +68,10 @@ export interface Round {
   id: string;
   taskId: string;
   roundNumber: number;
-  status: 'abierta' | 'cerrada';
-  startTime: Date;
-  endTime?: Date;
+  status: 'open' | 'closed';
+  startTime: number;
+  endTime?: number;
   stats?: RoundStats;
-  analysis?: ConvergenceAnalysis;
-  maxRounds?: number;
-  sprints?: number;
   estimations: Estimation[];
 }
 
@@ -95,14 +81,14 @@ export interface RoundStats {
   stdDev: number;
   variance: number;
   coefficientOfVariation: number;
-  range: [number, number];
+  range: [number, number] | number;
   iqr: number;
   outlierEstimationIds: string[]; // IDs of outlier estimations
   metricaResultados?: Record<string, any>;
 }
 
 export interface ConvergenceAnalysis {
-  level: 'alta' | 'media' | 'baja';
+  level: 'Alta' | 'Media' | 'Baja';
   recommendation: string;
   aiInsights?: string;
 }
@@ -111,22 +97,28 @@ export interface AuditEntry {
   id: string;
   projectId: string;
   userId: string;
+  userName?: string;
+  userEmail?: string;
+  userRole?: string;
   action: string;
-  timestamp: number;
-  details: string;
+  timestamp: number | string;
+  details: any; // Allow object or string
 }
 
 export interface Comment {
   id: string;
-  roundId: string;
+  roundId?: string; // Optional for task-level discussions
+  taskId?: string;  // Explicit task context
   userId?: string;
+  userRole?: string; // Classification for display
   content: string;
   isAnonymous: boolean;
-  timestamp: number;
+  timestamp?: number | string;
+  createdAt?: string;
 }
 
 // ─── RF031/032/034 — Estimation Methods ──────────────────────────
-export type EstimationMethod = 'Delphi' | 'Poker' | 'TresPuntos';
+export type EstimationMethod = 'wideband-delphi' | 'planning-poker' | 'three-point';
 
 export interface ConvergenceConfig {
   cvThreshold: number;       // default: 0.25
@@ -141,15 +133,11 @@ export interface ThreePointEstimation {
   stdDev?: number;      // σ = (P - O) / 6       — calculated, not entered
 }
 
-export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '∞', '?'] as const;
+export const FIBONACCI_SEQUENCE = [0, 1, 2, 3, 5, 8, 13, 21, '?'] as const;
 export type FibonacciCard = typeof FIBONACCI_SEQUENCE[number];
 
 export const METHOD_LABELS: Record<string, string> = {
-  'Delphi': 'Wideband Delphi (Tradicional)',
-  'Poker': 'Planning Poker (Agile)',
-  'TresPuntos': 'Estimación de Tres Puntos (PERT)'
+  'wideband-delphi': 'Wideband Delphi (Tradicional)',
+  'planning-poker': 'Planning Poker (Agile)',
+  'three-point': 'Estimación de Tres Puntos (PERT)'
 };
-
-export type ReportFormat = 'PDF' | 'Excel';
-export type NotificationChannel = 'email' | 'plataforma';
-

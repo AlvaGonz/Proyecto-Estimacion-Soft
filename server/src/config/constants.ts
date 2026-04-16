@@ -22,6 +22,7 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     [ROLES.ADMIN]: Object.values(PERMISSIONS),
     [ROLES.FACILITADOR]: [
+        PERMISSIONS.MANAGE_USERS,
         PERMISSIONS.CREATE_PROJECT,
         PERMISSIONS.EDIT_PROJECT,
         PERMISSIONS.MANAGE_ROUNDS,

@@ -51,8 +51,6 @@ export const projectSchemaV2 = z.object({
   description: z.string().min(10, 'Mínimo 10 caracteres').max(1000),
   unit: z.enum(['hours', 'storyPoints', 'personDays']),
   estimationMethod: estimationMethodSchema,
-  maxRounds: z.number().min(1, 'Mínimo 1 ronda').max(10, 'Máximo 10 rondas').default(3),
-  sprints: z.number().min(1, 'Mínimo 1 sprint').max(50, 'Máximo 50 sprints').default(1),
   convergenceConfig: z.object({
     cvThreshold: z.number().min(0.01).max(1).default(0.25),
     maxOutlierPercent: z.number().min(0.01).max(1).default(0.30),
@@ -60,22 +58,6 @@ export const projectSchemaV2 = z.object({
 });
 
 export type ProjectFormDataV2 = z.infer<typeof projectSchemaV2>;
-
-// ─── Wizard step schemas ──────────────────────────────────────
-export const wizardStep1Schema = z.object({
-  name: z.string().min(3, 'Mínimo 3 caracteres').max(120, 'Máximo 120 caracteres'),
-  description: z.string().min(10, 'Mínimo 10 caracteres').max(500, 'Máximo 500 caracteres'),
-  unit: z.enum(['hours', 'storyPoints', 'personDays'], { message: 'Selecciona una unidad' }),
-});
-
-export const wizardStep2Schema = z.object({
-  estimationMethod: estimationMethodSchema,
-});
-
-export const wizardTaskSchema = z.object({
-  title: z.string().min(3, 'Mínimo 3 caracteres').max(200, 'Máximo 200 caracteres'),
-  description: z.string().max(300, 'Máximo 300 caracteres').optional(),
-});
 
 export const threePointSchema = z.object({
   optimistic: z.number().min(0, 'O debe ser >= 0'),

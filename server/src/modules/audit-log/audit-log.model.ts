@@ -3,10 +3,13 @@ import { IAuditLog } from '../../types/models.types.js';
 
 const auditLogSchema = new Schema<IAuditLog>({
     userId: { type: String, required: true, index: true },
+    userName: { type: String },         // Historical name
+    userEmail: { type: String },        // Historical email
+    userRole: { type: String },         // Historical role
     action: { type: String, required: true },
     resource: { type: String, required: true },
     resourceId: { type: String },
-    details: { type: Schema.Types.Mixed },
+    details: { type: Schema.Types.Mixed }, // Can be object or string
     ipAddress: { type: String },
     userAgent: { type: String },
     timestamp: { type: Date, default: Date.now, index: true },

@@ -46,6 +46,7 @@ export const updateProjectSchema = z.object({
         description: z.string().min(10).max(1000).optional(),
         unit: z.enum(['hours', 'storyPoints', 'personDays']).optional(),
         status: z.enum(['active', 'finished', 'archived']).optional(),
+        facilitatorId: z.string().optional(),
         convergenceConfig: z.object({
             cvThreshold: z.number().min(0.01).max(1).optional(),
             maxOutlierPercent: z.number().min(0.01).max(1).optional(),
@@ -129,7 +130,9 @@ export const createCommentSchema = z.object({
         isAnonymous: z.boolean().optional().default(true),
     }),
     params: z.object({
-        id: z.string().min(1), // roundId
+        id: z.string().optional(),      // Generic id (project/round)
+        taskId: z.string().optional(),  // Specific taskId
+        roundId: z.string().optional(), // Specific roundId
     }),
 });
 

@@ -1,31 +1,69 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Shield, Users, Send, Flag, ThumbsUp, Sparkles } from 'lucide-react';
-import { discussionCommentSchema } from '../../../shared/utils/schemas';
+import { MessageSquare, Shield, Users, Send, Flag, Sparkles } from 'lucide-react';
+import { discussionCommentSchema } from '../utils/schemas';
 import { z } from 'zod';
-import { EmptyState } from '../../../shared/components/EmptyState';
-import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
+import { EmptyState } from './ui/EmptyState';
+import { AppErrorBoundary } from './ui/AppErrorBoundary';
 import { discussionService } from '../services/discussionService';
-import { Comment } from '../../../types';
-import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
-import { sanitizeInput } from '../../../shared/utils/security';
+import { Comment } from '../types';
+import { LoadingSpinner } from './ui/LoadingSpinner';
 
 interface DiscussionSpaceProps {
-   roundId: string;
+   projectId: string;
+   taskId: string;
+   roundId?: string;
 }
 
-const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
+const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ projectId, taskId, roundId }) => {
    const [comment, setComment] = useState('');
    const [errors, setErrors] = useState<Record<string, string>>({});
    const [comments, setComments] = useState<Comment[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [submitError, setSubmitError] = useState('');
+
+   const getRoleLabel = (rawRole?: string): string => {
+      if (!rawRole) return 'Experto';
+      const normalized = rawRole.toLowerCase();
+      if (normalized === 'admin' || normalized === 'administrator' || normalized === 'administrador') return 'Administrador';
+      if (normalized === 'facilitador' || normalized === 'facilitator') return 'Facilitador';
+      return 'Experto';
+   };
+
+   const getRoleClass = (rawRole?: string): string => {
+      const role = getRoleLabel(rawRole);
+      if (role === 'Administrador') return 'bg-slate-900 text-white';
+      if (role === 'Facilitador') return 'bg-delphi-keppel text-white';
+      return 'bg-delphi-vanilla text-delphi-orange';
+   };
+
+   const formatDateTime = (value?: string | number): string => {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) {
+        const fallback = new Date();
+        const d = String(fallback.getDate()).padStart(2, '0');
+        const m = String(fallback.getMonth() + 1).padStart(2, '0');
+        const y = fallback.getFullYear();
+        const h = String(fallback.getHours()).padStart(2, '0');
+        const min = String(fallback.getMinutes()).padStart(2, '0');
+        const s = String(fallback.getSeconds()).padStart(2, '0');
+        return `${d}/${m}/${y} ${h}:${min}:${s}`;
+      }
+      const d = String(date.getDate()).padStart(2, '0');
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const y = date.getFullYear();
+      const h = String(date.getHours()).padStart(2, '0');
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const s = String(date.getSeconds()).padStart(2, '0');
+      return `${d}/${m}/${y} ${h}:${min}:${s}`;
+   };
 
    useEffect(() => {
       let isMounted = true;
       const fetchComments = async () => {
          try {
             setIsLoading(true);
-            const data = await discussionService.getComments(roundId);
+            const data = await discussionService.getCommentsByTask(projectId, taskId);
             if (isMounted) setComments(data);
          } catch (err) {
             console.error("Failed to load comments", err);
@@ -33,16 +71,23 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
             if (isMounted) setIsLoading(false);
          }
       };
-      fetchComments();
+      if (taskId) {
+         fetchComments();
+      }
       return () => { isMounted = false; };
-   }, [roundId]);
+   }, [projectId, taskId]);
+
    const handleSendComment = async () => {
       try {
          discussionCommentSchema.parse({ content: comment });
          setErrors({});
-         const newComment = await discussionService.addComment(roundId, comment, true);
+         
+         // RF015: Support task-level discussion persistence
+         const newComment = await discussionService.addCommentToTask(projectId, taskId, comment, true);
+         
          setComments([...comments, newComment]);
          setComment('');
+         setSubmitError('');
       } catch (error: any) {
          if (error instanceof z.ZodError) {
             const newErrors: Record<string, string> = {};
@@ -52,6 +97,9 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                }
             });
             setErrors(newErrors);
+            setSubmitError('');
+         } else {
+            setSubmitError(error?.message || 'No se pudo enviar el comentario.');
          }
       }
    };
@@ -90,19 +138,28 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                      ) : (
                         <>
                            {comments.map((c) => (
-                              <div key={c.id} className="flex gap-6">
-                                 <div className="shrink-0 w-14 h-14 rounded-3xl bg-delphi-vanilla text-delphi-orange text-xl flex items-center justify-center font-black shadow-inner">
-                                    {c.isAnonymous ? 'ANON' : c.userId?.substring(0, 2) || 'EX'}
+                              <div key={c.id} className="flex gap-4 md:gap-6 animate-in slide-in-from-left-4 duration-300">
+                                 <div className={`shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-3xl text-lg md:text-xl flex items-center justify-center font-black shadow-inner ${getRoleClass(c.userRole)}`}>
+                                    {getRoleLabel(c.userRole).substring(0, 2).toUpperCase()}
                                  </div>
-                                 <div className="flex-1 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{new Date(c.timestamp || (c as any).createdAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                                       <button className="text-slate-300 hover:text-delphi-orange transition-colors btn-base"><Flag className="w-4 h-4" /></button>
+                                 <div className="flex-1 space-y-2">
+                                    <div className="flex items-center">
+                                       <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">
+                                          {c.isAnonymous ? getRoleLabel(c.userRole) : (c as any).userId?.name}
+                                       </span>
                                     </div>
-                                    <div className="bg-slate-50 border-slate-100 p-6 rounded-[2rem] rounded-tl-none border relative">
-                                       <p className="text-slate-600 font-medium leading-relaxed">
-                                          {sanitizeInput(c.content)}
-                                       </p>
+                                    <div className="bg-slate-50 border-slate-100 p-5 md:p-6 rounded-2xl md:rounded-[2rem] rounded-tl-none border relative group/msg transition-all hover:border-delphi-keppel/20">
+                                       <div className="text-slate-600 font-medium leading-relaxed mb-4">
+                                          {c.content}
+                                       </div>
+                                       <div className="flex items-center justify-end gap-3 mt-auto pt-3 border-t border-slate-200/50">
+                                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.15em]">
+                                             {formatDateTime(c.createdAt || c.timestamp)}
+                                          </span>
+                                          <button className="text-slate-300 hover:text-delphi-orange transition-colors" aria-label="Reportar mensaje">
+                                             <Flag className="w-3.5 h-3.5" />
+                                          </button>
+                                       </div>
                                     </div>
                                  </div>
                               </div>
@@ -130,11 +187,12 @@ const DiscussionSpace: React.FC<DiscussionSpaceProps> = ({ roundId }) => {
                            <button
                               onClick={handleSendComment}
                               aria-label="Enviar comentario"
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-delphi-keppel text-white p-2.5 rounded-full hover:scale-110 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20 btn-base"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-delphi-keppel text-white p-2.5 rounded-full hover:scale-110 active:scale-95 transition-all shadow-lg shadow-delphi-keppel/20"
                            >
                               <Send className="w-5 h-5" />
                            </button>
                            {errors.content && <p id="comment-error" role="alert" className="text-red-500 text-xs mt-1 ml-4 absolute -bottom-6">{errors.content}</p>}
+                           {submitError && <p role="alert" className="text-red-500 text-xs mt-2 ml-4">{submitError}</p>}
                         </div>
                      </div>
                   </div>

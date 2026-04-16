@@ -1,20 +1,31 @@
 import { Request, Response } from 'express';
-import { projectService } from './project.service.js';
-import { taskService } from '../tasks/task.service.js';
-import { auditService } from '../audit-log/audit.service.js';
-import { asyncHandler } from '../../utils/asyncHandler.js';
-import { Role } from '../../config/constants.js';
+import { projectService } from '../services/project.service.js';
+import { taskService } from '../services/task.service.js';
+import { auditService } from '../services/audit.service.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { Role, ROLES } from '../config/constants.js';
+import { ApiError } from '../utils/ApiError.js';
 
 // ─── Proyectos ───────────────────────────────────────────────────────
 
 export const createProject = asyncHandler(async (req: Request, res: Response) => {
     const projectData = req.body;
-    const facilitatorId = req.user?.id as string;
+    const requesterId = req.user?.id as string;
+
+    let facilitatorId: string;
+    if (req.user?.role === ROLES.ADMIN) {
+        if (!projectData.facilitatorId) {
+            throw ApiError.badRequest('Se debe asignar un facilitador al proyecto');
+        }
+        facilitatorId = projectData.facilitatorId;
+    } else {
+        facilitatorId = requesterId;
+    }
 
     const project = await projectService.create({ 
         ...projectData, 
         facilitatorId 
-    }, facilitatorId);
+    }, requesterId);
 
     res.status(201).json({
         success: true,
@@ -52,8 +63,10 @@ export const getProjectById = asyncHandler(async (req: Request, res: Response) =
 export const updateProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role;
 
-    const project = await projectService.update(id, req.body, requesterId);
+    const project = await projectService.update(id, req.body, requesterId, requesterName, requesterRole);
 
     res.json({
         success: true,
@@ -65,6 +78,8 @@ export const updateProject = asyncHandler(async (req: Request, res: Response) =>
 export const archiveProject = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role;
 
     const project = await projectService.archive(id, requesterId);
 
@@ -83,42 +98,51 @@ export const deleteProject = asyncHandler(async (req: Request, res: Response) =>
 
     res.json({
         success: true,
-        message: 'Proyecto eliminado correctamente'
+        message: 'Proyecto eliminado correctamente (soft-delete)'
     });
 });
 
-export const restoreProject = asyncHandler(async (req: Request, res: Response) => {
+export const uploadAttachment = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const requesterId = req.user?.id as string;
 
-    const project = await projectService.restore(id, requesterId);
+    if (!req.file) {
+        throw ApiError.badRequest('No se ha subido ningún archivo');
+    }
+
+    const attachment = await projectService.addAttachment(id, req.file, requesterId);
 
     res.json({
         success: true,
-        message: 'Proyecto restaurado exitosamente',
+        message: 'Archivo subido correctamente',
+        data: attachment
+    });
+});
+
+export const deleteAttachment = asyncHandler(async (req: Request, res: Response) => {
+    const { id, attachmentId } = req.params;
+    const requesterId = req.user?.id as string;
+
+    const project = await projectService.deleteAttachment(id, attachmentId, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Archivo eliminado correctamente',
         data: project
     });
 });
 
 export const manageExperts = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { expertIds } = req.body;
+    const { action, expertIds } = req.body;
     const requesterId = req.user?.id as string;
-
-    // In project.service.ts it's manageExperts(id, action, expertIds, requesterId)
-    // But currently called as updateExperts in my previous attempt.
-    // I will use updateProject or fix projectService to have updateExperts.
-    // Wait, let's check project.service.ts again. It has manageExperts(id, action, expertIds, requesterId).
-    // The request body usually contains the full list of expertIds in my FE.
-    // Let's assume manageExperts in service handles 'add'/'remove'.
-    // If FE sends full list, I should probably have a 'set' action or use update().
-    
-    // Attempting to use update() for simple expert list replacement
-    const project = await projectService.update(id, { expertIds }, requesterId);
+    const requesterName = (req as any).user?.name || 'Usuario';
+    const requesterRole = req.user?.role as string | undefined;
+    const project = await projectService.manageExperts(id, action, expertIds, requesterId, requesterName, requesterRole);
 
     res.json({
         success: true,
-        message: 'Lista de expertos actualizada',
+        message: action === 'add' ? 'Expertos agregados correctamente' : 'Expertos removidos correctamente',
         data: project
     });
 });
@@ -171,6 +195,19 @@ export const finalizeTask = asyncHandler(async (req: Request, res: Response) => 
         success: true,
         message: 'Tarea finalizada correctamente',
         data: task
+    });
+});
+
+export const restoreProject = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const requesterId = req.user?.id as string;
+
+    const project = await projectService.restore(id, requesterId);
+
+    res.json({
+        success: true,
+        message: 'Proyecto restaurado correctamente',
+        data: project
     });
 });
 

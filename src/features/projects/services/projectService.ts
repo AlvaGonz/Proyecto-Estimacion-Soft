@@ -1,5 +1,5 @@
-import { Project, Task, AuditEntry } from '../../../types';
-import { fetchApi } from '../../../shared/api';
+import { Project, AuditEntry } from '../types';
+import { fetchApi } from '../utils/api';
 
 export const projectService = {
     async getProjects(): Promise<Project[]> {
@@ -47,14 +47,18 @@ export const projectService = {
         });
     },
 
-    async createTask(projectId: string, data: { title: string; description: string }): Promise<Task> {
-        return fetchApi<Task>(`/projects/${projectId}/tasks`, {
+    async uploadAttachment(projectId: string, file: File): Promise<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetchApi(`/projects/${projectId}/attachments`, {
             method: 'POST',
-            body: data,
+            body: formData
         });
     },
 
-    async getTasksByProject(projectId: string): Promise<Task[]> {
-        return fetchApi<Task[]>(`/projects/${projectId}/tasks`);
+    async deleteAttachment(projectId: string, attachmentId: string): Promise<void> {
+        return fetchApi<void>(`/projects/${projectId}/attachments/${attachmentId}`, {
+            method: 'DELETE'
+        });
     }
 };

@@ -15,15 +15,14 @@ import {
   XCircle,
   Search
 } from 'lucide-react';
-import { PermissionGate } from '../../../shared/components/PermissionGate';
-import { LoadingSpinner } from '../../../shared/components/LoadingSpinner';
-import { AppErrorBoundary } from '../../../shared/components/AppErrorBoundary';
-import { Project, Task, Round, User, UserRole } from '../../../types';
-import { loginSchema } from '../../../shared/utils/schemas';
+import { PermissionGate } from './ui/PermissionGate';
+import { LoadingSpinner } from './ui/LoadingSpinner';
+import { AppErrorBoundary } from './ui/AppErrorBoundary';
+import { Project, Task, Round, UserRole } from '../types';
 import { reportService } from '../services/reportService';
-import { taskService } from '../../../features/tasks/services/taskService';
-import { roundService } from '../../../features/rounds/services/roundService';
-import { toast } from 'react-hot-toast';
+import { taskService } from '../services/taskService';
+import { roundService } from '../services/roundService';
+import { estimationService } from '../services/estimationService';
 
 interface ReportGeneratorProps {
   projects: Project[];
@@ -106,7 +105,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
         
         // Fetch estimations for each round
         const roundsWithEstimations = await Promise.all(rounds.map(async (r) => {
-          const estimations = await (window as any).estimationService.getEstimationsByRound(r.id);
+          const estimations = await estimationService.getEstimationsByRound(r.id);
           return { ...r, estimations };
         }));
 
@@ -128,7 +127,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
       });
     } catch (error) {
       console.error('Error generating report:', error);
-      toast.error('Error al generar el reporte.');
+      alert('Error al generar el reporte.');
     } finally {
       setIsGenerating(false);
     }
@@ -284,7 +283,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
                       <button
                         onClick={handleGenerateReport}
                         disabled={isGenerating || projects.length === 0}
-                        className="w-full bg-slate-900 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-98 transition-all gap-4 disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group btn-base"
+                        className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-98 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:hover:scale-100 relative overflow-hidden group"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-delphi-keppel/0 via-white/5 to-delphi-keppel/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                         {isGenerating ? (
@@ -304,7 +303,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
 
             {/* Right Column: Info */}
             <div className="lg:col-span-4 space-y-8">
-              <div className="bg-gradient-to-br from-delphi-orange to-orange-600 p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] text-white relative overflow-hidden shadow-xl shadow-delphi-orange/20">
+              <div className="bg-gradient-to-br from-delphi-orange to-orange-600 p-10 rounded-[3rem] text-white relative overflow-hidden shadow-xl shadow-delphi-orange/20">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
                 <ShieldCheck className="w-12 h-12 mb-6" />
                 <h4 className="text-2xl font-black mb-3">Certificación UCE</h4>
@@ -317,7 +316,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
                 </div>
               </div>
 
-              <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm">
+              <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm">
                 <h4 className="font-black text-slate-800 mb-6 flex items-center gap-3">
                   <Share2 className="w-6 h-6 text-delphi-keppel" />
                   Formatos Admitidos
@@ -342,7 +341,7 @@ const ReportGenerator: React.FC<ReportGeneratorProps> = ({ projects, userRole })
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 p-6 md:p-12 shadow-sm min-h-[500px] flex flex-col">
+          <div className="bg-white rounded-[3rem] border border-slate-100 p-12 shadow-sm min-h-[500px] flex flex-col">
             <div className="flex items-center justify-between mb-12">
                <div>
                   <h3 className="text-2xl font-black text-slate-900 tracking-tight">Historial Local</h3>

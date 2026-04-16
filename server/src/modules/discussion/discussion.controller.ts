@@ -3,16 +3,37 @@ import { discussionService } from './discussion.service.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 
 export const addComment = asyncHandler(async (req: Request, res: Response) => {
-    const { id: roundId } = req.params;
+    // Both taskId and roundId are optional in the URL params, or we can handle different routes
+    const { taskId, roundId } = req.params;
     const { content, isAnonymous } = req.body;
     const userId = req.user?.id as string;
+    const userRole = req.user?.role;
 
-    const comment = await discussionService.addComment(roundId, userId, content, isAnonymous);
+    const comment = await discussionService.addComment(
+        userId, 
+        content, 
+        isAnonymous, 
+        taskId, 
+        roundId,
+        userRole
+    );
 
     res.status(201).json({
         success: true,
         message: 'Comentario agregado',
         data: comment
+    });
+});
+
+export const getCommentsByTask = asyncHandler(async (req: Request, res: Response) => {
+    const { taskId } = req.params;
+    const userId = req.user?.id as string;
+    const userRole = req.user?.role as string | undefined;
+    const comments = await discussionService.getCommentsByTask(taskId, userId, userRole);
+
+    res.json({
+        success: true,
+        data: comments
     });
 });
 

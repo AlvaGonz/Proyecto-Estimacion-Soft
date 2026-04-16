@@ -6,12 +6,21 @@ const commentSchema = new Schema<IComment>(
         roundId: {
             type: Schema.Types.ObjectId,
             ref: 'Round',
-            required: [true, 'El roundId es requerido']
+            required: false // Optional for task-level discussions
+        },
+        taskId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Task',
+            index: true
         },
         userId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
             required: [true, 'El userId es requerido']
+        },
+        userRole: {
+            type: String, // 'admin', 'facilitador', 'experto'
+            required: false
         },
         content: {
             type: String,
@@ -32,5 +41,6 @@ const commentSchema = new Schema<IComment>(
 
 // Indexes
 commentSchema.index({ roundId: 1, createdAt: 1 });
+commentSchema.index({ taskId: 1, createdAt: 1 });
 
 export const Comment = model<IComment>('Comment', commentSchema);
