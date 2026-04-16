@@ -279,6 +279,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   })}
                 </div>
               </div>
+
               <div className="flex flex-col sm:flex-row gap-4">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 sm:flex-none px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Atrás</button>
                 <button type="button" onClick={handleNextStep} className="flex-1 sm:flex-none bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all">Siguiente</button>
