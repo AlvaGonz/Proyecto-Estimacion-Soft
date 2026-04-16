@@ -49,7 +49,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
 
     try {
       // Validación con Zod
-      // Validar con Zod
       registerSchema.parse({
         name: formData.name,
         email: formData.email,
@@ -67,10 +66,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
       });
 
       setSuccessMessage('¡Registro exitoso! Redirigiendo...');
-      
+
       // Set auth flag in localStorage for client-side session validation
       localStorage.setItem('estimapro_auth', 'true');
-      
+
       // Pequeña demora para mostrar el mensaje de éxito
       setTimeout(() => {
         onRegister(user);
@@ -252,7 +251,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
           </div>
 
           {/* Login Link */}
-          <button 
+          <button
             onClick={onGoToLogin}
             className="w-full flex items-center justify-center gap-3 text-slate-400 hover:text-white transition-colors group"
           >
