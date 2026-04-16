@@ -21,7 +21,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: UserRole.EXPERT as UserRole
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +35,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
     if (errors[name]) {
       setErrors(prev => { const newErrors = { ...prev }; delete newErrors[name]; return newErrors; });
     }
+  };
+
+  const handleRoleChange = (role: UserRole) => {
+    setFormData(prev => ({ ...prev, role }));
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -49,14 +54,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        confirmPassword: formData.confirmPassword
+        confirmPassword: formData.confirmPassword,
+        role: formData.role
       });
 
       // Llamada al servicio de registro
       const user = await authService.register({
         name: formData.name,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        role: formData.role
       });
 
       setSuccessMessage('¡Registro exitoso! Redirigiendo...');
@@ -192,6 +199,37 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onRegister, onGoToLogin }) 
                   />
                 </div>
                 {errors.confirmPassword && <p id="confirmPassword-error" role="alert" className="text-red-400 text-xs mt-1 ml-2">{errors.confirmPassword}</p>}
+              </div>
+
+              {/* Role Selection */}
+              <div className="space-y-3 pt-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Tipo de Usuario</label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange(UserRole.EXPERT)}
+                    className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
+                      formData.role === UserRole.EXPERT 
+                        ? 'bg-delphi-keppel/10 border-delphi-keppel text-white' 
+                        : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
+                    }`}
+                  >
+                    <BrainCircuit className={`w-5 h-5 ${formData.role === UserRole.EXPERT ? 'text-delphi-keppel' : ''}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Experto</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange(UserRole.FACILITATOR)}
+                    className={`flex-1 py-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
+                      formData.role === UserRole.FACILITATOR 
+                        ? 'bg-delphi-keppel/10 border-delphi-keppel text-white' 
+                        : 'bg-white/5 border-white/10 text-slate-500 hover:border-white/20'
+                    }`}
+                  >
+                    <Shield className={`w-5 h-5 ${formData.role === UserRole.FACILITATOR ? 'text-delphi-keppel' : ''}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Facilitador</span>
+                  </button>
+                </div>
               </div>
             </div>
 

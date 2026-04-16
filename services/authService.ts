@@ -35,14 +35,14 @@ export const authService = {
         };
     },
 
-    async register(data: { name: string; email: string; password: string }): Promise<User> {
+    async register(data: { name: string; email: string; password: string; role?: string }): Promise<User> {
         const response = await fetchApi<{ user: any }>('/auth/register', {
             method: 'POST',
             body: {
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                role: 'experto' // Los usuarios registrados públicamente son expertos por defecto
+                role: data.role || 'experto'
             }
         });
 

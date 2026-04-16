@@ -19,7 +19,7 @@ Login UI REAL en browser headless:
 
 ## Commits Realizados
 1. `cbbf4a4` fix(e2e): use UI login in global-setup — fixes SameSite:Lax cookie cross-port block
-2. `466d414` feat(e2e): add e2e:reset-auth and e2e:fresh npm scripts  
+2. `466d414` feat(e2e): add e2e:reset-auth and e2e:fresh npm scripts
 3. `7bea6ce` fix(e2e): robust Step 4 selectors + screenshot on failure
 
 ## Cambios en Archivos
@@ -44,7 +44,7 @@ Login UI REAL en browser headless:
 # Terminal 1: Backend
 cd server && npm run dev
 
-# Terminal 2: Frontend  
+# Terminal 2: Frontend
 npm run dev
 
 # Terminal 3: Tests (primera vez o si hay problemas)
