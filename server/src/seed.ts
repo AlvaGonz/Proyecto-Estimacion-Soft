@@ -38,24 +38,51 @@ const seedDatabase = async () => {
 
         // 1. Create Users
         const adminData = { name: 'Administrador UCE', email: 'admin@uce.edu.do', password: 'password123', role: 'admin', isActive: true };
+        const adminFieldTestData = { name: 'Admin Prueba de Campo', email: 'admin_fieldtest@uce.edu.do', password: 'password123', role: 'admin', isActive: true };
+        
+        const admin = await User.create(adminData);
+        const adminFieldTest = await User.create(adminFieldTestData);
+
+        // Facilitadores Originales
         const facilitatorData = { name: 'Adrian Alvarez', email: 'aalvarez@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
         const facilitator2Data = { name: 'Facilitador 2', email: 'facilitador2@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
+        
+        const facilitator = await User.create(facilitatorData);
+        const facilitator2 = await User.create(facilitator2Data);
+
+        // Facilitador Nuevo (Beta)
+        const facilitatorBetaData = { name: 'Francisco Jose Santana Valencio', email: 'franciscosantana@uce.edu.do', password: 'password123', role: 'facilitador', isActive: true };
+        const facilitatorBeta = await User.create(facilitatorBetaData);
+
+        // Expertos Originales
         const expert1Data = { name: 'Experto 1', email: 'expert1@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Backend' };
         const expert2Data = { name: 'Experto 2', email: 'expert2@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Frontend' };
         const expert3Data = { name: 'Experto 3', email: 'expert3@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'DevOps' };
         const expert4Data = { name: 'Experto 4', email: 'expert4@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'QA' };
         const expert5Data = { name: 'Experto 5', email: 'expert5@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Base de Datos' };
 
-        const admin = await User.create(adminData);
-        const facilitator = await User.create(facilitatorData);
-        const facilitator2 = await User.create(facilitator2Data);
         const expert1 = await User.create(expert1Data);
         const expert2 = await User.create(expert2Data);
         const expert3 = await User.create(expert3Data);
         const expert4 = await User.create(expert4Data);
         const expert5 = await User.create(expert5Data);
 
-        console.log(`✅ Created users (Admin, 2 Facilitators, 5 Experts)`);
+        // Expertos Nuevos (Beta)
+        const betaExpertsData = [
+            { name: 'Adrian Alexander Alvarez Gonzalez', email: 'adrianalvarez@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Rancel Abad Cedeño Perez', email: 'rancelcedeno@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Antony Joseph Avila', email: 'antonyavila@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Kenny Juan Reyes Mena', email: 'kennyreyes@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Wilfrido Antonio Rojas Mota', email: 'wilfridorojas@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Christian Imanor Vasquez Denis', email: 'christianvasquez@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' },
+            { name: 'Ray Rubén Ventura López', email: 'rayventura@uce.edu.do', password: 'password123', role: 'experto', isActive: true, expertiseArea: 'Software Engineering' }
+        ];
+
+        for (const data of betaExpertsData) {
+            await User.create(data);
+        }
+
+        console.log(`✅ Created users (2 Admins, 3 Facilitators, 12 Experts)`);
 
         // 2. Create Project
         const project = await Project.create({
@@ -190,7 +217,7 @@ const seedDatabase = async () => {
             await Comment.create({
                 taskId: dummyTaskA._id,
                 roundId: openRound._id,
-                userId: baseExperts[0]._id,
+                userId: expert1._id,
                 userRole: 'experto',
                 content: `Comentario anónimo de experto para ${projectName}.`,
                 isAnonymous: true
@@ -315,10 +342,10 @@ const seedDatabase = async () => {
             });
 
             await AuditLog.create({
-                userId: String(baseExperts[0]._id),
-                userName: baseExperts[0].name,
-                userEmail: baseExperts[0].email,
-                userRole: baseExperts[0].role,
+                userId: String(expert1._id),
+                userName: expert1.name,
+                userEmail: expert1.email,
+                userRole: expert1.role,
                 action: 'comment:create',
                 resource: 'Comment',
                 resourceId: String(dummyTaskA._id),

@@ -46,13 +46,19 @@ The database is automatically populated with dummy data on the first run via the
 **Users & Roles (`User` collection):**
 Test users are automatically created with appropriately hashed passwords using Bcrypt (12 rounds) guaranteeing successful login:
 
-1. **Administrator**
-   - Email: `admin@uce.edu.do`
-   - Password: `password123`
-   - Role: `admin`
-   - Permissions: Manage system, users, and projects
+ 1. **Administrator (System)**
+    - Email: `admin@uce.edu.do`
+    - Password: `password123`
+    - Role: `admin`
+    - Permissions: Manage system, users, and projects
+ 
+ 2. **Administrator (Field Test / Beta)**
+    - Email: `admin_fieldtest@uce.edu.do`
+    - Password: `password123`
+    - Role: `admin`
+    - Permissions: Manage system, users, and projects
 
-2. **Facilitator**
+3. **Facilitator**
    - Email: `aalvarez@uce.edu.do`
    - Password: `password123`
    - Role: `facilitador`
@@ -71,6 +77,67 @@ The seed scripts (in `server/src/seed.ts` executed by `run-seeds.sh`) are **idem
 - **Frontend (React UI)**: http://localhost:3000
 - **Backend API**: http://localhost:4000/api
 - **Database (MongoDB)**: mongodb://localhost:27017
+
+## Field Test (Beta) Credentials
+
+### Facilitator
+- **Francisco Jose Santana Valencio**
+  - Email: `franciscosantana@uce.edu.do`
+  - Password: `password123`
+  - Role: `facilitador`
+  - Permissions: Create/Edit projects, Manage Rounds, Generate Reports, Moderate discussions
+
+### Experts
+
+1. **Adrian Alexander Alvarez Gonzalez**
+   - Email: `adrianalvarez@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+2. **Rancel Abad Cedeño Perez**
+   - Email: `rancelcedeno@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+3. **Antony Joseph Avila**
+   - Email: `antonyavila@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+4. **Kenny Juan Reyes Mena**
+   - Email: `kennyreyes@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+5. **Wilfrido Antonio Rojas Mota**
+   - Email: `wilfridorojas@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+6. **Christian Imanor Vasquez Denis**
+   - Email: `christianvasquez@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+7. **Ray Rubén Ventura López**
+   - Email: `rayventura@uce.edu.do`
+   - Password: `password123`
+   - Role: `experto`
+   - Permissions: Submit independent estimations
+
+8. **Admin Prueba de Campo (Recordatorio)**
+   - Email: `admin_fieldtest@uce.edu.do`
+   - Password: `password123`
+   - Role: `admin`
+   - Permissions: Full system management
+
+---
 
 ## Useful Commands
 
